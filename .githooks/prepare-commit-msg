@@ -1,0 +1,15 @@
+#!/bin/bash
+
+COMMIT_MSG_FILE=$1
+COMMIT_SOURCE=$2
+SHA1=$3
+
+firstLine=$(head -n1 $COMMIT_MSG_FILE)
+
+userName=$(git config user.name)
+userEmail=$(git config user.email)
+
+if [ -z "$firstLine" ]; then
+    commitTemplate=.githooks/commit-template
+    echo "$(sed '9 i Signed-off-by: '$userName' <'$userEmail'>' $commitTemplate)\n$(cat $COMMIT_MSG_FILE)" > $COMMIT_MSG_FILE
+fi
