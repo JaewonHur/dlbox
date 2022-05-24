@@ -4,8 +4,9 @@
 
 import grpc
 
+from prime.utils import run_server
+from prime.client import FrameworkEnclave
+
 """ Run grpc server """
+run_server()
 
-""" Generate credentials and construct secure channel """
-
-""" Define APIs """
