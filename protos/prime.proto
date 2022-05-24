@@ -1,0 +1,110 @@
+// Copyright (c) 2022
+
+syntax = "proto3";
+
+package prime;
+
+// Data-enclave service definition
+service DataEnclave {
+
+/* RPCs for general program execution between FE and DE  */
+
+  // Export class or function definition from FE to DE
+  rpc ExportDef (ExportDefArg) returns (Ref) {}
+  // Copy object in FE to DE
+  rpc AllocateObj (AllocateObjArg) returns (Ref) {}
+  // Invoke method in DE
+  rpc InvokeMethod (InvokeMethodArg) returns (Ref) {}
+
+/*********************************************************/
+
+/* RPCs for model training                               */
+
+  // Fit model in DE
+  rpc FitModel (FitModelArg) returns (Model) {}
+
+/*********************************************************/
+}
+
+/* Input message for ExportDef
+   Args:
+     name (string)   : name of the definition which is to be defined in DE.
+     type (bytes)    : type of the definition,
+                       must be one of <class 'type'>, <class 'function'>.
+     source (string) : relocatable source code of the definition,
+                       source must be self-confined 
+                         (i.e., it must contain all referenced objects).
+                       name of definition in source must match `name`.
+*/ 
+message ExportDefArg {
+  string name   = 1;
+  bytes  type   = 2;
+  string source = 3;
+}
+
+/* Input message for AllocateObj
+   Args:
+     name (string) : name of the object to be allocated in DE.
+     type (bytes)  : type of the object,
+                     if the object is class instance, the class definition
+                     must be exported already.
+     val (bytes)   : serialized value of the object.
+*/
+message AllocateObjArg {
+  string name = 1;
+  bytes  type = 2;
+  bytes  val  = 3;
+}
+  
+/* Input message for InvokeMethod
+   Args:
+     obj (string)                : name of the object defined in DE, which contains method.
+                                   if `obj` is not set, the method is global.
+     method (string)             : name of the method to be invoked.
+     args (repeated string)      : list of the name of the objects in DE, which will
+                                   be used as input arguments.
+                                   all included object must be already defined in DE.
+     kwargs (map<string,string>) : map of key and object name to be used as keyword arguments.
+                                   all included object must be already defined in DE.
+*/
+message InvokeMethodArg {
+  string             obj    = 1;
+  string             method = 2;
+  repeated string    args   = 3;
+  map<string,string> kwargs = 4;
+}
+
+/* Input message for FitModel
+   Args:
+     trainer (string)            : trainer object in DE which will fit the model.
+     model (bytes)               : serialization of the ML model from FE (i.e., PytorchLightningModule). 
+                                   class definition of the model must be already defined in DE.
+     dataloader (string)         : dataloader object in DE which will load the model.
+     args (repeated string)      : list of name of the objects in DE, which will be
+                                   used as input arguments.
+     kwargs (map<string,string>) : map of key and object name to be used as keyword arguments.
+                                   all included object must be already defined in DE.
+*/
+message FitModelArg {
+  string             trainer = 1;
+  bytes              model = 2;
+  string             dataloader = 3;
+  repeated string    args = 4;
+  map<string,string> kwargs = 5;
+}
+
+/* Reference to the object in DE
+   Args:
+     name (string) : name of the object in DE
+*/
+message Ref {
+  string name = 1;
+}
+
+/* Message containing optimized ML model
+   Args:
+     val (bytes) : serialized value of the optimized ML model.
+*/
+message Model {
+  bytes val = 1;
+}
