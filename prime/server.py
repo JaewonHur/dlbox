@@ -11,24 +11,56 @@ from concurrent import futures
 from prime_pb2 import *
 from prime_pb2_grpc import *
 
+# TODO: add prime prefix when modularize
 from utils import logger
+from runtime import ExecutionRuntime
 
 class DataEnclave(DataEnclaveServicer):
+    def __init__(self):
+        self._runtime = ExecutionRuntime()
+
     def ExportDef(self, arg: ExportDefArg, ctx: grpc.ServicerContext):
-        logger.debug('ExportDef')
-        return Ref(name='')
+
+        name = arg.name
+        tpe = arg.type
+        source = arg.source
+
+        name = self._runtime.ExportDef(name, tpe, source)
+
+        return Ref(name=name)
 
     def AllocateObj(self, arg: AllocateObjArg, ctx: grpc.ServicerContext):
-        logger.debug('AllocateObj')
-        return Ref(name='')
+
+        name = arg.name
+        tpe = arg.type
+        val = arg.val
+
+        name = self._runtime.AllocateObj(name, tpe, val)
+
+        return Ref(name=name)
 
     def InvokeMethod(self, arg: InvokeMethodArg, ctx: grpc.ServicerContext):
-        logger.debug('InvokeMethod')
-        return Ref(name='')
+
+        obj = arg.obj
+        method = arg.method
+        args = arg.args
+        kwargs = arg.kwargs
+
+        name = self._runtime.InvokeMethod(obj, method, args, kwargs)
+
+        return Ref(name=name)
 
     def FitModel(self, arg: FitModelArg, ctx: grpc.ServicerContext):
-        logger.debug('FitModel')
-        return Model(val=b'')
+
+        trainer = arg.trainer
+        model = arg.model
+        dataloader = arg.dataloader
+        args = arg.args
+        kwargs = arg.kwargs
+
+        model = self._runtime.FitModel(trainer, model, dataloader, args, kwargs)
+
+        return Model(val=model)
 
 
 @click.command()

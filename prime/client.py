@@ -20,7 +20,7 @@ class FrameworkEnclave:
 
     def ExportDef(self, name: str, tpe: types, source: str) -> str:
         assert name.isidentifier(), f'not identifer: {name}'
-        assert tpe in [type, types.FunctionType], f'not supported type: {tpe}'
+        assert tpe in (type, types.FunctionType), f'not supported type: {tpe}'
 
         tpe = dill.dumps(tpe)
         arg = ExportDefArg(name=name, type=tpe, source=source)
