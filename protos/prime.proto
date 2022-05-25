@@ -4,8 +4,8 @@ syntax = "proto3";
 
 package prime;
 
-// Data-enclave service definition
-service DataEnclave {
+// Prime service definition
+service PrimeServer {
 
 /* RPCs for general program execution between FE and DE  */
 

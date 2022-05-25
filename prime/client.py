@@ -13,12 +13,12 @@ from prime_pb2 import *
 from prime_pb2_grpc import *
 
 
-class FrameworkEnclave:
+class PrimeClient:
     def __init__(self, port=50051):
         # TODO: construct secure channel
         self.channel = grpc.insecure_channel(f'[::]:{port}')
 
-        self.stub = DataEnclaveStub(self.channel)
+        self.stub = PrimeServerStub(self.channel)
 
     def ExportDef(self, name: str, tpe: types, source: str) -> str:
         assert name.isidentifier(), f'not identifer: {name}'

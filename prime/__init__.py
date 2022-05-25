@@ -5,7 +5,7 @@
 import grpc
 
 from prime.utils import run_server
-from prime.client import FrameworkEnclave
+from prime.client import PrimeClient
 
 """ Run grpc server """
 # run_server()

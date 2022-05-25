@@ -44,7 +44,7 @@ def import_prime(func):
 
 @import_prime
 def test_ExportDef():
-    fe = prime.FrameworkEnclave()
+    fe = prime.PrimeClient()
 
     name = 'foo'
     tpe = types.FunctionType
@@ -56,7 +56,7 @@ def test_ExportDef():
 
 @import_prime
 def test_AllocateObj():
-    fe = prime.FrameworkEnclave()
+    fe = prime.PrimeClient()
 
     """ Export Function to check allocated variables """
     name = 'output'

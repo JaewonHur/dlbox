@@ -14,7 +14,7 @@ from prime.runtime import ExecutionRuntime
 from prime_pb2 import *
 from prime_pb2_grpc import *
 
-class DataEnclave(DataEnclaveServicer):
+class PrimeServer(PrimeServerServicer):
     def __init__(self):
         self._runtime = ExecutionRuntime()
 
@@ -66,7 +66,7 @@ class DataEnclave(DataEnclaveServicer):
 @click.option('--port', default=50051, help='grpc port number')
 def run(port):
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=1))
-    add_DataEnclaveServicer_to_server(DataEnclave(), server)
+    add_PrimeServerServicer_to_server(PrimeServer(), server)
 
     # TODO: Add credential and open a secure port
     server.add_insecure_port(f'[::]:{port}')
