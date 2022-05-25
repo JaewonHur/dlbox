@@ -6,6 +6,7 @@
 
 import sys
 import dill
+import builtins
 import importlib.util
 from typing import types, List, Dict
 
@@ -67,7 +68,7 @@ class ExecutionRuntime():
                 method = self.__ctx[method]
 
             else:
-                raise NotImplementedError('')
+                method = getattr(builtins, method)
 
         else:
             obj = self.__ctx[obj]
