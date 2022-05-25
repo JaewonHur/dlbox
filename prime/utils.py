@@ -17,6 +17,8 @@ stream_handler = logging.StreamHandler()
 stream_handler.setFormatter(formatter)
 logger.addHandler(stream_handler)
 
+last_filehandler = None
+
 def set_log_level(level: str):
     if level == 'DEBUG':
         logger.setLevel(logging.DEBUG)
@@ -36,6 +38,12 @@ def log_to_file(path: str):
     file_handler = logging.FileHandler(path)
     file_handler.setFormatter(formatter)
 
+    global last_filehandler
+    if last_filehandler is not None:
+        # Support logging to only one file
+        logger.removeHandler(last_filehandler)
+
+    last_filehandler = file_handler
     logger.addHandler(file_handler)
 
 def run_server():
