@@ -7,6 +7,8 @@ import dill
 
 from typing import types, Type, List, Dict
 
+from prime.utils import logger
+
 from prime_pb2 import *
 from prime_pb2_grpc import *
 

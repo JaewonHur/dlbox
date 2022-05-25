@@ -11,6 +11,7 @@ import importlib.util
 from typing import types, List, Dict
 
 from prime.utils import logger
+from prime.exceptions import catch_xcpt
 
 # TODO: import trusted libraries
 ################################################################################
@@ -31,6 +32,7 @@ class ExecutionRuntime():
 
         self.ctr = 0
 
+    @catch_xcpt(False)
     def ExportDef(self, name: str, tpe: bytes, source: str) -> str:
         tpe = dill.loads(tpe)
 
@@ -53,6 +55,7 @@ class ExecutionRuntime():
 
         return name
 
+    @catch_xcpt(False)
     def AllocateObj(self, name: str, tpe: bytes, val: bytes) -> str:
         tpe = dill.loads(tpe)
         obj = dill.loads(val)
@@ -65,6 +68,7 @@ class ExecutionRuntime():
 
         return name
 
+    @catch_xcpt(False)
     def InvokeMethod(self, obj: str, method: str,
                      args: List[str], kwargs: Dict[str,str]) -> str:
 
@@ -93,6 +97,7 @@ class ExecutionRuntime():
 
         return name
 
+    @catch_xcpt(True)
     def FitModel(self, trainer: str, model: bytes, dataloader: str,
                  args: List[str], kwargs: Dict[str,str]) -> bytes:
 

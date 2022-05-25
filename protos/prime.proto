@@ -86,25 +86,29 @@ message InvokeMethodArg {
                                    all included object must be already defined in DE.
 */
 message FitModelArg {
-  string             trainer = 1;
-  bytes              model = 2;
+  string             trainer    = 1;
+  bytes              model      = 2;
   string             dataloader = 3;
-  repeated string    args = 4;
-  map<string,string> kwargs = 5;
+  repeated string    args       = 4;
+  map<string,string> kwargs     = 5;
 }
 
 /* Reference to the object in DE
    Args:
-     name (string) : name of the object in DE
+     name (string) : name of the object in DE.
+     error (bytes) : serialized error if an error occurs while handling the request.
 */
 message Ref {
-  string name = 1;
+  optional string name  = 1;
+  optional bytes  error = 2;
 }
 
 /* Message containing optimized ML model
    Args:
-     val (bytes) : serialized value of the optimized ML model.
+     val (bytes)   : serialized value of the optimized ML model.
+     error (bytes) : serialized error if an error occurs while handling the request.
 */
 message Model {
-  bytes val = 1;
+  optional bytes val   = 1;
+  optional bytes error = 2;
 }

@@ -8,49 +8,48 @@ from concurrent import futures
 
 # from wrapper import Wrapper
 
+from prime.utils import logger
+from prime.runtime import ExecutionRuntime
+
 from prime_pb2 import *
 from prime_pb2_grpc import *
-
-# TODO: add prime prefix when modularize
-from utils import logger
-from runtime import ExecutionRuntime
 
 class DataEnclave(DataEnclaveServicer):
     def __init__(self):
         self._runtime = ExecutionRuntime()
 
-    def ExportDef(self, arg: ExportDefArg, ctx: grpc.ServicerContext):
+    def ExportDef(self, arg: ExportDefArg, ctx: grpc.ServicerContext) -> Ref:
 
         name = arg.name
         tpe = arg.type
         source = arg.source
 
-        name = self._runtime.ExportDef(name, tpe, source)
+        ref = self._runtime.ExportDef(name, tpe, source)
 
-        return Ref(name=name)
+        return ref
 
-    def AllocateObj(self, arg: AllocateObjArg, ctx: grpc.ServicerContext):
+    def AllocateObj(self, arg: AllocateObjArg, ctx: grpc.ServicerContext) -> Ref:
 
         name = arg.name
         tpe = arg.type
         val = arg.val
 
-        name = self._runtime.AllocateObj(name, tpe, val)
+        ref = self._runtime.AllocateObj(name, tpe, val)
 
-        return Ref(name=name)
+        return ref
 
-    def InvokeMethod(self, arg: InvokeMethodArg, ctx: grpc.ServicerContext):
+    def InvokeMethod(self, arg: InvokeMethodArg, ctx: grpc.ServicerContext) -> Ref:
 
         obj = arg.obj
         method = arg.method
         args = arg.args
         kwargs = arg.kwargs
 
-        name = self._runtime.InvokeMethod(obj, method, args, kwargs)
+        ref = self._runtime.InvokeMethod(obj, method, args, kwargs)
 
-        return Ref(name=name)
+        return ref
 
-    def FitModel(self, arg: FitModelArg, ctx: grpc.ServicerContext):
+    def FitModel(self, arg: FitModelArg, ctx: grpc.ServicerContext) -> Model:
 
         trainer = arg.trainer
         model = arg.model
@@ -60,7 +59,7 @@ class DataEnclave(DataEnclaveServicer):
 
         model = self._runtime.FitModel(trainer, model, dataloader, args, kwargs)
 
-        return Model(val=model)
+        return model
 
 
 @click.command()
