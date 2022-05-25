@@ -42,7 +42,7 @@ def run_server():
     global SERVER_PID
     if SERVER_PID:
         raise Exception(f'server[{SERVER_PID}] already runnig')
-    SERVER_PID = subprocess.Popen(["python", "prime/server.py"]).pid
+    SERVER_PID = subprocess.Popen(["python", "/home/jwhur/Research/Prime/prime/prime/server.py"]).pid
     # TODO
     # os.system('python -m server')
 
@@ -52,3 +52,4 @@ def kill_server():
         raise Exception('server is not running')
 
     os.kill(SERVER_PID, 9)
+    SERVER_PID = 0
