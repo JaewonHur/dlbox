@@ -1,5 +1,9 @@
 #!/bin/bash
 
+if [[ -n $MERGE ]]; then
+    exit 0
+fi
+
 COMMIT_MSG_FILE=$1
 
 # Check subject rule
@@ -7,7 +11,7 @@ subjectLine=$(head $COMMIT_MSG_FILE | grep -m 1 "^[^#]")
 tpe=$(sed "s/^\[\([^]]*\)\].*/\1/g" <<< $subjectLine)
 sbj=$(sed "s/^[^ ]* //" <<< $subjectLine)
 
-if ! [[ $tpe =~ ^(feat|fix|refactor|stype|docs|test|chore)$ ]]; then
+if ! [[ $tpe =~ ^(feat|fix|refactor|style|docs|test|chore)$ ]]; then
     echo >&2 "[*] Unknown type used"
     exit 1
 fi
