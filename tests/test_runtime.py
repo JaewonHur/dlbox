@@ -4,9 +4,11 @@
 
 import pytest
 import sys
+import os
 import dill
 import time
 import types
+import datetime
 import importlib.util
 
 import prime
@@ -24,8 +26,15 @@ class MyClass():
         self.x = x
 """
 
+logdir = f'{os.getcwd()}/test-logs'
+os.makedirs(logdir, exist_ok=True)
+now = datetime.datetime.now()
+
 def import_prime(func):
     def wrapper():
+        prime.utils.log_to_file(logdir + '/' + now.strftime('%Y-%m-%d-%X') + '_'
+                                + func.__name__ + '.txt')
+
         prime.utils.run_server()
         time.sleep(1)
         func()
