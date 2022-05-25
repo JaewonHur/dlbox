@@ -12,12 +12,12 @@ from prime_pb2 import *
 from prime_pb2_grpc import *
 
 
-class ServerError(Exception):
+class PrimeError(Exception):
     def __init__(self, e: Exception):
         self.e = e
 
 
-class ClientError(Exception):
+class UserError(Exception):
     def __init__(self, e: Exception):
         self.e = e
 
@@ -29,9 +29,13 @@ def catch_xcpt(fitmodel: bool):
                 res = func(*args, **kwargs)
                 res = Model(val=res) if fitmodel else Ref(name=res)
                 logger.debug(f'wrapper: {res}')
+
+            except UserError as ue:
+                res = Model(error=ue) if fitmodel else Ref(error=ue)
+
             except Exception as e:
-                res = (Model(error=ServerError(e)) if fitmodel
-                       else Ref(error=ServerError(e)))
+                pe = PrimeError(e)
+                res = Model(error=pe) if fitmodel else Ref(error=pe)
 
             return res
         return wrapper

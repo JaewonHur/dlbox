@@ -11,7 +11,7 @@ import importlib.util
 from typing import types, List, Dict
 
 from prime.utils import logger
-from prime.exceptions import catch_xcpt
+from prime.exceptions import catch_xcpt, UserError
 
 # TODO: import trusted libraries
 ################################################################################
@@ -47,7 +47,11 @@ class ExecutionRuntime():
         module = importlib.util.module_from_spec(spec)
 
         sys.modules[name] = module
-        spec.loader.exec_module(module)
+
+        try:
+            spec.loader.exec_module(module)
+        except Exception as e:
+            raise UserError(e)
 
         self.__ctx[name] = getattr(module, name)
 
@@ -72,7 +76,7 @@ class ExecutionRuntime():
     def InvokeMethod(self, obj: str, method: str,
                      args: List[str], kwargs: Dict[str,str]) -> str:
 
-        if obj == '__main__': # TODO change name?
+        if obj == '__main__':
             if method in self.__ctx.keys():
                 method = self.__ctx[method]
 
@@ -89,7 +93,10 @@ class ExecutionRuntime():
         name = f'{self.ctr}{VAR_SFX}'
         self.ctr += 1
 
-        out = method(*args, **kwargs)
+        try:
+            out = method(*args, **kwargs)
+        except Exception as e:
+            raise UserError(e)
 
         self.__ctx[name] = out
 
@@ -118,7 +125,10 @@ class ExecutionRuntime():
         args = [self.__ctx[k] for k in args]
         kwargs = {k:self.__ctx[v] for k, v in kwargs.items()}
 
-        trainer.fit(model, dataloader, *args, **kwargs)
+        try:
+            trainer.fit(model, dataloader, *args, **kwargs)
+        except Exception as e:
+            raise UserError(e)
 
         torch.save(model, path)
         with open(path, 'rb') as fd:
