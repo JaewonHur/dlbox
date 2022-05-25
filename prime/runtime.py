@@ -10,13 +10,18 @@ import builtins
 import importlib.util
 from typing import types, List, Dict
 
-# TODO: add prime prefix when modularize
-from utils import logger
+from prime.utils import logger
 
-# TODO: import ml libraries
+# TODO: import trusted libraries
+################################################################################
+# Trusted Libraries                                                            #
+################################################################################
+
 import torch
 import pytorch_lightning as pl
 from torch.utils.data import DataLoader
+
+################################################################################
 
 VAR_SFX = 'VAL'
 
