@@ -31,9 +31,9 @@ class PrimeClient:
 
         return ref.name
 
-    def AllocateObj(self, tpe: type, obj: object) -> str:
-        assert tpe == type(obj), f'type mismatch: {tpe} vs {type(obj)}'
+    def AllocateObj(self, obj: object) -> str:
 
+        tpe = type(obj)
         tpe = dill.dumps(tpe)
         val = dill.dumps(obj)
         arg = AllocateObjArg(type=tpe, val=val)
