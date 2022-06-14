@@ -88,7 +88,11 @@ class ExecutionRuntime():
 
         else:
             obj = self.__ctx[obj]
-            method = getattr(obj, method)
+
+            try:
+                method = getattr(obj, method)
+            except Exception as e:
+                raise UserError(e)
 
         args = [self.__ctx[k] for k in args]
         kwargs = {k:self.__ctx[v] for k, v in kwargs.items()}
