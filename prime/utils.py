@@ -11,7 +11,7 @@ SERVER_PID = 0
 logger = logging.getLogger()
 logger.setLevel(logging.DEBUG)
 
-formatter = logging.Formatter('[%(filename)s:%(lineno)s - %(funcName)20s()] %(message)s')
+formatter = logging.Formatter('[%(filename)16s:%(lineno)4s - %(funcName)20s()] %(message)s')
 
 stream_handler = logging.StreamHandler()
 stream_handler.setFormatter(formatter)
