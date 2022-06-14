@@ -26,6 +26,11 @@ from torch.utils.data import DataLoader
 
 VAR_SFX = 'VAL'
 
+BUILTIN_TYPES = [
+    getattr(builtins, d) for d in dir(builtins)
+    if isinstance(getattr(builtins, d), type)
+]
+
 class ExecutionRuntime():
     def __init__(self):
         self.__ctx = {}
@@ -64,6 +69,8 @@ class ExecutionRuntime():
         tpe = dill.loads(tpe)
         obj = dill.loads(val)
 
+        assert (tpe in BUILTIN_TYPES or tpe.__name__ in self.__ctx), \
+            f'type not defined: {tpe}'
         assert tpe == type(obj), f'type mismatch: {tpe} vs {type(obj)}'
 
         name = f'{self.ctr}{VAR_SFX}'
