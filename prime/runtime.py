@@ -60,11 +60,14 @@ class ExecutionRuntime():
         return name
 
     @catch_xcpt(False)
-    def AllocateObj(self, name: str, tpe: bytes, val: bytes) -> str:
+    def AllocateObj(self, tpe: bytes, val: bytes) -> str:
         tpe = dill.loads(tpe)
         obj = dill.loads(val)
 
         assert tpe == type(obj), f'type mismatch: {tpe} vs {type(obj)}'
+
+        name = f'{self.ctr}{VAR_SFX}'
+        self.ctr += 1
 
         self.__ctx[name] = obj
 

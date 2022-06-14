@@ -31,13 +31,12 @@ class PrimeClient:
 
         return ref.name
 
-    def AllocateObj(self, name: str, tpe: type, obj: object) -> str:
-        assert name.isidentifier(), f'not identifier: {name}'
+    def AllocateObj(self, tpe: type, obj: object) -> str:
         assert tpe == type(obj), f'type mismatch: {tpe} vs {type(obj)}'
 
         tpe = dill.dumps(tpe)
         val = dill.dumps(obj)
-        arg = AllocateObjArg(name=name, type=tpe, val=val)
+        arg = AllocateObjArg(type=tpe, val=val)
 
         ref = self.stub.AllocateObj(arg)
 

@@ -6,8 +6,6 @@ import grpc
 import click
 from concurrent import futures
 
-# from wrapper import Wrapper
-
 from prime.utils import logger
 from prime.runtime import ExecutionRuntime
 
@@ -30,11 +28,10 @@ class PrimeServer(PrimeServerServicer):
 
     def AllocateObj(self, arg: AllocateObjArg, ctx: grpc.ServicerContext) -> Ref:
 
-        name = arg.name
         tpe = arg.type
         val = arg.val
 
-        ref = self._runtime.AllocateObj(name, tpe, val)
+        ref = self._runtime.AllocateObj(tpe, val)
 
         return ref
 

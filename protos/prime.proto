@@ -44,16 +44,14 @@ message ExportDefArg {
 
 /* Input message for AllocateObj
    Args:
-     name (string) : name of the object to be allocated in DE.
      type (bytes)  : type of the object,
                      if the object is class instance, the class definition
                      must be exported already.
      val (bytes)   : serialized value of the object.
 */
 message AllocateObjArg {
-  string name = 1;
-  bytes  type = 2;
-  bytes  val  = 3;
+  bytes  type = 1;
+  bytes  val  = 2;
 }
   
 /* Input message for InvokeMethod
