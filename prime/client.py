@@ -8,6 +8,7 @@ import dill
 from typing import types, Type, List, Dict
 
 from prime.utils import logger
+from prime.exceptions import retrieve_xcpt
 
 from prime_pb2 import *
 from prime_pb2_grpc import *
@@ -20,7 +21,8 @@ class PrimeClient:
 
         self.stub = PrimeServerStub(self.channel)
 
-    def ExportDef(self, name: str, tpe: types, source: str) -> str:
+    @retrieve_xcpt(False)
+    def ExportDef(self, name: str, tpe: types, source: str) -> Ref:
         assert name.isidentifier(), f'not identifer: {name}'
         assert tpe in (type, types.FunctionType), f'not supported type: {tpe}'
 
@@ -29,9 +31,10 @@ class PrimeClient:
 
         ref = self.stub.ExportDef(arg)
 
-        return ref.name
+        return ref
 
-    def AllocateObj(self, obj: object) -> str:
+    @retrieve_xcpt(False)
+    def AllocateObj(self, obj: object) -> Ref:
 
         tpe = type(obj)
         tpe = dill.dumps(tpe)
@@ -40,10 +43,11 @@ class PrimeClient:
 
         ref = self.stub.AllocateObj(arg)
 
-        return ref.name
+        return ref
 
+    @retrieve_xcpt(False)
     def InvokeMethod(self, obj: str, method: str, args: List[str],
-                     kwargs: Dict[str,str]) -> str:
+                     kwargs: Dict[str,str]) -> Ref:
         arg = InvokeMethodArg()
         arg.obj = obj
         arg.method = method
@@ -54,10 +58,11 @@ class PrimeClient:
 
         ref = self.stub.InvokeMethod(arg)
 
-        return ref.name
+        return ref
 
+    @retrieve_xcpt(True)
     def FitModel(self, trainer: str, model: bytes, dataloader: str,
-                 args: List[str], kwargs: Dict[str,str]) -> bytes:
+                 args: List[str], kwargs: Dict[str,str]) -> Model:
         arg = FitModelArg()
         arg.trainer = trainer
         arg.model = model
@@ -69,4 +74,4 @@ class PrimeClient:
 
         model = self.stub.FitModel(arg)
 
-        return model.val
+        return model
