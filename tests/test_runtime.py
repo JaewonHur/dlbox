@@ -75,17 +75,20 @@ def test_AllocateObj(_client: PrimeClient):
 
     """ Built-in types """
     a = 3
-    assert _client.AllocateObj('a', type(a), a) == 'a'
+    new_a = _client.AllocateObj(type(a), a)
+    assert isinstance(new_a, str)
 
     b = 'abcd'
-    assert _client.AllocateObj('b', type(b), b) == 'b'
+    new_b = _client.AllocateObj(type(b), b)
+    assert isinstance(new_b, str)
 
     c = [1,2,3]
-    assert _client.AllocateObj('c', type(c), c) == 'c'
+    new_c = _client.AllocateObj(type(c), c)
+    assert isinstance(new_c, str)
 
-    assert read('a') == a
-    assert read('b') == b
-    assert read('c') == c
+    assert read(new_a) == a
+    assert read(new_b) == b
+    assert read(new_c) == c
 
     """ Custom types """
 
@@ -103,11 +106,13 @@ def test_AllocateObj(_client: PrimeClient):
     spec.loader.exec_module(module)
 
     x = 1
-    myclass = MyClass.MyClass(x)
+    class_in_fe = MyClass.MyClass(x)
     assert _client.ExportDef(name, type, MY_CLASS) == 'MyClass'
-    assert _client.AllocateObj('myclass', MyClass.MyClass, myclass) == 'myclass'
 
-    attr = _client.AllocateObj('attr', str, 'x')
-    new_x = _client.InvokeMethod('__main__', 'getattr', ['myclass', attr], {})
+    class_in_de = _client.AllocateObj(MyClass.MyClass, class_in_fe)
+    assert isinstance(class_in_de, str)
+
+    attr = _client.AllocateObj(str, 'x')
+    new_x = _client.InvokeMethod('__main__', 'getattr', [class_in_de, attr], {})
 
     assert read(new_x) == x
