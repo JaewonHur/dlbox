@@ -75,15 +75,15 @@ def test_AllocateObj(_client: PrimeClient):
 
     """ Built-in types """
     a = 3
-    new_a = _client.AllocateObj(type(a), a)
+    new_a = _client.AllocateObj(a)
     assert isinstance(new_a, str)
 
     b = 'abcd'
-    new_b = _client.AllocateObj(type(b), b)
+    new_b = _client.AllocateObj(b)
     assert isinstance(new_b, str)
 
     c = [1,2,3]
-    new_c = _client.AllocateObj(type(c), c)
+    new_c = _client.AllocateObj(c)
     assert isinstance(new_c, str)
 
     assert read(new_a) == a
@@ -109,10 +109,10 @@ def test_AllocateObj(_client: PrimeClient):
     class_in_fe = MyClass.MyClass(x)
     assert _client.ExportDef(name, type, MY_CLASS) == 'MyClass'
 
-    class_in_de = _client.AllocateObj(MyClass.MyClass, class_in_fe)
+    class_in_de = _client.AllocateObj(class_in_fe)
     assert isinstance(class_in_de, str)
 
-    attr = _client.AllocateObj(str, 'x')
+    attr = _client.AllocateObj('x')
     new_x = _client.InvokeMethod('__main__', 'getattr', [class_in_de, attr], {})
 
     assert read(new_x) == x
