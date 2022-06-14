@@ -68,3 +68,5 @@ class PrimeClient:
             arg.kwargs[k] = v
 
         model = self.stub.FitModel(arg)
+
+        return model.val
