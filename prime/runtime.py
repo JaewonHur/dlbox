@@ -11,7 +11,7 @@ import importlib.util
 from typing import types, List, Dict
 
 from prime.utils import logger
-from prime.exceptions import catch_xcpt, UserError
+from prime.exceptions import catch_xcpt, UserError, NotImplementedOutputError
 
 # TODO: import trusted libraries
 ################################################################################
@@ -72,6 +72,7 @@ class ExecutionRuntime():
         assert (tpe in BUILTIN_TYPES or tpe.__name__ in self.__ctx), \
             f'type not defined: {tpe}'
         assert tpe == type(obj), f'type mismatch: {tpe} vs {type(obj)}'
+        assert obj is not NotImplemented, f'invalid type: {obj}'
 
         name = f'{self.ctr}{VAR_SFX}'
         self.ctr += 1
@@ -104,13 +105,16 @@ class ExecutionRuntime():
         args = [self.__ctx[k] for k in args]
         kwargs = {k:self.__ctx[v] for k, v in kwargs.items()}
 
-        name = f'{self.ctr}{VAR_SFX}'
-        self.ctr += 1
-
         try:
             out = method(*args, **kwargs)
         except Exception as e:
             raise UserError(e)
+
+        if out is NotImplemented:
+            raise NotImplementedOutputError()
+
+        name = f'{self.ctr}{VAR_SFX}'
+        self.ctr += 1
 
         self.__ctx[name] = out
 

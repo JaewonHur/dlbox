@@ -24,6 +24,11 @@ class UserError(Exception):
         self.e = e
 
 
+class NotImplementedOutputError(Exception):
+    def __init__(self):
+        pass
+
+
 def catch_xcpt(fitmodel: bool):
     def decorator(func):
         def wrapper(*args, **kwargs) -> Union[Ref, Model]:
@@ -31,6 +36,10 @@ def catch_xcpt(fitmodel: bool):
                 res = func(*args, **kwargs)
                 res = Model(val=res) if fitmodel else Ref(name=res)
                 logger.debug(f'wrapper: {res}')
+
+            except NotImplementedOutputError as e:
+                ne = dill.dumps(e)
+                res = Model(error=ne) if fitmodel else Ref(error=ne)
 
             except UserError as ue:
                 ue = dill.dumps(ue)
@@ -56,6 +65,8 @@ def retrieve_xcpt(fitmodel: bool):
 
                 if isinstance(err, UserError):
                     return err.e
+                elif isinstance(err, NotImplementedOutputError):
+                    return NotImplemented
                 else:
                     raise err
             else:
