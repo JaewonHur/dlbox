@@ -57,8 +57,8 @@ class PrimeClient:
         return ref
 
     @retrieve_xcpt(False)
-    def InvokeMethod(self, obj: str, method: str, args: List[str],
-                     kwargs: Dict[str,str]) -> Ref:
+    def InvokeMethod(self, obj: str, method: str, args: List[str]=[],
+                     kwargs: Dict[str,str]={}) -> Ref:
         arg = InvokeMethodArg()
         arg.obj = obj
         arg.method = method
