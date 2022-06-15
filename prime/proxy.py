@@ -1,7 +1,8 @@
 #
 # Copyright (c) 2022
 #
-from typing import List, Dict
+from __future__ import annotations
+from typing import List, Dict, Union, Any
 
 import prime
 from prime import utils
@@ -25,11 +26,11 @@ Supported types of referenced variable:
   NotImplemented
   Ellipsis
 
-  Numbers
-    int
-    bool
-    float
-    complex
++ Numbers
++   int
++   bool
++   float
++   complex
   Immutable sequences
     String
     Tuple
@@ -83,6 +84,22 @@ class Proxy(object):
 
         return Proxy(attr_d)
 
+    def _get_ref(self, obj: Union[Any, Proxy]) -> str:
+        if isinstance(obj, Proxy):
+            return obj._ref
+        else:
+            return self._client.AllocateObj(obj)
+
+
+    def _to_server(func):
+        def wrapper(self, *args) -> Proxy:
+            args_d = [ self._get_ref(i) for i in args ]
+            res = self._client.InvokeMethod(self._ref, func.__name__, args_d)
+
+            return func(self, res)
+        return wrapper
+
+
     """ Special methods should be emulated """
 
     # NOTE: Proxy cannot emulate metaclass
@@ -133,7 +150,7 @@ class Proxy(object):
 
     # TODO: Bool operation
     def __bool__(self):
-        raise NotImplementedError()
+        raise TypeError("'Proxy' does not support bool() conversion")
 
     # TODO: Attribute related operation
     # def __getattr__(self, name):
@@ -221,90 +238,202 @@ class Proxy(object):
         raise NotImplementedError()
 
     # TODO: Emulate numeric type
-    def __add__(self, o):
-        raise NotImplementedError()
+    @_to_server
+    def __add__(self, o) -> Proxy:
+        if isinstance(o, Exception):
+            raise o
 
-    def __sub__(self, o):
-        raise NotImplementedError()
+        return o
 
-    def __mul__(self, o):
-        raise NotImplementedError()
+    @_to_server
+    def __sub__(self, o) -> Proxy:
+        if isinstance(o, Exception):
+            raise o
 
-    def __matmul__(self, o):
-        raise NotImplementedError()
+        return Proxy(o)
 
-    def __truediv__(self, o):
-        raise NotImplementedError()
+    @_to_server
+    def __mul__(self, o) -> Proxy:
+        if isinstance(o, Exception):
+            raise o
 
-    def __floordiv__(self, o):
-        raise NotImplementedError()
+        return Proxy(o)
 
-    def __mod__(self, o):
-        raise NotImplementedError()
+    @_to_server
+    def __matmul__(self, o) -> Proxy:
+        if isinstance(o, Exception):
+            raise o
 
-    def __divmod__(self, o):
-        raise NotImplementedError()
+        return Proxy(o)
+
+    @_to_server
+    def __truediv__(self, o) -> Proxy:
+        if isinstance(o, Exception):
+            raise o
+
+        return Proxy(o)
+
+    @_to_server
+    def __floordiv__(self, o) -> Proxy:
+        if isinstance(o, Exception):
+            raise o
+
+        return Proxy(o)
+
+    @_to_server
+    def __mod__(self, o) -> Proxy:
+        if isinstance(o, Exception):
+            raise o
+
+        return Proxy(o)
+
+    @_to_server
+    def __divmod__(self, o) -> Proxy:
+        if isinstance(o, Exception):
+            raise o
+
+        return Proxy(o)
 
     # TODO: check
-    def __pow__(self, o, modulo=None):
-        raise NotImplementedError()
+    @_to_server
+    def __pow__(self, o, modulo=None) -> Proxy:
+        if isinstance(o, Exception):
+            raise o
 
-    def __lshift__(self, o):
-        raise NotImplementedError()
+        return Proxy(o)
 
+    @_to_server
+    def __lshift__(self, o) -> Proxy:
+        if isinstance(o, Exception):
+            raise o
+
+        return Proxy(o)
+
+    @_to_server
     def __rshift__(self, o):
-        raise NotImplementedError()
+        if isinstance(o, Exception):
+            raise o
 
+        return Proxy(o)
+
+    @_to_server
     def __and__(self, o):
-        raise NotImplementedError()
+        if isinstance(o, Exception):
+            raise o
 
+        return Proxy(o)
+
+    @_to_server
     def __xor__(self, o):
-        raise NotImplementedError()
+        if isinstance(o, Exception):
+            raise o
 
+        return Proxy(o)
+
+    @_to_server
     def __or__(self, o):
-        raise NotImplementedError()
+        if isinstance(o, Exception):
+            raise o
 
+        return Proxy(o)
+
+    @_to_server
     def __radd__(self, o):
-        raise NotImplementedError()
+        if isinstance(o, Exception):
+            raise o
 
+        return Proxy(o)
+
+    @_to_server
     def __rsub__(self, o):
-        raise NotImplementedError()
+        if isinstance(o, Exception):
+            raise o
 
+        return Proxy(o)
+
+    @_to_server
     def __rmul__(self, o):
-        raise NotImplementedError()
+        if isinstance(o, Exception):
+            raise o
 
+        return Proxy(o)
+
+    @_to_server
     def __rmatmul__(self, o):
-        raise NotImplementedError()
+        if isinstance(o, Exception):
+            raise o
 
+        return Proxy(o)
+
+    @_to_server
     def __rtruediv__(self, o):
-        raise NotImplementedError()
+        if isinstance(o, Exception):
+            raise o
 
+        return Proxy(o)
+
+    @_to_server
     def __rfloordiv__(self, o):
-        raise NotImplementedError()
+        if isinstance(o, Exception):
+            raise o
 
+        return Proxy(o)
+
+    @_to_server
     def __rmod__(self, o):
-        raise NotImplementedError()
+        if isinstance(o, Exception):
+            raise o
 
+        return Proxy(o)
+
+    @_to_server
     def __rdivmod__(self, o):
-        raise NotImplementedError()
+        if isinstance(o, Exception):
+            raise o
 
+        return Proxy(o)
+
+    @_to_server
     def __rpow__(self, o):
-        raise NotImplementedError()
+        if isinstance(o, Exception):
+            raise o
 
+        return Proxy(o)
+
+    @_to_server
     def __rlshift__(self, o):
-        raise NotImplementedError()
+        if isinstance(o, Exception):
+            raise o
 
+        return Proxy(o)
+
+    @_to_server
     def __rrshift__(self, o):
-        raise NotImplementedError()
+        if isinstance(o, Exception):
+            raise o
 
+        return Proxy(o)
+
+    @_to_server
     def __rand__(self, o):
-        raise NotImplementedError()
+        if isinstance(o, Exception):
+            raise o
 
+        return Proxy(o)
+
+    @_to_server
     def __rxor__(self, o):
-        raise NotImplementedError()
+        if isinstance(o, Exception):
+            raise o
 
+        return Proxy(o)
+
+    @_to_server
     def __ror__(self, o):
-        raise NotImplementedError()
+        if isinstance(o, Exception):
+            raise o
+
+        return Proxy(o)
 
     # NOTE: These fall back to the normal operations
     # def __iadd__(self, o):
@@ -360,13 +489,13 @@ class Proxy(object):
 
     # TODO: These should return correct type
     def __complex__(self):
-        raise NotImplementedError()
+        raise TypeError("'Proxy' does not support complex() conversion")
 
     def __int__(self):
-        raise NotImplementedError()
+        raise TypeError("'Proxy' does not support int() conversion")
 
     def __float__(self):
-        raise NotImplementedError()
+        raise TypeError("'Proxy' does not support float() conversion")
 
     def __index__(self):
         raise NotImplementedError()
