@@ -5,6 +5,7 @@
 import pytest
 import sys
 import os
+import re
 import dill
 import time
 import types
@@ -158,7 +159,7 @@ def test_PrimeError(_client: PrimeClient):
     with pytest.raises(PrimeError):
         output = _client.InvokeMethod('not_in_de', 'not_method', [], {})
 
-    # Invoke an existing method on existing object with invalid argument should
+    # Invoke an existing method on existing object with non-existing argument should
     # raise PrimeError
     name = 'MyClass'
     export_class(name, MY_CLASS)
@@ -173,3 +174,35 @@ def test_PrimeError(_client: PrimeClient):
     with pytest.raises(PrimeError, match='not_in_de'):
         output = _client.InvokeMethod(class_in_de, 'doublex', [], {'not_key': 'not_in_de'})
 
+
+# TODO: Test FitModel
+@import_prime
+def test_UserError(_client: PrimeClient):
+
+    # Error in exported module should give UserError
+    name = 'error'
+    tpe = types.FunctionType
+    output = _client.ExportDef(name, tpe, F_ERROR)
+
+    with pytest.raises(ZeroDivisionError, match='division by zero'):
+        raise output
+
+    # Invoke a non-existing method on existing object should raise UserError
+    name = 'MyClass'
+    export_class(name, MY_CLASS)
+    _client.ExportDef(name, type, MY_CLASS)
+
+    class_in_fe = MyClass.MyClass(1)
+    class_in_de = _client.AllocateObj(class_in_fe)
+
+    output = _client.InvokeMethod(class_in_de, 'triplex', [], {})
+    with pytest.raises(AttributeError, match="'MyClass' object has no attribute 'triplex'"):
+        raise output
+
+    # Invoke a method on object with invalid argument should raise UserError
+    new_one = _client.AllocateObj(1)
+
+    output = _client.InvokeMethod(class_in_de, 'doublex', [new_one], {})
+    with pytest.raises(TypeError,
+                       match=re.escape('MyClass.doublex() takes 1 positional argument but 2 were given')):
+        raise output
