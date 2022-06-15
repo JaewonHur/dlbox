@@ -3,6 +3,7 @@
 #
 from __future__ import annotations
 from typing import List, Dict, Union, Any
+from types import NotImplementedType
 
 import prime
 from prime import utils
@@ -90,13 +91,18 @@ class Proxy(object):
         else:
             return self._client.AllocateObj(obj)
 
-
+    # _to_server directly invokes the same function on prime server, and returns the result.
     def _to_server(func):
-        def wrapper(self, *args) -> Proxy:
+        def wrapper(self, *args, **kwargs) -> Union[Proxy, NotImplementedType]:
             args_d = [ self._get_ref(i) for i in args ]
-            res = self._client.InvokeMethod(self._ref, func.__name__, args_d)
+            kwargs_d = { k:self._get_ref(v) for k, v in kwargs.items() }
+            res = self._client.InvokeMethod(self._ref, func.__name__,
+                                            args_d, kwargs_d)
 
-            return func(self, res)
+            if res is NotImplemented:
+                return res
+            else:
+                return Proxy(func(self, res))
         return wrapper
 
 
@@ -179,8 +185,6 @@ class Proxy(object):
     # def __delete__(self, instance):
     #     raise NotImplementedError()
 
-    # __slots__ = None
-
     # NOTE: Proxy does not implement Class
 
     # def __init_subclass__(cls):
@@ -239,201 +243,173 @@ class Proxy(object):
 
     # TODO: Emulate numeric type
     @_to_server
-    def __add__(self, o) -> Proxy:
+    def __add__(self, o) -> str:
+        if isinstance(o, Exception):
+            raise o
+        return o
+
+    @_to_server
+    def __sub__(self, o) -> str:
+        if isinstance(o, Exception):
+            raise o
+        return o
+
+    @_to_server
+    def __mul__(self, o) -> str:
+        if isinstance(o, Exception):
+            raise o
+        return o
+
+    @_to_server
+    def __matmul__(self, o) -> str:
+        if isinstance(o, Exception):
+            raise o
+        return o
+
+    @_to_server
+    def __truediv__(self, o) -> str:
+        if isinstance(o, Exception):
+            raise o
+        return o
+
+    @_to_server
+    def __floordiv__(self, o) -> str:
+        if isinstance(o, Exception):
+            raise o
+        return o
+
+    @_to_server
+    def __mod__(self, o) -> str:
+        if isinstance(o, Exception):
+            raise o
+        return o
+
+    @_to_server
+    def __divmod__(self, o) -> str:
+        if isinstance(o, Exception):
+            raise o
+        return o
+
+    @_to_server
+    def __pow__(self, o) -> str:
+        if isinstance(o, Exception):
+            raise o
+        return o
+
+    @_to_server
+    def __lshift__(self, o) -> str:
+        if isinstance(o, Exception):
+            raise o
+        return o
+
+    @_to_server
+    def __rshift__(self, o) -> str:
+        if isinstance(o, Exception):
+            raise o
+        return o
+
+    @_to_server
+    def __and__(self, o) -> str:
+        if isinstance(o, Exception):
+            raise o
+        return o
+
+    @_to_server
+    def __xor__(self, o) -> str:
+        if isinstance(o, Exception):
+            raise o
+        return o
+
+    @_to_server
+    def __or__(self, o) -> str:
+        if isinstance(o, Exception):
+            raise o
+        return o
+
+    @_to_server
+    def __radd__(self, o) -> str:
+        if isinstance(o, Exception):
+            raise o
+        return o
+
+    @_to_server
+    def __rsub__(self, o) -> str:
+        if isinstance(o, Exception):
+            raise o
+        return o
+
+    @_to_server
+    def __rmul__(self, o) -> str:
+        if isinstance(o, Exception):
+            raise o
+        return o
+
+    @_to_server
+    def __rmatmul__(self, o) -> str:
+        if isinstance(o, Exception):
+            raise o
+        return o
+
+    @_to_server
+    def __rtruediv__(self, o) -> str:
         if isinstance(o, Exception):
             raise o
 
         return o
 
     @_to_server
-    def __sub__(self, o) -> Proxy:
+    def __rfloordiv__(self, o) -> str:
         if isinstance(o, Exception):
             raise o
-
-        return Proxy(o)
+        return o
 
     @_to_server
-    def __mul__(self, o) -> Proxy:
+    def __rmod__(self, o) -> str:
         if isinstance(o, Exception):
             raise o
-
-        return Proxy(o)
+        return o
 
     @_to_server
-    def __matmul__(self, o) -> Proxy:
+    def __rdivmod__(self, o) -> str:
         if isinstance(o, Exception):
             raise o
-
-        return Proxy(o)
+        return o
 
     @_to_server
-    def __truediv__(self, o) -> Proxy:
+    def __rpow__(self, o) -> str:
         if isinstance(o, Exception):
             raise o
-
-        return Proxy(o)
+        return o
 
     @_to_server
-    def __floordiv__(self, o) -> Proxy:
+    def __rlshift__(self, o) -> str:
         if isinstance(o, Exception):
             raise o
-
-        return Proxy(o)
+        return o
 
     @_to_server
-    def __mod__(self, o) -> Proxy:
+    def __rrshift__(self, o) -> str:
         if isinstance(o, Exception):
             raise o
-
-        return Proxy(o)
+        return o
 
     @_to_server
-    def __divmod__(self, o) -> Proxy:
+    def __rand__(self, o) -> str:
         if isinstance(o, Exception):
             raise o
-
-        return Proxy(o)
-
-    # TODO: check
-    @_to_server
-    def __pow__(self, o, modulo=None) -> Proxy:
-        if isinstance(o, Exception):
-            raise o
-
-        return Proxy(o)
+        return o
 
     @_to_server
-    def __lshift__(self, o) -> Proxy:
+    def __rxor__(self, o) -> str:
         if isinstance(o, Exception):
             raise o
-
-        return Proxy(o)
+        return o
 
     @_to_server
-    def __rshift__(self, o):
+    def __ror__(self, o) -> str:
         if isinstance(o, Exception):
             raise o
-
-        return Proxy(o)
-
-    @_to_server
-    def __and__(self, o):
-        if isinstance(o, Exception):
-            raise o
-
-        return Proxy(o)
-
-    @_to_server
-    def __xor__(self, o):
-        if isinstance(o, Exception):
-            raise o
-
-        return Proxy(o)
-
-    @_to_server
-    def __or__(self, o):
-        if isinstance(o, Exception):
-            raise o
-
-        return Proxy(o)
-
-    @_to_server
-    def __radd__(self, o):
-        if isinstance(o, Exception):
-            raise o
-
-        return Proxy(o)
-
-    @_to_server
-    def __rsub__(self, o):
-        if isinstance(o, Exception):
-            raise o
-
-        return Proxy(o)
-
-    @_to_server
-    def __rmul__(self, o):
-        if isinstance(o, Exception):
-            raise o
-
-        return Proxy(o)
-
-    @_to_server
-    def __rmatmul__(self, o):
-        if isinstance(o, Exception):
-            raise o
-
-        return Proxy(o)
-
-    @_to_server
-    def __rtruediv__(self, o):
-        if isinstance(o, Exception):
-            raise o
-
-        return Proxy(o)
-
-    @_to_server
-    def __rfloordiv__(self, o):
-        if isinstance(o, Exception):
-            raise o
-
-        return Proxy(o)
-
-    @_to_server
-    def __rmod__(self, o):
-        if isinstance(o, Exception):
-            raise o
-
-        return Proxy(o)
-
-    @_to_server
-    def __rdivmod__(self, o):
-        if isinstance(o, Exception):
-            raise o
-
-        return Proxy(o)
-
-    @_to_server
-    def __rpow__(self, o):
-        if isinstance(o, Exception):
-            raise o
-
-        return Proxy(o)
-
-    @_to_server
-    def __rlshift__(self, o):
-        if isinstance(o, Exception):
-            raise o
-
-        return Proxy(o)
-
-    @_to_server
-    def __rrshift__(self, o):
-        if isinstance(o, Exception):
-            raise o
-
-        return Proxy(o)
-
-    @_to_server
-    def __rand__(self, o):
-        if isinstance(o, Exception):
-            raise o
-
-        return Proxy(o)
-
-    @_to_server
-    def __rxor__(self, o):
-        if isinstance(o, Exception):
-            raise o
-
-        return Proxy(o)
-
-    @_to_server
-    def __ror__(self, o):
-        if isinstance(o, Exception):
-            raise o
-
-        return Proxy(o)
+        return o
 
     # NOTE: These fall back to the normal operations
     # def __iadd__(self, o):
@@ -475,17 +451,29 @@ class Proxy(object):
     # def __ior__(self, o):
     #     raise NotImplementedError()
 
-    def __neg__(self):
-        raise NotImplementedError()
+    @_to_server
+    def __neg__(self, o) -> str:
+        if isinstance(o, Exception):
+            raise o
+        return o
 
-    def __pos__(self):
-        raise NotImplementedError()
+    @_to_server
+    def __pos__(self) -> str:
+        if isinstance(o, Exception):
+            raise o
+        return o
 
-    def __abs__(self):
-        raise NotImplementedError()
+    @_to_server
+    def __abs__(self) -> str:
+        if isinstance(o, Exception):
+            raise o
+        return o
 
-    def __invert__(self):
-        raise NotImplementedError()
+    @_to_server
+    def __invert__(self) -> str:
+        if isinstance(o, Exception):
+            raise o
+        return o
 
     # TODO: These should return correct type
     def __complex__(self):
@@ -500,17 +488,29 @@ class Proxy(object):
     def __index__(self):
         raise NotImplementedError()
 
-    def __round__(self, ndigits=None):
-        raise NotImplementedError()
+    @_to_server
+    def __round__(self, o) -> str:
+        if isinstance(o, Exception):
+            raise o
+        return o
 
-    def __trunc__(self):
-        raise NotImplementedError()
+    @_to_server
+    def __trunc__(self, o) -> str:
+        if isinstance(o, Exception):
+            raise o
+        return o
 
-    def __floor__(self):
-        raise NotImplementedError()
+    @_to_server
+    def __floor__(self, o) -> str:
+        if isinstance(o, Exception):
+            raise o
+        return o
 
-    def __ceil__(self):
-        raise NotImplementedError()
+    @_to_server
+    def __ceil__(self) -> str:
+        if isinstance(o, Exception):
+            raise o
+        return o
 
     # NOTE: Proxy does not implement context managers
 
