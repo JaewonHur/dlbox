@@ -14,12 +14,23 @@ from prime_pb2 import *
 from prime_pb2_grpc import *
 
 
+TIMEOUT_SEC = 10
+
 class PrimeClient:
     def __init__(self, port=50051):
         # TODO: construct secure channel
         self.channel = grpc.insecure_channel(f'[::]:{port}')
+        if not self.check_server():
+            raise RuntimeError('grpc server is not ready')
 
         self.stub = PrimeServerStub(self.channel)
+
+    def check_server(self) -> bool:
+        try:
+            grpc.channel_ready_future(self.channel).result(timeout=TIMEOUT_SEC)
+            return True
+        except grpc.FutureTimeoutError:
+            return False
 
     @retrieve_xcpt(False)
     def ExportDef(self, name: str, tpe: types, source: str) -> Ref:
