@@ -93,16 +93,59 @@ class Proxy(object):
 
     # _to_server directly invokes the same function on prime server, and returns the result.
     def _to_server(func):
+        __bops = {
+            '__add__'      : '__radd__',
+            '__sub__'      : '__rsub__',
+            '__mul__'      : '__rmul__',
+            '__matmul__'   : '__rmatmul__',
+            '__truediv__'  : '__rtruediv__',
+            '__floordiv__' : '__rfloordiv__',
+            '__mod__'      : '__rmod__',
+            '__divmod__'   : '__rdivmod__',
+            '__pow__'      : '__rpow__',
+            '__lshift__'   : '__rlshift__',
+            '__rshift__'   : '__rrshift__',
+            '__and__'      : '__rand__',
+            '__xor__'      : '__rxor__',
+            '__or__'       : '__ror__',
+            '__radd__'     : '__add__',
+            '__rsub__'     : '__sub__',
+            '__rmul__'     : '__mul__',
+            '__rmatmul__'  : '__matmul__',
+            '__rtruediv__' : '__truediv__',
+            '__rfloordiv__': '__floordiv__',
+            '__rmod__'     : '__mod__',
+            '__rdivmod__'  : '__divmod__',
+            '__rpow__'     : '__pow__',
+            '__rlshift__'  : '__lshift__',
+            '__rrshift__'  : '__rshift__',
+            '__rand__'     : '__and__',
+            '__rxor__'     : '__xor__',
+            '__ror__'      : '__or__',
+        }
+
+
         def wrapper(self, *args, **kwargs) -> Union[Proxy, NotImplementedType]:
+            method = func.__name__
+
             args_d = [ self._get_ref(i) for i in args ]
             kwargs_d = { k:self._get_ref(v) for k, v in kwargs.items() }
-            res = self._client.InvokeMethod(self._ref, func.__name__,
+            res = self._client.InvokeMethod(self._ref, method,
                                             args_d, kwargs_d)
+
+            if res is NotImplemented and method in __bops:
+                method = __bops[method]
+
+                assert len(args_d) == 1 and not kwargs
+                o_d = args_d[0]
+
+                res = self._client.InvokeMethod(o_d, method, [self._ref])
 
             if res is NotImplemented:
                 return res
             else:
                 return Proxy(func(self, res))
+
         return wrapper
 
 
