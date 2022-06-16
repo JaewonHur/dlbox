@@ -184,18 +184,17 @@ class Proxy(object):
     # def __del__(self):
     #     raise NotImplementedError()
 
-    # TODO: Implement later
-    # def __repr__(self):
-    #     raise NotImplementedError()
+    def __repr__(self) -> str:
+        return f"'Proxy({self._ref})'"
 
     def __str__(self):
-        raise NotImplementedError()
+        return f'Proxy@{self._ref}'
 
     def __bytes__(self):
-        raise NotImplementedError()
+        raise TypeError("'Proxy' does not support bytes() conversion")
 
-    def __format__(self, format_spec):
-        raise NotImplementedError()
+    def __format__(self, format_spec) -> str:
+        return self.__str__()
 
     @_reflective_prime_op
     def __lt__(self, o):
@@ -233,7 +232,7 @@ class Proxy(object):
             raise o
         return o
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         return hash(self._ref)
 
     # TODO: Bool operation
