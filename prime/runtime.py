@@ -8,7 +8,7 @@ import sys
 import dill
 import builtins
 import importlib.util
-from typing import types, List, Dict
+from typing import types, List, Dict, Any
 
 from prime.utils import logger
 from prime.exceptions import catch_xcpt, UserError, NotImplementedOutputError
@@ -34,8 +34,19 @@ BUILTIN_TYPES = [
 class ExecutionRuntime():
     def __init__(self):
         self.__ctx = {}
-
         self.ctr = 0
+
+    def _add_to_ctx(self, obj: Any, name: str = None) -> str:
+        if name:
+            # Force add, may replace already an existing content
+            self.__ctx[name] = obj
+        else:
+            name = f'{self.ctr}{VAR_SFX}'
+            self.ctr += 1
+
+            self.__ctx[name] = obj
+
+        return name
 
     @catch_xcpt(False)
     def ExportDef(self, name: str, tpe: bytes, source: str) -> str:
@@ -58,7 +69,7 @@ class ExecutionRuntime():
         except Exception as e:
             raise UserError(e)
 
-        self.__ctx[name] = getattr(module, name)
+        self._add_to_ctx(getattr(module, name), name)
 
         logger.debug(f'{name}: {self.__ctx[name]}')
 
@@ -74,10 +85,7 @@ class ExecutionRuntime():
         assert tpe == type(obj), f'type mismatch: {tpe} vs {type(obj)}'
         assert obj is not NotImplemented, f'invalid type: {obj}'
 
-        name = f'{self.ctr}{VAR_SFX}'
-        self.ctr += 1
-
-        self.__ctx[name] = obj
+        name = self._add_to_ctx(obj)
 
         logger.debug(f'{name}: {obj}')
 
@@ -113,10 +121,7 @@ class ExecutionRuntime():
         if out is NotImplemented:
             raise NotImplementedOutputError()
 
-        name = f'{self.ctr}{VAR_SFX}'
-        self.ctr += 1
-
-        self.__ctx[name] = out
+        name = self._add_to_ctx(out)
 
         logger.debug(f'{name}: {out}')
 
