@@ -152,7 +152,7 @@ class Proxy(object):
             if res is NotImplemented:
                 return res
             else:
-                return Proxy(func(self, res))
+                return Proxy(func(self, res, *args_d, **kwargs_d))
 
         return wrapper
 
@@ -167,7 +167,7 @@ class Proxy(object):
             if res is NotImplemented:
                 return res
             else:
-                return Proxy(func(self, res))
+                return Proxy(func(self, res, *args_d, **kwargs_d))
 
         return wrapper
 
@@ -199,40 +199,40 @@ class Proxy(object):
         return self.__str__()
 
     @_reflective_prime_op
-    def __lt__(self, o):
-        if isinstance(o, Exception):
-            raise o
-        return o
+    def __lt__(self, res: Union[Exception, str], o) -> str:
+        if isinstance(res, Exception):
+            raise res
+        return res
 
     @_reflective_prime_op
-    def __le__(self, o):
-        if isinstance(o, Exception):
-            raise o
-        return o
+    def __le__(self, res: Union[Exception, str], o) -> str:
+        if isinstance(res, Exception):
+            raise res
+        return res
 
     @_reflective_prime_op
-    def __eq__(self, o):
-        if isinstance(o, Exception):
-            raise o
-        return o
+    def __eq__(self, res: Union[Exception, str], o) -> str:
+        if isinstance(res, Exception):
+            raise res
+        return res
 
     @_reflective_prime_op
-    def __ne__(self, o):
-        if isinstance(o, Exception):
-            raise o
-        return o
+    def __ne__(self, res: Union[Exception, str], o) -> str:
+        if isinstance(res, Exception):
+            raise res
+        return res
 
     @_reflective_prime_op
-    def __gt__(self, o):
-        if isinstance(o, Exception):
-            raise o
-        return o
+    def __gt__(self, res: Union[Exception, str], o) -> str:
+        if isinstance(res, Exception):
+            raise res
+        return res
 
     @_reflective_prime_op
-    def __ge__(self, o):
-        if isinstance(o, Exception):
-            raise o
-        return o
+    def __ge__(self, res: Union[Exception, str], o) -> str:
+        if isinstance(res, Exception):
+            raise res
+        return res
 
     def __hash__(self) -> int:
         return hash(self._ref)
@@ -298,37 +298,37 @@ class Proxy(object):
         raise NotImplementedError()
 
     @_prime_op
-    def __len__(self, o) -> str:
-        if isinstance(o, Exception):
-            raise o
-        return o
+    def __len__(self, res: Union[Exception, str]) -> str:
+        if isinstance(res, Exception):
+            raise res
+        return res
 
     def __length_hint__(self):
         return NotImplemented
 
     @_prime_op
-    def __getitem__(self, o) -> str:
-        if isinstance(o, Exception):
-            raise o
-        return o
+    def __getitem__(self, res: Union[Exception, str], key) -> str:
+        if isinstance(res, Exception):
+            raise res
+        return res
 
     @_prime_op
-    def __setitem__(self, o) -> str:
-        if isinstance(o, Exception):
-            raise o
-        return o
+    def __setitem__(self, res: Union[Exception, str], key, val) -> str:
+        if isinstance(res, Exception):
+            raise res
+        return res
 
     @_prime_op
-    def __delitem__(self, o) -> str:
-        if isinstance(o, Exception):
-            raise o
-        return o
+    def __delitem__(self, res: Union[Exception, str], key) -> str:
+        if isinstance(res, Exception):
+            raise res
+        return res
 
     # def __missing__(self, key):
     #     raise NotImplementedError()
 
     @_prime_op
-    def __iter__(self, res) -> str:
+    def __iter__(self, res: Union[Exception, str]) -> str:
         if isinstance(res, AttributeError):
             res = self._client.InvokeMethod('__main__', 'iter',
                                             [self._ref])
@@ -343,13 +343,13 @@ class Proxy(object):
         return res
 
     @_prime_op
-    def __reversed__(self):
-        if isinstance(o, Exception):
-            raise o
-        return o
+    def __reversed__(self, res: Union[Exception, str]):
+        if isinstance(res, Exception):
+            raise res
+        return res
 
     @_prime_op
-    def __contains__(self, res):
+    def __contains__(self, res: Union[Exception, str], item):
         if isinstance(res, AttributeError):
             __in__ = self._client.ExportDef('__in__', FunctionType,
                                             "def __in__(x, y): return (y in x)")
@@ -362,172 +362,172 @@ class Proxy(object):
         return res
 
     @_reflective_prime_op
-    def __add__(self, o) -> str:
-        if isinstance(o, Exception):
-            raise o
-        return o
+    def __add__(self, res: Union[Exception, str], o) -> str:
+        if isinstance(res, Exception):
+            raise res
+        return res
 
     @_reflective_prime_op
-    def __sub__(self, o) -> str:
-        if isinstance(o, Exception):
-            raise o
-        return o
+    def __sub__(self, res: Union[Exception, str], o) -> str:
+        if isinstance(res, Exception):
+            raise res
+        return res
 
     @_reflective_prime_op
-    def __mul__(self, o) -> str:
-        if isinstance(o, Exception):
-            raise o
-        return o
+    def __mul__(self, res: Union[Exception, str], o) -> str:
+        if isinstance(res, Exception):
+            raise res
+        return res
 
     @_reflective_prime_op
-    def __matmul__(self, o) -> str:
-        if isinstance(o, Exception):
-            raise o
-        return o
+    def __matmul__(self, res: Union[Exception, str], o) -> str:
+        if isinstance(res, Exception):
+            raise res
+        return res
 
     @_reflective_prime_op
-    def __truediv__(self, o) -> str:
-        if isinstance(o, Exception):
-            raise o
-        return o
+    def __truediv__(self, res: Union[Exception, str], o) -> str:
+        if isinstance(res, Exception):
+            raise res
+        return res
 
     @_reflective_prime_op
-    def __floordiv__(self, o) -> str:
-        if isinstance(o, Exception):
-            raise o
-        return o
+    def __floordiv__(self, res: Union[Exception, str], o) -> str:
+        if isinstance(res, Exception):
+            raise res
+        return res
 
     @_reflective_prime_op
-    def __mod__(self, o) -> str:
-        if isinstance(o, Exception):
-            raise o
-        return o
+    def __mod__(self, res: Union[Exception, str], o) -> str:
+        if isinstance(res, Exception):
+            raise res
+        return res
 
     @_reflective_prime_op
-    def __divmod__(self, o) -> str:
-        if isinstance(o, Exception):
-            raise o
-        return o
+    def __divmod__(self, res: Union[Exception, str], o) -> str:
+        if isinstance(res, Exception):
+            raise res
+        return res
 
     @_reflective_prime_op
-    def __pow__(self, o) -> str:
-        if isinstance(o, Exception):
-            raise o
-        return o
+    def __pow__(self, res: Union[Exception, str], o) -> str:
+        if isinstance(res, Exception):
+            raise res
+        return res
 
     @_reflective_prime_op
-    def __lshift__(self, o) -> str:
-        if isinstance(o, Exception):
-            raise o
-        return o
+    def __lshift__(self, res: Union[Exception, str], o) -> str:
+        if isinstance(res, Exception):
+            raise res
+        return res
 
     @_reflective_prime_op
-    def __rshift__(self, o) -> str:
-        if isinstance(o, Exception):
-            raise o
-        return o
+    def __rshift__(self, res: Union[Exception, str], o) -> str:
+        if isinstance(res, Exception):
+            raise res
+        return res
 
     @_reflective_prime_op
-    def __and__(self, o) -> str:
-        if isinstance(o, Exception):
-            raise o
-        return o
+    def __and__(self, res: Union[Exception, str], o) -> str:
+        if isinstance(res, Exception):
+            raise res
+        return res
 
     @_reflective_prime_op
-    def __xor__(self, o) -> str:
-        if isinstance(o, Exception):
-            raise o
-        return o
+    def __xor__(self, res: Union[Exception, str], o) -> str:
+        if isinstance(res, Exception):
+            raise res
+        return res
 
     @_reflective_prime_op
-    def __or__(self, o) -> str:
-        if isinstance(o, Exception):
-            raise o
-        return o
+    def __or__(self, res: Union[Exception, str], o) -> str:
+        if isinstance(res, Exception):
+            raise res
+        return res
 
     @_reflective_prime_op
-    def __radd__(self, o) -> str:
-        if isinstance(o, Exception):
-            raise o
-        return o
+    def __radd__(self, res: Union[Exception, str], o) -> str:
+        if isinstance(res, Exception):
+            raise res
+        return res
 
     @_reflective_prime_op
-    def __rsub__(self, o) -> str:
-        if isinstance(o, Exception):
-            raise o
-        return o
+    def __rsub__(self, res: Union[Exception, str], o) -> str:
+        if isinstance(res, Exception):
+            raise res
+        return res
 
     @_reflective_prime_op
-    def __rmul__(self, o) -> str:
-        if isinstance(o, Exception):
-            raise o
-        return o
+    def __rmul__(self, res: Union[Exception, str], o) -> str:
+        if isinstance(res, Exception):
+            raise res
+        return res
 
     @_reflective_prime_op
-    def __rmatmul__(self, o) -> str:
-        if isinstance(o, Exception):
-            raise o
-        return o
+    def __rmatmul__(self, res: Union[Exception, str], o) -> str:
+        if isinstance(res, Exception):
+            raise res
+        return res
 
     @_reflective_prime_op
-    def __rtruediv__(self, o) -> str:
-        if isinstance(o, Exception):
-            raise o
-        return o
+    def __rtruediv__(self, res: Union[Exception, str], o) -> str:
+        if isinstance(res, Exception):
+            raise res
+        return res
 
     @_reflective_prime_op
-    def __rfloordiv__(self, o) -> str:
-        if isinstance(o, Exception):
-            raise o
-        return o
+    def __rfloordiv__(self, res: Union[Exception, str], o) -> str:
+        if isinstance(res, Exception):
+            raise res
+        return res
 
     @_reflective_prime_op
-    def __rmod__(self, o) -> str:
-        if isinstance(o, Exception):
-            raise o
-        return o
+    def __rmod__(self, res: Union[Exception, str], o) -> str:
+        if isinstance(res, Exception):
+            raise res
+        return res
 
     @_reflective_prime_op
-    def __rdivmod__(self, o) -> str:
-        if isinstance(o, Exception):
-            raise o
-        return o
+    def __rdivmod__(self, res: Union[Exception, str], o) -> str:
+        if isinstance(res, Exception):
+            raise res
+        return res
 
     @_reflective_prime_op
-    def __rpow__(self, o) -> str:
-        if isinstance(o, Exception):
-            raise o
-        return o
+    def __rpow__(self, res: Union[Exception, str], o) -> str:
+        if isinstance(res, Exception):
+            raise res
+        return res
 
     @_reflective_prime_op
-    def __rlshift__(self, o) -> str:
-        if isinstance(o, Exception):
-            raise o
-        return o
+    def __rlshift__(self, res: Union[Exception, str], o) -> str:
+        if isinstance(res, Exception):
+            raise res
+        return res
 
     @_reflective_prime_op
-    def __rrshift__(self, o) -> str:
-        if isinstance(o, Exception):
-            raise o
-        return o
+    def __rrshift__(self, res: Union[Exception, str], o) -> str:
+        if isinstance(res, Exception):
+            raise res
+        return res
 
     @_reflective_prime_op
-    def __rand__(self, o) -> str:
-        if isinstance(o, Exception):
-            raise o
-        return o
+    def __rand__(self, res: Union[Exception, str], o) -> str:
+        if isinstance(res, Exception):
+            raise res
+        return res
 
     @_reflective_prime_op
-    def __rxor__(self, o) -> str:
-        if isinstance(o, Exception):
-            raise o
-        return o
+    def __rxor__(self, res: Union[Exception, str], o) -> str:
+        if isinstance(res, Exception):
+            raise res
+        return res
 
     @_reflective_prime_op
-    def __ror__(self, o) -> str:
-        if isinstance(o, Exception):
-            raise o
-        return o
+    def __ror__(self, res: Union[Exception, str], o) -> str:
+        if isinstance(res, Exception):
+            raise res
+        return res
 
     # NOTE: These fall back to the normal operations
     # def __iadd__(self, o):
@@ -570,28 +570,28 @@ class Proxy(object):
     #     raise NotImplementedError()
 
     @_prime_op
-    def __neg__(self, o) -> str:
-        if isinstance(o, Exception):
-            raise o
-        return o
+    def __neg__(self, res: Union[Exception, str]) -> str:
+        if isinstance(res, Exception):
+            raise res
+        return res
 
     @_prime_op
-    def __pos__(self) -> str:
-        if isinstance(o, Exception):
-            raise o
-        return o
+    def __pos__(self, res: Union[Exception, str]) -> str:
+        if isinstance(res, Exception):
+            raise res
+        return res
 
     @_prime_op
-    def __abs__(self) -> str:
-        if isinstance(o, Exception):
-            raise o
-        return o
+    def __abs__(self, res: Union[Exception, str]) -> str:
+        if isinstance(res, Exception):
+            raise res
+        return res
 
     @_prime_op
-    def __invert__(self) -> str:
-        if isinstance(o, Exception):
-            raise o
-        return o
+    def __invert__(self, res: Union[Exception, str]) -> str:
+        if isinstance(res, Exception):
+            raise res
+        return res
 
     # TODO: These should return correct type
     def __complex__(self):
@@ -608,28 +608,28 @@ class Proxy(object):
         raise PrimeNotSupportedError("'Proxy' does not support __index__()")
 
     @_prime_op
-    def __round__(self, o) -> str:
-        if isinstance(o, Exception):
-            raise o
-        return o
+    def __round__(self, res: Union[Exception, str]) -> str:
+        if isinstance(res, Exception):
+            raise res
+        return res
 
     @_prime_op
-    def __trunc__(self, o) -> str:
-        if isinstance(o, Exception):
-            raise o
-        return o
+    def __trunc__(self, res: Union[Exception, str]) -> str:
+        if isinstance(res, Exception):
+            raise res
+        return res
 
     @_prime_op
-    def __floor__(self, o) -> str:
-        if isinstance(o, Exception):
-            raise o
-        return o
+    def __floor__(self, res: Union[Exception, str]) -> str:
+        if isinstance(res, Exception):
+            raise res
+        return res
 
     @_prime_op
-    def __ceil__(self) -> str:
-        if isinstance(o, Exception):
-            raise o
-        return o
+    def __ceil__(self, res) -> str:
+        if isinstance(res, Exception):
+            raise res
+        return res
 
     # NOTE: Proxy does not implement context managers
 
