@@ -91,9 +91,14 @@ class Proxy(object):
         else:
             return self._client.AllocateObj(obj)
 
-    # _to_server directly invokes the same function on prime server, and returns the result.
-    def _to_server(func):
-        __bops = {
+    def _reflective_prime_op(func):
+        __reflective_ops = {
+            '__lt__'       : '__gt__',
+            '__le__'       : '__ge__',
+            '__gt__'       : '__lt__',
+            '__ge__'       : '__le__',
+            '__eq__'       : '__eq__',
+            '__ne__'       : '__ne__',
             '__add__'      : '__radd__',
             '__sub__'      : '__rsub__',
             '__mul__'      : '__rmul__',
@@ -126,20 +131,36 @@ class Proxy(object):
 
 
         def wrapper(self, *args, **kwargs) -> Union[Proxy, NotImplementedType]:
-            method = func.__name__
+            assert len(args) == 1 and not kwargs, ''
+
+            op = func.__name__
 
             args_d = [ self._get_ref(i) for i in args ]
             kwargs_d = { k:self._get_ref(v) for k, v in kwargs.items() }
-            res = self._client.InvokeMethod(self._ref, method,
-                                            args_d, kwargs_d)
+            res = self._client.InvokeMethod(self._ref, op, args_d, kwargs_d)
 
-            if res is NotImplemented and method in __bops:
-                method = __bops[method]
+            # NOTE: Prime assumes that __ne__ is delegated to inverse of __eq__
+            if res is NotImplemented:
+                rop = __reflective_ops[op]
 
-                assert len(args_d) == 1 and not kwargs
                 o_d = args_d[0]
 
-                res = self._client.InvokeMethod(o_d, method, [self._ref])
+                res = self._client.InvokeMethod(o_d, rop, [self._ref])
+
+            if res is NotImplemented:
+                return res
+            else:
+                return Proxy(func(self, res))
+
+        return wrapper
+
+    def _prime_op(func):
+        def wrapper(self, *args, **kwargs) -> Union[Proxy, NotImplementedType]:
+            args_d = [ self._get_ref(i) for i in args ]
+            kwargs_d = { k:self._get_ref(v) for k, v in kwargs.items() }
+
+            res = self._client.InvokeMethod(self._ref, func.__name__,
+                                            args_d, kwargs_d)
 
             if res is NotImplemented:
                 return res
@@ -175,28 +196,47 @@ class Proxy(object):
     def __format__(self, format_spec):
         raise NotImplementedError()
 
-    # TODO: rich comparison methods
+    @_reflective_prime_op
     def __lt__(self, o):
-        raise NotImplementedError()
+        if isinstance(o, Exception):
+            raise o
+        return o
 
+    @_reflective_prime_op
     def __le__(self, o):
-        raise NotImplementedError()
+        if isinstance(o, Exception):
+            raise o
+        return o
 
+    @_reflective_prime_op
     def __eq__(self, o):
-        raise NotImplementedError()
+        if isinstance(o, Exception):
+            raise o
+        return o
 
+    @_reflective_prime_op
     def __ne__(self, o):
-        raise NotImplementedError()
+        if isinstance(o, Exception):
+            raise o
+        return o
 
+    @_reflective_prime_op
     def __gt__(self, o):
-        raise NotImplementedError()
+        if isinstance(o, Exception):
+            raise o
+        return o
 
+    @_reflective_prime_op
     def __ge__(self, o):
-        raise NotImplementedError()
+        if isinstance(o, Exception):
+            raise o
+        return o
 
     # TODO: Hash operation
     def __hash__(self):
-        raise NotImplementedError()
+        if isinstance(o, Exception):
+            raise o
+        return o
 
     # TODO: Bool operation
     def __bool__(self):
@@ -286,169 +326,169 @@ class Proxy(object):
     def __contains__(self, item):
         raise NotImplementedError()
 
-    @_to_server
+    @_reflective_prime_op
     def __add__(self, o) -> str:
         if isinstance(o, Exception):
             raise o
         return o
 
-    @_to_server
+    @_reflective_prime_op
     def __sub__(self, o) -> str:
         if isinstance(o, Exception):
             raise o
         return o
 
-    @_to_server
+    @_reflective_prime_op
     def __mul__(self, o) -> str:
         if isinstance(o, Exception):
             raise o
         return o
 
-    @_to_server
+    @_reflective_prime_op
     def __matmul__(self, o) -> str:
         if isinstance(o, Exception):
             raise o
         return o
 
-    @_to_server
+    @_reflective_prime_op
     def __truediv__(self, o) -> str:
         if isinstance(o, Exception):
             raise o
         return o
 
-    @_to_server
+    @_reflective_prime_op
     def __floordiv__(self, o) -> str:
         if isinstance(o, Exception):
             raise o
         return o
 
-    @_to_server
+    @_reflective_prime_op
     def __mod__(self, o) -> str:
         if isinstance(o, Exception):
             raise o
         return o
 
-    @_to_server
+    @_reflective_prime_op
     def __divmod__(self, o) -> str:
         if isinstance(o, Exception):
             raise o
         return o
 
-    @_to_server
+    @_reflective_prime_op
     def __pow__(self, o) -> str:
         if isinstance(o, Exception):
             raise o
         return o
 
-    @_to_server
+    @_reflective_prime_op
     def __lshift__(self, o) -> str:
         if isinstance(o, Exception):
             raise o
         return o
 
-    @_to_server
+    @_reflective_prime_op
     def __rshift__(self, o) -> str:
         if isinstance(o, Exception):
             raise o
         return o
 
-    @_to_server
+    @_reflective_prime_op
     def __and__(self, o) -> str:
         if isinstance(o, Exception):
             raise o
         return o
 
-    @_to_server
+    @_reflective_prime_op
     def __xor__(self, o) -> str:
         if isinstance(o, Exception):
             raise o
         return o
 
-    @_to_server
+    @_reflective_prime_op
     def __or__(self, o) -> str:
         if isinstance(o, Exception):
             raise o
         return o
 
-    @_to_server
+    @_reflective_prime_op
     def __radd__(self, o) -> str:
         if isinstance(o, Exception):
             raise o
         return o
 
-    @_to_server
+    @_reflective_prime_op
     def __rsub__(self, o) -> str:
         if isinstance(o, Exception):
             raise o
         return o
 
-    @_to_server
+    @_reflective_prime_op
     def __rmul__(self, o) -> str:
         if isinstance(o, Exception):
             raise o
         return o
 
-    @_to_server
+    @_reflective_prime_op
     def __rmatmul__(self, o) -> str:
         if isinstance(o, Exception):
             raise o
         return o
 
-    @_to_server
+    @_reflective_prime_op
     def __rtruediv__(self, o) -> str:
         if isinstance(o, Exception):
             raise o
         return o
 
-    @_to_server
+    @_reflective_prime_op
     def __rfloordiv__(self, o) -> str:
         if isinstance(o, Exception):
             raise o
         return o
 
-    @_to_server
+    @_reflective_prime_op
     def __rmod__(self, o) -> str:
         if isinstance(o, Exception):
             raise o
         return o
 
-    @_to_server
+    @_reflective_prime_op
     def __rdivmod__(self, o) -> str:
         if isinstance(o, Exception):
             raise o
         return o
 
-    @_to_server
+    @_reflective_prime_op
     def __rpow__(self, o) -> str:
         if isinstance(o, Exception):
             raise o
         return o
 
-    @_to_server
+    @_reflective_prime_op
     def __rlshift__(self, o) -> str:
         if isinstance(o, Exception):
             raise o
         return o
 
-    @_to_server
+    @_reflective_prime_op
     def __rrshift__(self, o) -> str:
         if isinstance(o, Exception):
             raise o
         return o
 
-    @_to_server
+    @_reflective_prime_op
     def __rand__(self, o) -> str:
         if isinstance(o, Exception):
             raise o
         return o
 
-    @_to_server
+    @_reflective_prime_op
     def __rxor__(self, o) -> str:
         if isinstance(o, Exception):
             raise o
         return o
 
-    @_to_server
+    @_reflective_prime_op
     def __ror__(self, o) -> str:
         if isinstance(o, Exception):
             raise o
@@ -494,25 +534,25 @@ class Proxy(object):
     # def __ior__(self, o):
     #     raise NotImplementedError()
 
-    @_to_server
+    @_prime_op
     def __neg__(self, o) -> str:
         if isinstance(o, Exception):
             raise o
         return o
 
-    @_to_server
+    @_prime_op
     def __pos__(self) -> str:
         if isinstance(o, Exception):
             raise o
         return o
 
-    @_to_server
+    @_prime_op
     def __abs__(self) -> str:
         if isinstance(o, Exception):
             raise o
         return o
 
-    @_to_server
+    @_prime_op
     def __invert__(self) -> str:
         if isinstance(o, Exception):
             raise o
@@ -531,25 +571,25 @@ class Proxy(object):
     def __index__(self):
         raise NotImplementedError()
 
-    @_to_server
+    @_prime_op
     def __round__(self, o) -> str:
         if isinstance(o, Exception):
             raise o
         return o
 
-    @_to_server
+    @_prime_op
     def __trunc__(self, o) -> str:
         if isinstance(o, Exception):
             raise o
         return o
 
-    @_to_server
+    @_prime_op
     def __floor__(self, o) -> str:
         if isinstance(o, Exception):
             raise o
         return o
 
-    @_to_server
+    @_prime_op
     def __ceil__(self) -> str:
         if isinstance(o, Exception):
             raise o
