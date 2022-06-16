@@ -335,10 +335,14 @@ class Proxy(object):
         if isinstance(res, Exception):
             raise res
 
-        _next = partial(__next__, self)
-        _next.__name__ = '__next__'
+        return Proxy(res)
 
-        self.__next__ = _prime_op(_next)
+    # TODO: This method is added to make Proxy iterator type
+    #       Is it the best way?
+    @_prime_op
+    def __next__(self, res: Union[Exception, str]) -> Proxy:
+        if isinstance(res, Exception):
+            raise res
         return Proxy(res)
 
     @_prime_op
@@ -660,13 +664,3 @@ class Proxy(object):
 
     # def __aexit__(self, exc_type, exc_value, traceback):
     #     raise NotImplementedError()
-
-
-################################################################################
-# Lazy allocating methods                                                      #
-################################################################################
-
-def __next__(self, res) -> Proxy:
-    if isinstance(res, Exception):
-        raise res
-    return Proxy(res)
