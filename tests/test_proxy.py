@@ -8,6 +8,7 @@ import os
 import re
 import random
 import time
+from math import nan
 from typing import Union, Any
 
 import prime
@@ -94,8 +95,12 @@ def random_compute(n: int):
         try:
             x = op(a, b)
             x_d = op(a_d, b_d)
+            x_f = read_val(_client, x_d._ref)
 
-            assert read_val(_client, x_d._ref) == x
+            if x is nan and x_f is nan:
+                break
+
+            assert x_f == x
 
         except ZeroDivisionError as ze:
             with pytest.raises(ZeroDivisionError, match=str(ze)):
@@ -114,6 +119,11 @@ def random_compute(n: int):
             break
         except ValueError as ve:
             with pytest.raises(ValueError, match=str(ve)):
+                op(a_d, b_d)
+
+            break
+        except MemoryError as me:
+            with pytest.raises(MemoryError, match=str(me)):
                 op(a_d, b_d)
 
             break
