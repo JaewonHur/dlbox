@@ -14,6 +14,14 @@ from prime_pb2 import *
 from prime_pb2_grpc import *
 
 
+class PrimeNotSupportedError(Exception):
+    def __init__(self, msg: str):
+        self.msg = msg
+
+    def __str__(self):
+        return self.msg
+
+
 class PrimeError(Exception):
     def __init__(self, e: Exception):
         self.e = e

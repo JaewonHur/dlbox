@@ -8,6 +8,7 @@ from types import NotImplementedType
 import prime
 from prime import utils
 from prime.client import PrimeClient
+from prime.exceptions import PrimeNotSupportedError
 
 from prime_pb2 import *
 from prime_pb2_grpc import *
@@ -191,7 +192,7 @@ class Proxy(object):
         return f'Proxy@{self._ref}'
 
     def __bytes__(self):
-        raise TypeError("'Proxy' does not support bytes() conversion")
+        raise PrimeNotSupportedError("'Proxy' does not support bytes() conversion")
 
     def __format__(self, format_spec) -> str:
         return self.__str__()
@@ -237,7 +238,7 @@ class Proxy(object):
 
     # TODO: Bool operation
     def __bool__(self):
-        raise TypeError("'Proxy' does not support bool() conversion")
+        raise PrimeNotSupportedError("'Proxy' does not support bool() conversion")
 
     # TODO: Attribute related operation
     # def __getattr__(self, name):
@@ -295,9 +296,11 @@ class Proxy(object):
     def __call__(self, *args, **kwargs):
         raise NotImplementedError()
 
-    # TODO: Emulate container types
-    def __len__(self):
-        raise NotImplementedError()
+    @_prime_op
+    def __len__(self, o):
+        if isinstance(o, Exception):
+            raise o
+        return o
 
     def __length_hint__(self):
         raise NotImplementedError()
@@ -557,16 +560,17 @@ class Proxy(object):
 
     # TODO: These should return correct type
     def __complex__(self):
-        raise TypeError("'Proxy' does not support complex() conversion")
+        raise PrimeNotSupportedError("'Proxy' does not support complex() conversion")
 
     def __int__(self):
-        raise TypeError("'Proxy' does not support int() conversion")
+        raise PrimeNotSupportedError("'Proxy' does not support int() conversion")
 
     def __float__(self):
-        raise TypeError("'Proxy' does not support float() conversion")
+        raise PrimeNotSupportedError("'Proxy' does not support float() conversion")
 
+    # TODO: This should be resolved in cpython
     def __index__(self):
-        raise NotImplementedError()
+        raise PrimeNotSupportedError("'Proxy' does not support __index__()")
 
     @_prime_op
     def __round__(self, o) -> str:
