@@ -97,7 +97,7 @@ def random_compute(n: int):
             x_d = op(a_d, b_d)
             x_f = read_val(_client, x_d._ref)
 
-            if x is nan and x_f is nan:
+            if x != x and x_f != x_f:
                 break
 
             assert x_f == x
