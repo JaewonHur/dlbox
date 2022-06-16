@@ -14,6 +14,7 @@ from typing import Union, Any
 
 import prime
 from prime.proxy import Proxy, _client
+from prime.exceptions import PrimeNotSupportedError
 
 from tests.common import export_f_output, read_val, import_class
 
@@ -170,13 +171,13 @@ def test_NumberTypes():
     def msg(tpe):
         return re.escape(f"'Proxy' does not support {tpe.__name__}() conversion")
 
-    with pytest.raises(TypeError, match=msg(bool)):
+    with pytest.raises(PrimeNotSupportedError, match=msg(bool)):
         o = bool(x_d)
-    with pytest.raises(TypeError, match=msg(int)):
+    with pytest.raises(PrimeNotSupportedError, match=msg(int)):
         o = int(x_d)
-    with pytest.raises(TypeError, match=msg(float)):
+    with pytest.raises(PrimeNotSupportedError, match=msg(float)):
         o = float(x_d)
-    with pytest.raises(TypeError, match=msg(complex)):
+    with pytest.raises(PrimeNotSupportedError, match=msg(complex)):
         o = complex(x_d)
 
     # Random computation on numeric type should return the same result
