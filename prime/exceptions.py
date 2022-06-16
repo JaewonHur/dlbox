@@ -35,7 +35,6 @@ def catch_xcpt(fitmodel: bool):
             try:
                 res = func(*args, **kwargs)
                 res = Model(val=res) if fitmodel else Ref(name=res)
-                logger.debug(f'wrapper: {res}')
 
             except NotImplementedOutputError as e:
                 ne = dill.dumps(e)

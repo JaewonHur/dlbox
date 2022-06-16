@@ -184,8 +184,9 @@ class Proxy(object):
     # def __del__(self):
     #     raise NotImplementedError()
 
-    def __repr__(self):
-        raise NotImplementedError()
+    # TODO: Implement later
+    # def __repr__(self):
+    #     raise NotImplementedError()
 
     def __str__(self):
         raise NotImplementedError()
