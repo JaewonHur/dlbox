@@ -44,12 +44,12 @@ def _randfloat() -> (float, Proxy):
 
     return (r, r_d)
 
-def _any() -> (Any, Union[Proxy, Any]):
+def _any(proxy=False) -> (Any, Union[Proxy, Any]):
     x = random.choice([True,
                        random.randint(0, 100),
                        random.uniform(0.0, 100.0)])
 
-    if random.random() < 0.5:
+    if random.random() < 0.5 and not proxy:
         return (x, x)
     else:
         return (x, Proxy(_client.AllocateObj(x)))
@@ -78,6 +78,11 @@ def _and(a, b):      return a&b
 def _xor(a, b):      return a^b
 def _or(a, b):       return a|b
 
+def _neg(a):         return -a
+def _pos(a):         return +a
+def _abs(a):         return abs(a)
+def _invert(a):      return ~a
+
 cmp_list = [_lt, _le, _eq, _ne, _gt, _ge]
 complex_cmp_list = [_eq, _ne]
 
@@ -86,6 +91,9 @@ int_op_list = [_and, _xor, _or, _lshift, _rshift]
 float_op_list = [_add, _sub, _mul, _truediv, _floordiv,
                  _mod, _pow] #_divmod_a, _divmod_b,
 complex_op_list = [_add, _sub, _mul, _truediv, _pow]
+
+uop_list = [_neg, _pos, _abs, _invert]
+float_complex_uop_list = [_neg, _pos, _abs]
 
 def random_compute(n: int, comparison: bool):
     x, x_d = _randint()
@@ -152,7 +160,6 @@ def random_compute(n: int, comparison: bool):
 
             (a_d, b_d, a, b) = (x_d, y_d, x, y)
 
-            print(f'{op.__name__}({a}, {b})')
             c = op(a, b)
             c_d = op(a_d, b_d)
             c_f = read_val(_client, c_d._ref)
@@ -200,6 +207,21 @@ def test_NumberTypes():
             continue
 
     signal.alarm(0)
+
+    # Unary computation on numeric type should return the same result
+    for i in range(100):
+        x, x_d = _any(True)
+
+        if isinstance(x, float) or isinstance(x, complex):
+            op = random.choice(float_complex_uop_list)
+        else:
+            op = random.choice(uop_list)
+
+        print(f'{op.__name__}({x})')
+        x = op(x)
+        x_d = op(x_d)
+
+        assert x == read_val(_client, x_d._ref)
 
 ################################################################################
 # This test should be performed last to kill the server                        #
