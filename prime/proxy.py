@@ -159,8 +159,9 @@ class Proxy(object):
     # def __init__(self, *args, **kwargs):
     #     raise NotImplementedError()
 
-    def __del__(self):
-        raise NotImplementedError()
+    # TODO: Implement later
+    # def __del__(self):
+    #     raise NotImplementedError()
 
     def __repr__(self):
         raise NotImplementedError()
@@ -208,8 +209,9 @@ class Proxy(object):
     # def __getattribute__(self, name):
     #     raise NotImplementedError()
 
-    def __setattr__(self, name, value):
-        raise NotImplementedError()
+    # TODO: Implement later
+    # def __setattr__(self, name, value):
+    #     raise NotImplementedError()
 
     def __delattr__(self, name):
         raise NotImplementedError()
@@ -284,7 +286,6 @@ class Proxy(object):
     def __contains__(self, item):
         raise NotImplementedError()
 
-    # TODO: Emulate numeric type
     @_to_server
     def __add__(self, o) -> str:
         if isinstance(o, Exception):
@@ -397,7 +398,6 @@ class Proxy(object):
     def __rtruediv__(self, o) -> str:
         if isinstance(o, Exception):
             raise o
-
         return o
 
     @_to_server
