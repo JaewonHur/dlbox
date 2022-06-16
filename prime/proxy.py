@@ -233,11 +233,8 @@ class Proxy(object):
             raise o
         return o
 
-    # TODO: Hash operation
     def __hash__(self):
-        if isinstance(o, Exception):
-            raise o
-        return o
+        return hash(self._ref)
 
     # TODO: Bool operation
     def __bool__(self):
