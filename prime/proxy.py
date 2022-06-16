@@ -3,7 +3,8 @@
 #
 from __future__ import annotations
 from typing import List, Dict, Union, Any
-from types import NotImplementedType
+from types import NotImplementedType, FunctionType
+from functools import partial
 
 import prime
 from prime import utils
@@ -297,34 +298,68 @@ class Proxy(object):
         raise NotImplementedError()
 
     @_prime_op
-    def __len__(self, o):
+    def __len__(self, o) -> str:
         if isinstance(o, Exception):
             raise o
         return o
 
     def __length_hint__(self):
-        raise NotImplementedError()
+        return NotImplemented
 
-    def __getitem__(self, key):
-        raise NotImplementedError()
+    @_prime_op
+    def __getitem__(self, o) -> str:
+        if isinstance(o, Exception):
+            raise o
+        return o
 
-    def __setitem__(self, key, value):
-        raise NotImplementedError()
+    @_prime_op
+    def __setitem__(self, o) -> str:
+        if isinstance(o, Exception):
+            raise o
+        return o
 
-    def __delitem__(self, key):
-        raise NotImplementedError()
+    @_prime_op
+    def __delitem__(self, o) -> str:
+        if isinstance(o, Exception):
+            raise o
+        return o
 
-    def __missing__(self, key):
-        raise NotImplementedError()
+    # def __missing__(self, key):
+    #     raise NotImplementedError()
 
-    def __iter__(self):
-        raise NotImplementedError()
+    @_prime_op
+    def __iter__(self, res) -> str:
+        if isinstance(res, AttributeError):
+            res = self._client.InvokeMethod('__main__', 'iter',
+                                            [self._ref])
 
+        if isinstance(res, Exception):
+            raise res
+
+        _next = partial(__next__, self)
+        _next.__name__ = '__next__'
+
+        self.__next__ = self._prime_op(_next)
+        return res
+
+    @_prime_op
     def __reversed__(self):
-        raise NotImplementedError()
+        if isinstance(o, Exception):
+            raise o
+        return o
 
-    def __contains__(self, item):
-        raise NotImplementedError()
+    @_prime_op
+    def __contains__(self, res):
+        if isinstance(res, AttributeError):
+            __in__ = self._client.ExportDef('__in__', FunctionType,
+                                            "def __in__(x, y): return (y in x)")
+            res = self._client.InvokeMethod('__main__', __in__,
+                                            [self._ref, item])
+
+        if isinstance(res, Exception):
+            raise res
+
+        return res
 
     @_reflective_prime_op
     def __add__(self, o) -> str:
@@ -626,3 +661,13 @@ class Proxy(object):
 
     # def __aexit__(self, exc_type, exc_value, traceback):
     #     raise NotImplementedError()
+
+
+################################################################################
+# Lazy allocating methods                                                      #
+################################################################################
+
+def __next__(self, res) -> str:
+    if isinstance(res, Exception):
+        raise res
+    return res
