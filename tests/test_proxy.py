@@ -6,6 +6,7 @@ import pytest
 import sys
 import os
 import re
+import signal
 import random
 import time
 from math import nan
@@ -53,6 +54,13 @@ def _any() -> (Any, Union[Proxy, Any]):
         return (x, Proxy(_client.AllocateObj(x)))
 
 
+def _lt(a, b):       return a<b
+def _le(a, b):       return a<=b
+def _eq(a, b):       return a==b
+def _ne(a, b):       return a!=b
+def _gt(a, b):       return a>b
+def _ge(a, b):       return a>=b
+
 def _add(a, b):      return a+b
 def _sub(a, b):      return a-b
 def _mul(a, b):      return a*b
@@ -69,13 +77,16 @@ def _and(a, b):      return a&b
 def _xor(a, b):      return a^b
 def _or(a, b):       return a|b
 
+cmp_list = [_lt, _le, _eq, _ne, _gt, _ge]
+complex_cmp_list = [_eq, _ne]
+
 bool_op_list = [_and, _xor, _or]
 int_op_list = [_and, _xor, _or, _lshift, _rshift]
 float_op_list = [_add, _sub, _mul, _truediv, _floordiv,
                  _mod, _pow] #_divmod_a, _divmod_b,
 complex_op_list = [_add, _sub, _mul, _truediv, _pow]
 
-def random_compute(n: int):
+def random_compute(n: int, comparison: bool):
     x, x_d = _randint()
     for i in range(n):
         y, y_d = _any()
@@ -93,6 +104,7 @@ def random_compute(n: int):
                             else (y_d, x_d, y, x))
 
         try:
+            print(f'{op.__name__}({a}, {b})')
             x = op(a, b)
             x_d = op(a_d, b_d)
             x_f = read_val(_client, x_d._ref)
@@ -128,6 +140,26 @@ def random_compute(n: int):
 
             break
 
+        if comparison:
+            y, y_d = ((x, Proxy(x_d._ref)) if random.random() < 0.5
+                      else _any())
+
+            if isinstance(x, complex) or isinstance(y, complex):
+                op = random.choice(complex_cmp_list)
+            else:
+                op = random.choice(cmp_list)
+
+            (a_d, b_d, a, b) = (x_d, y_d, x, y)
+
+            print(f'{op.__name__}({a}, {b})')
+            c = op(a, b)
+            c_d = op(a_d, b_d)
+            c_f = read_val(_client, c_d._ref)
+
+            assert c == c_f
+
+def alarm_handler(signum, frame):
+    raise TimeoutError()
 
 def test_NumberTypes():
 
@@ -148,9 +180,25 @@ def test_NumberTypes():
         o = complex(x_d)
 
     # Random computation on numeric type should return the same result
+    signal.signal(signal.SIGALRM, alarm_handler)
     for i in range(100):
-        random_compute(10)
 
+        signal.alarm(10)
+        try:
+            random_compute(10, False)
+        except TimeoutError:
+            continue
+
+    # Rich comparison on numeric type should return the same result
+    for i in range(100):
+
+        signal.alarm(10)
+        try:
+            random_compute(10, True)
+        except TimeoutError:
+            continue
+
+    signal.alarm(0)
 
 ################################################################################
 # This test should be performed last to kill the server                        #
