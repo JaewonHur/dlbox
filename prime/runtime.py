@@ -29,7 +29,7 @@ VAR_SFX = 'VAL'
 BUILTIN_TYPES = [
     getattr(builtins, d) for d in dir(builtins)
     if isinstance(getattr(builtins, d), type)
-]
+] + [ type(None) ]
 
 class ExecutionRuntime():
     def __init__(self):
