@@ -313,6 +313,9 @@ class Proxy(object):
 
     @_prime_op
     def __setitem__(self, res: Union[Exception, str], key, val) -> Proxy:
+        if isinstance(res, AttributeError):
+            tpe = re.match(f"^'(.*)'.*", str(res)).group(1)
+            raise TypeError(f"'{tpe}' object does not support item assignment")
         if isinstance(res, Exception):
             raise res
         return Proxy(res)
