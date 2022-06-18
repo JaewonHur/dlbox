@@ -270,11 +270,11 @@ def _rmul(r, x, X, i, j, v, V, k):         return (x * r)
 def _getitem(r, x, X, i, j, v, V, k):      return r[i]
 def _getslice(r, x, X, i, j, v, V, k):
     return (r[i:j] if not k else r[i:j:k])
-# def _len(a):         return len(a)
-# def _min(a):         return min(a)
-# def _max(a):         return max(a)
-# def _index(a):       return a.index(random())
-# def _count(a):       return a.count(random())
+# def _len(r, x, X, i, j, v, V, k):          return len(r)
+# def _min(r, x, X, i, j, v, V, k):          return min(r)
+# def _max(r, x, X, i, j, v, V, k):          return max(r)
+# def _index(r, x, X, i, j, v, V, k):        return r.index(i)
+# def _count(r, x, X, i, j, v, V, k):        return r.count(i)
 
 def _setitem(r, x, X, i, j, v, V, k):      r[i] = v
 def _setslice(r, x, X, i, j, v, V, k):
@@ -284,18 +284,16 @@ def _delitem(r, x, X, i, j, v, V, k):      del r[i]
 def _delslice(r, x, X, i, j, v, V, k):
     if not k: del r[i:j]
     else:     del r[i:j:k]
-# def _append(r, x):                 r.append(x)
-# def _clear(r):                     r.clear()
-# def _copy(r):                      return r.copy()
+# def _append(r, x, X, i, j, v, V, k):       r.append(x)
+# def _clear(r, x, X, i, j, v, V, k):        r.clear()
+# def _copy(r, x, X, i, j, v, V, k):         return r.copy()
 def _iadd(r, x, X, i, j, v, V, k):         r += x
-# def _extend(r, x):                 r.extend(x)
+# def _extend(r, x, X, i, j, v, V, k):       r.extend(X)
 def _imul(r, x, X, i, j, v, V, k):         r *= x
-# def _insert(r, i, x):              r.insert(i, x)
-# def _pop(r, i=None):
-#     if not i: return r.pop()
-#     else:     return r.pop(i)
-# def _remove(r, i):                 r.remove(i)
-# def _reverse(r, x, X, i, j, v, V, k=None):      r.reverse()
+# def _insert(r, x, X, i, j, v, V, k):       r.insert(i, x)
+# def _pop(r, x, X, i, j, v, V, k):          r.pop(i)
+# def _remove(r, x, X, i, j, v, V, k):       r.remove(i)
+# def _reverse(r, x, X, i, j, v, V, k):      r.reverse()
 
 imm_op_list = [_contains, _not_contains, _add,
                _mul, _rmul, _getitem, _getslice]
