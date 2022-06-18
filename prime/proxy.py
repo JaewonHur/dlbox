@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import re
+import sys
 from typing import List, Dict, Union, Any
 from types import NotImplementedType, FunctionType
 from functools import partial
@@ -153,16 +154,64 @@ def _reflective_prime_op(func):
 
 
 class Proxy(object):
+    # __methods = (
+    #     '__init__', '__getattribute__', '__getattr__', '__repr__',
+    #     '__str__', '__bytes__', '__format__', '__lt__', '__le__', '__eq__',
+    #     '__ne__', '__gt__', '__ge__', '__hash__', '__bool__', '__delattr__',
+    #     '__dir__', '__call__', '__len__', '__length_hint__', '__getitem__',
+    #     '__setitem__', '__delitem__', '__iter__', '__next__', '__reversed__',
+    #     '__contains__', '__add__', '__sub__', '__mul__', '__matmul__',
+    #     '__truediv__', '__floordiv__', '__mod__', '__divmod__', '__pow__',
+    #     '__lshift__', '__rshift__', '__and__', '__xor__', '__or__', '__radd__',
+    #     '__rsub__', '__rmul__', '__rmatmul__', '__rtruediv__', '__rfloordiv__',
+    #     '__rmod__', '__rdivmod__', '__rpow__', '__rlshift__', '__rrshift__',
+    #     '__rand__', '__rxor__', '__ror__', '__iadd__', '__isub__', '__imul__',
+    #     '__imatmul__', '__itruediv__', '__ifloordiv__', '__imod__', '__ipow__',
+    #     '__ilshift__', '__irshift__', '__iand__', '__ixor__', '__ior__',
+    #     '__neg__', '__pos__', '__abs__', '__invert__', '__complex__', '__int__',
+    #     '__float__', '__index__', '__round__', '__trunc__', '__floor__',
+    #     '__ceil__',
+    # )
+    __slots__ = ('_ref',)
+
     _client: PrimeClient = _client
 
     def __init__(self, ref: str):
         # TODO: Need to check referenced variable is not class definition
         self._ref = ref
 
+    def __getattribute__(self, name: str) -> Any:
+        __methods = (
+            '__init__', '__getattribute__', '__getattr__', '__repr__',
+            '__str__', '__bytes__', '__format__', '__lt__', '__le__', '__eq__',
+            '__ne__', '__gt__', '__ge__', '__hash__', '__bool__', '__delattr__',
+            '__dir__', '__call__', '__len__', '__length_hint__', '__getitem__',
+            '__setitem__', '__delitem__', '__iter__', '__next__', '__reversed__',
+            '__contains__', '__add__', '__sub__', '__mul__', '__matmul__',
+            '__truediv__', '__floordiv__', '__mod__', '__divmod__', '__pow__',
+            '__lshift__', '__rshift__', '__and__', '__xor__', '__or__', '__radd__',
+            '__rsub__', '__rmul__', '__rmatmul__', '__rtruediv__', '__rfloordiv__',
+            '__rmod__', '__rdivmod__', '__rpow__', '__rlshift__', '__rrshift__',
+            '__rand__', '__rxor__', '__ror__', '__iadd__', '__isub__', '__imul__',
+            '__imatmul__', '__itruediv__', '__ifloordiv__', '__imod__', '__ipow__',
+            '__ilshift__', '__irshift__', '__iand__', '__ixor__', '__ior__',
+            '__neg__', '__pos__', '__abs__', '__invert__', '__complex__', '__int__',
+            '__float__', '__index__', '__round__', '__trunc__', '__floor__',
+            '__ceil__',
+        )
+
+        if name in __methods:
+            print('Direct access to special methods of Proxy is discouraged', file=sys.stderr)
+
+        return object.__getattribute__(self, name)
+
     def __getattr__(self, name: str) -> Proxy:
         name_d = self._client.AllocateObj(name)
         attr_d = self._client.InvokeMethod('__main__', 'getattr',
-                                           [name_d])
+                                           [self._ref, name_d])
+
+        if isinstance(attr_d, Exception):
+            raise attr_d
 
         return Proxy(attr_d)
 
