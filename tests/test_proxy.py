@@ -205,137 +205,142 @@ def test_NumberTypes():
         assert x == read_val(_client, x_d._ref)
 
 
-# def _randlist(n=None) -> (List, Proxy):
-#     n = randint(0, 10) if not n else n
+def _randlist(n=None) -> (List, Proxy):
+    n = randint(0, 10) if not n else n
 
-#     # TODO: How to export mutable variable containing Proxy
-#     r = [ _any_number()[0] for i in range(n) ]
-#     r_d = Proxy(_client.AllocateObj(r))
+    # TODO: How to export mutable variable containing Proxy
+    r = [ _any_number()[0] for i in range(n) ]
+    r_d = Proxy(_client.AllocateObj(r))
 
-#     return r, r_d
+    return r, r_d
 
-# def _randbytesarray(n=None) -> (bytearray, Proxy):
-#     n = randint(0, 10) if not n else n
-#     r = bytearray([ randint(0, 255) for i in range(n) ])
+def _randbytesarray(n=None) -> (bytearray, Proxy):
+    n = randint(0, 10) if not n else n
+    r = bytearray([ randint(0, 255) for i in range(n) ])
 
-#     r_d = Proxy(_client.AllocateObj(r))
+    r_d = Proxy(_client.AllocateObj(r))
 
-#     return r, r_d
+    return r, r_d
 
-# def _randstring(n=None) -> (str, Proxy):
-#     n = randint(0, 10) if not n else n
+def _randstring(n=None) -> (str, Proxy):
+    n = randint(0, 10) if not n else n
 
-#     r = ''.join(choices(string.ascii_letters + string.digits, k=n))
-#     r_d = Proxy(_client.AllocateObj(r))
+    r = ''.join(choices(string.ascii_letters + string.digits, k=n))
+    r_d = Proxy(_client.AllocateObj(r))
 
-#     return r, r_d
+    return r, r_d
 
-# def _randtuple(n=None) -> (Tuple, Proxy):
-#     r, _ = _randlist(n)
-#     r = tuple(r)
+def _randtuple(n=None) -> (Tuple, Proxy):
+    r, _ = _randlist(n)
+    r = tuple(r)
 
-#     r_d = Proxy(_client.AllocateObj(r))
+    r_d = Proxy(_client.AllocateObj(r))
 
-#     return r, r_d
+    return r, r_d
 
-# def _randbytes(n=None) -> (bytes, Proxy):
-#     n = randint(0, 10) if not n else n
-#     r = bytes([ randint(0, 255) for i in range(n) ])
+def _randbytes(n=None) -> (bytes, Proxy):
+    n = randint(0, 10) if not n else n
+    r = bytes([ randint(0, 255) for i in range(n) ])
 
-#     r_d = Proxy(_client.AllocateObj(r))
+    r_d = Proxy(_client.AllocateObj(r))
 
-#     return r, r_d
+    return r, r_d
 
-# def _any_imm_seq(n=None) -> (Any, Proxy):
-#     _rand_seq = choice([_randstring, _randtuple, _randbytes])
+def _any_imm_seq(n=None) -> (Any, Proxy):
+    _rand_seq = choice([_randstring, _randtuple, _randbytes])
 
-#     return _rand_seq(n)
+    return _rand_seq(n)
 
-# def _any_mut_seq(n=None) -> (Any, Proxy):
-#     _rand_seq = choice([_randlist, _randbytesarray])
+def _any_mut_seq(n=None) -> (Any, Proxy):
+    _rand_seq = choice([_randlist, _randbytesarray])
 
-#     return _rand_seq(n)
+    return _rand_seq(n)
 
-# def _any_seq(n=None) -> (Any, Proxy):
-#     _rand_seq = choice([_any_imm_seq, _any_mut_seq])
+def _any_seq(n=None) -> (Any, Proxy):
+    _rand_seq = choice([_any_imm_seq, _any_mut_seq])
 
-#     return _rand_seq(n)
+    return _rand_seq(n)
 
 
-# def _contains(r, x, X, i, j, v, V, k=None):     return (x in r)
-# def _not_contains(r, x, X, i, j, v, V, k=None): return (x not in r)
-# def _add(r, x, X, i, j, v, V, k=None):          return (r + X)
-# def _mul(r, x, X, i, j, v, V, k=None):          return (r * x)
-# def _rmul(r, x, X, i, j, v, V, k=None):         return (x * r)
-# def _getitem(r, x, X, i, j, v, V, k=None):      return r[i]
-# def _getslice(r, x, X, i, j, v, V, k=None):
-#     return (r[i:j] if not k else r[i:j:k])
-# # def _len(a):         return len(a)
-# # def _min(a):         return min(a)
-# # def _max(a):         return max(a)
-# # def _index(a):       return a.index(random())
-# # def _count(a):       return a.count(random())
+def _contains(r, x, X, i, j, v, V, k):     return (x in r)
+def _not_contains(r, x, X, i, j, v, V, k): return (x not in r)
+def _add(r, x, X, i, j, v, V, k):          return (r + X)
+def _mul(r, x, X, i, j, v, V, k):          return (r * x)
+def _rmul(r, x, X, i, j, v, V, k):         return (x * r)
+def _getitem(r, x, X, i, j, v, V, k):      return r[i]
+def _getslice(r, x, X, i, j, v, V, k):
+    return (r[i:j] if not k else r[i:j:k])
+# def _len(a):         return len(a)
+# def _min(a):         return min(a)
+# def _max(a):         return max(a)
+# def _index(a):       return a.index(random())
+# def _count(a):       return a.count(random())
 
-# def _setitem(r, x, X, i, j, v, V, k=None):      r[i] = v
-# def _setslice(r, x, X, i, j, v, V, k=None):
-#     if not k: r[i:j] = V
-#     else:     r[i:j:k] = V
-# def _delitem(r, x, X, i, j, v, V, k=None):      del r[i]
-# def _delslice(r, x, X, i, j, v, V, k=None):
-#     if not k: del r[i:j]
-#     else:     del r[i:j:k]
-# # def _append(r, x):                 r.append(x)
-# # def _clear(r):                     r.clear()
-# # def _copy(r):                      return r.copy()
-# def _iadd(r, x, X, i, j, v, V, k=None):         r += x
-# # def _extend(r, x):                 r.extend(x)
-# def _imul(r, x, X, i, j, v, V, k=None):         r *= x
-# # def _insert(r, i, x):              r.insert(i, x)
-# # def _pop(r, i=None):
-# #     if not i: return r.pop()
-# #     else:     return r.pop(i)
-# # def _remove(r, i):                 r.remove(i)
+def _setitem(r, x, X, i, j, v, V, k):      r[i] = v
+def _setslice(r, x, X, i, j, v, V, k):
+    if not k: r[i:j] = V
+    else:     r[i:j:k] = V
+def _delitem(r, x, X, i, j, v, V, k):      del r[i]
+def _delslice(r, x, X, i, j, v, V, k):
+    if not k: del r[i:j]
+    else:     del r[i:j:k]
+# def _append(r, x):                 r.append(x)
+# def _clear(r):                     r.clear()
+# def _copy(r):                      return r.copy()
+def _iadd(r, x, X, i, j, v, V, k):         r += x
+# def _extend(r, x):                 r.extend(x)
+def _imul(r, x, X, i, j, v, V, k):         r *= x
+# def _insert(r, i, x):              r.insert(i, x)
+# def _pop(r, i=None):
+#     if not i: return r.pop()
+#     else:     return r.pop(i)
+# def _remove(r, i):                 r.remove(i)
 # def _reverse(r, x, X, i, j, v, V, k=None):      r.reverse()
 
-# imm_op_list = [_contains, _not_contains, _add,
-#                _mul, _rmul, _getitem, _getslice]
-# mut_op_list = imm_op_list + [_setitem, _setslice, _delitem, _delslice,
-#                              _iadd, _imul, _reverse]
+imm_op_list = [_contains, _not_contains, _add,
+               _mul, _rmul, _getitem, _getslice]
+mut_op_list = imm_op_list + [_setitem, _setslice, _delitem, _delslice,
+                             _iadd, _imul]
 
-# def _get_args(r):
-#     x = choice((choice(r + [None]), _any_number()[0]))
-#     X = choice((_any_seq(len(r))[0], _any_seq()[0]))
-#     i = randint(0, int(1.2 * len(r)))
-#     j = randint(0, int(1.2 * len(r)))
-#     v = _any_number()[0]
-#     V = _any_seq(choice((None, len(r))))[0]
-#     k = choice((None, randint(0, int(1.2 * len(r)))))
+def _get_args(r):
+    x = choice((choice(r + [None]), _any_number()[0]))
+    X = choice((_any_seq(len(r))[0], _any_seq()[0]))
+    i = randint(0, int(1.2 * len(r)))
+    j = randint(0, int(1.2 * len(r)))
+    v = _any_number()[0]
+    V = _any_seq(choice((None, len(r))))[0]
+    k = choice((None, randint(0, int(1.2 * len(r)))))
 
-#     return (x, X, i, j, v, V, k)
+    return (x, X, i, j, v, V, k)
 
-# def test_SeqTypes():
-#     # List
-#     for i in range(10):
-#         r, r_d = _randlist()
+def test_SeqTypes():
+    # List
+    for i in range(100):
+        r, r_d = _randlist()
 
-#         args = _get_args(r)
-#         op = choice(mut_op_list)
+        args = _get_args(r)
+        op = _imul
+        # op = choice(mut_op_list)
 
-#         try:
-#             o = op(r, *args)
-#             o_d = op(r_d, *args)
+        try:
+            o = op(r, *args)
 
-#         except Exception as e:
-#             print(e)
-#             with pytest.raises(type(e)):
-#                 op(r_d, *args)
+        except Exception as e:
+            print(e)
+            with pytest.raises(type(e)):
+                op(r_d, *args)
 
-#             continue
+            continue
 
-#         if o: assert o == read_val(_client, o_d._ref)
-#         assert r == read_val(_client, r_d._ref)
+        try:
+            o_d = op(r_d, *args)
+        except PrimeNotSupportedError as pe:
+            assert op.__name__ in ('_contains', '_not_contains')
+            continue
 
+        if o: assert o == read_val(_client, o_d._ref)
 
+        assert r == read_val(_client, r_d._ref)
 
 
 ################################################################################
