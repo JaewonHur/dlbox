@@ -2,6 +2,8 @@
 # Copyright (c) 2022
 #
 from __future__ import annotations
+
+import re
 from typing import List, Dict, Union, Any
 from types import NotImplementedType, FunctionType
 from functools import partial
@@ -322,6 +324,9 @@ class Proxy(object):
 
     @_prime_op
     def __delitem__(self, res: Union[Exception, str], key) -> Proxy:
+        if isinstance(res, AttributeError):
+            tpe = re.match(f"^'(.*)'.*", str(res)).group(1)
+            raise TypeError(f"'{tpe}' object does not support item deletion")
         if isinstance(res, Exception):
             raise res
         return Proxy(res)
