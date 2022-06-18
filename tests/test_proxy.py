@@ -94,7 +94,7 @@ complex_op_list = [_add, _sub, _mul, _truediv, _pow]
 uop_list = [_neg, _pos, _abs, _invert]
 float_complex_uop_list = [_neg, _pos, _abs]
 
-def random_compute(n: int, comparison: bool):
+def random_NumberType_test(n: int, comparison: bool):
     x, x_d = _randint()
     for i in range(n):
         y, y_d = _any_number()
@@ -175,7 +175,7 @@ def test_NumberTypes():
 
         signal.alarm(10)
         try:
-            random_compute(10, False)
+            random_NumberType_test(10, False)
         except TimeoutError:
             continue
 
@@ -184,7 +184,7 @@ def test_NumberTypes():
 
         signal.alarm(10)
         try:
-            random_compute(10, True)
+            random_NumberType_test(10, True)
         except TimeoutError:
             continue
 
@@ -303,7 +303,8 @@ mut_op_list = imm_op_list + [_setitem, _setslice, _delitem, _delslice,
                              _iadd, _imul]
 
 def _get_args(r):
-    x = choice((choice(r + [None]), _any_number()[0]))
+    x = choice(r) if len(r) > 0 else None
+    x = choice((x, _any_number()[0]))
     X = choice((_any_seq(len(r))[0], _any_seq()[0]))
     i = randint(0, int(1.2 * len(r)))
     j = randint(0, int(1.2 * len(r)))
@@ -313,34 +314,55 @@ def _get_args(r):
 
     return (x, X, i, j, v, V, k)
 
-def test_SeqTypes():
-    # List
-    for i in range(100):
-        r, r_d = _randlist()
+def random_SeqType_test(n: int, _randseq: callable):
+    if _randseq in (_randstring, _randtuple, _randbytes):
+        mutable = False
+    elif _randseq in (_randlist, _randbytesarray):
+        mutable = True
+
+    for i in range(n):
+        r, r_d = _randseq()
 
         args = _get_args(r)
-        op = _imul
-        # op = choice(mut_op_list)
+        if mutable: op = choice(mut_op_list)
+        else:
+            if random() < 0.2: op = choice(mut_op_list)
+            else: op = choice(imm_op_list)
 
         try:
             o = op(r, *args)
 
         except Exception as e:
-            print(e)
             with pytest.raises(type(e)):
                 op(r_d, *args)
-
             continue
 
         try:
             o_d = op(r_d, *args)
         except PrimeNotSupportedError as pe:
-            assert op.__name__ in ('_contains', '_not_contains')
+            assert op in (_contains, _not_contains)
             continue
 
         if o: assert o == read_val(_client, o_d._ref)
 
         assert r == read_val(_client, r_d._ref)
+
+
+def test_SeqTypes():
+    # String
+    random_SeqType_test(100, _randstring)
+
+    # Bytes
+    random_SeqType_test(100, _randbytes)
+
+    # Tuple
+    random_SeqType_test(100, _randtuple)
+
+    # List
+    random_SeqType_test(100, _randlist)
+
+    # BytesArray
+    random_SeqType_test(100, _randbytesarray)
 
 
 ################################################################################
