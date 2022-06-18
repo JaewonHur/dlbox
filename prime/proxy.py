@@ -36,13 +36,13 @@ Supported types of referenced variable:
 +   bool
 +   float
 +   complex
-  Immutable sequences
-    String
-    Tuple
-    Bytes
-  Mutable sequences
-    List
-    Byte array
++ Immutable sequences
++   String
++   Tuple
++   Bytes
++ Mutable sequences
++   List
++   Byte array
   Sets
     Set
     Frozen set
