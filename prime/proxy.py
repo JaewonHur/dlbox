@@ -532,45 +532,109 @@ class Proxy(object):
             raise res
         return Proxy(res)
 
-    # NOTE: These fall back to the normal operations
-    # def __iadd__(self, o):
-    #     raise NotImplementedError()
+    @_prime_op
+    def __iadd__(self, res: Union[Exception, str], o):
+        if isinstance(res, AttributeError):
+            return NotImplemented
+        elif isinstance(res, Exception):
+            raise res
+        return Proxy(res)
 
-    # def __isub__(self, o):
-    #     raise NotImplementedError()
+    @_prime_op
+    def __isub__(self, res: Union[Exception, str], o):
+        if isinstance(res, AttributeError):
+            return NotImplemented
+        elif isinstance(res, Exception):
+            raise res
+        return Proxy(res)
 
-    # def __imul__(self, o):
-    #     raise NotImplementedError()
+    @_prime_op
+    def __imul__(self, res: Union[Exception, str], o):
+        if isinstance(res, AttributeError):
+            return NotImplemented
+        elif isinstance(res, Exception):
+            raise res
+        return Proxy(res)
 
-    # def __imatmul__(self, o):
-    #     raise NotImplementedError()
+    @_prime_op
+    def __imatmul__(self, res: Union[Exception, str], o):
+        if isinstance(res, AttributeError):
+            return NotImplemented
+        elif isinstance(res, Exception):
+            raise res
+        return Proxy(res)
 
-    # def __itruediv__(self, o):
-    #     raise NotImplementedError()
+    @_prime_op
+    def __itruediv__(self, res: Union[Exception, str], o):
+        if isinstance(res, AttributeError):
+            return NotImplemented
+        elif isinstance(res, Exception):
+            raise res
+        return Proxy(res)
 
-    # def __ifloordiv__(self, o):
-    #     raise NotImplementedError()
+    @_prime_op
+    def __ifloordiv__(self, res: Union[Exception, str], o):
+        if isinstance(res, AttributeError):
+            return NotImplemented
+        elif isinstance(res, Exception):
+            raise res
+        return Proxy(res)
 
-    # def __imod__(self, o):
-    #     raise NotImplementedError()
+    @_prime_op
+    def __imod__(self, res: Union[Exception, str], o):
+        if isinstance(res, AttributeError):
+            return NotImplemented
+        elif isinstance(res, Exception):
+            raise res
+        return Proxy(res)
 
-    # def __ipow__(self, o):
-    #     raise NotImplementedError()
+    @_prime_op
+    def __ipow__(self, res: Union[Exception, str], o):
+        if isinstance(res, AttributeError):
+            return NotImplemented
+        elif isinstance(res, Exception):
+            raise res
+        return Proxy(res)
 
-    # def __ilshift__(self, o):
-    #     raise NotImplementedError()
+    @_prime_op
+    def __ilshift__(self, res: Union[Exception, str], o):
+        if isinstance(res, AttributeError):
+            return NotImplemented
+        elif isinstance(res, Exception):
+            raise res
+        return Proxy(res)
 
-    # def __irshift__(self, o):
-    #     raise NotImplementedError()
+    @_prime_op
+    def __irshift__(self, res: Union[Exception, str], o):
+        if isinstance(res, AttributeError):
+            return NotImplemented
+        elif isinstance(res, Exception):
+            raise res
+        return Proxy(res)
 
-    # def __iand__(self, o):
-    #     raise NotImplementedError()
+    @_prime_op
+    def __iand__(self, res: Union[Exception, str], o):
+        if isinstance(res, AttributeError):
+            return NotImplemented
+        elif isinstance(res, Exception):
+            raise res
+        return Proxy(res)
 
-    # def __ixor__(self, o):
-    #     raise NotImplementedError()
+    @_prime_op
+    def __ixor__(self, res: Union[Exception, str], o):
+        if isinstance(res, AttributeError):
+            return NotImplemented
+        elif isinstance(res, Exception):
+            raise res
+        return Proxy(res)
 
-    # def __ior__(self, o):
-    #     raise NotImplementedError()
+    @_prime_op
+    def __ior__(self, res: Union[Exception, str], o):
+        if isinstance(res, AttributeError):
+            return NotImplemented
+        elif isinstance(res, Exception):
+            raise res
+        return Proxy(res)
 
     @_prime_op
     def __neg__(self, res: Union[Exception, str]) -> Proxy:
