@@ -5,16 +5,18 @@
 import grpc
 import dill
 
-from typing import types, Type, List, Dict
+from typing import types, Type, List, Dict, Any
 
 from prime.utils import logger
 from prime.exceptions import retrieve_xcpt
+from prime.hasref import HasRef
 
 from prime_pb2 import *
 from prime_pb2_grpc import *
 
 
 TIMEOUT_SEC = 10
+
 
 class PrimeClient:
     def __init__(self, port=50051):
@@ -46,6 +48,8 @@ class PrimeClient:
 
     @retrieve_xcpt(False)
     def AllocateObj(self, obj: object) -> Ref:
+        if isinstance(obj, HasRef):
+            return Ref(name=obj._ref)
 
         tpe = type(obj)
         tpe = dill.dumps(tpe)

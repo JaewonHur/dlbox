@@ -3,6 +3,7 @@
 #
 
 # from prime.
+from __future__ import annotations
 
 import sys
 import dill
@@ -12,6 +13,7 @@ from typing import types, List, Dict, Any
 
 from prime.utils import logger
 from prime.exceptions import catch_xcpt, UserError, NotImplementedOutputError
+from prime.hasref import HasRef
 
 # TODO: import trusted libraries
 ################################################################################
@@ -31,10 +33,23 @@ BUILTIN_TYPES = [
     if isinstance(getattr(builtins, d), type)
 ] + [ type(None) ]
 
+
+
 class ExecutionRuntime():
+    __initialized = False
+    __ctx = {}
+
     def __init__(self):
-        self.__ctx = {}
+        if self.__initialized:
+            raise RuntimeError('There can exist only one ExecutionRuntime')
+        self.__init()
+
         self.ctr = 0
+
+    @classmethod
+    def __init(cls: ExecutionRuntime):
+        cls.__initialized = True
+        HasRef._set_ctx(cls.__ctx)
 
     def _add_to_ctx(self, obj: Any, name: str = None) -> str:
         if name:
@@ -77,8 +92,8 @@ class ExecutionRuntime():
 
     @catch_xcpt(False)
     def AllocateObj(self, tpe: bytes, val: bytes) -> str:
-        tpe = dill.loads(tpe)
-        obj = dill.loads(val)
+        tpe, obj = dill.loads(tpe), dill.loads(val)
+        tpe = type(obj) if issubclass(tpe, HasRef) else tpe
 
         assert (tpe in BUILTIN_TYPES or tpe.__name__ in self.__ctx), \
             f'type not defined: {tpe}'
