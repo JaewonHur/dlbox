@@ -6,6 +6,7 @@ import os
 import subprocess
 import logging
 
+IS_SERVER = False
 SERVER_PID = 0
 
 logger = logging.getLogger()
@@ -46,7 +47,13 @@ def log_to_file(path: str):
     last_filehandler = file_handler
     logger.addHandler(file_handler)
 
+def is_server():
+    global IS_SERVER
+    IS_SERVER = True
+
 def run_server():
+    if IS_SERVER: return
+
     global SERVER_PID
     if SERVER_PID:
         raise Exception(f'server[{SERVER_PID}] already runnig')

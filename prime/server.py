@@ -6,15 +6,18 @@ import grpc
 import click
 from concurrent import futures
 
-from prime.utils import logger
+from prime.utils import logger, is_server
 from prime.runtime import ExecutionRuntime
 
 from prime_pb2 import *
 from prime_pb2_grpc import *
 
+
 class PrimeServer(PrimeServerServicer):
     def __init__(self):
         self._runtime = ExecutionRuntime()
+
+        is_server()
 
     def ExportDef(self, arg: ExportDefArg, ctx: grpc.ServicerContext) -> Ref:
 
