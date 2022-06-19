@@ -285,7 +285,7 @@ class Proxy(object):
         return Proxy(res)
 
     def __hash__(self) -> int:
-        return hash(self._ref)
+        raise PrimeNotSupportedError("'Proxy' does not support hash()")
 
     # TODO: Bool operation
     def __bool__(self):
