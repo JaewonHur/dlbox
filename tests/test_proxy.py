@@ -82,6 +82,19 @@ def _pos(a):         return +a
 def _abs(a):         return abs(a)
 def _invert(a):      return ~a
 
+# Additional methods on Integer
+def _bit_length(a):  return a.bit_length()
+def _bit_count(a):   return a.bit_count()
+def _to_bytes(a):    return a.to_bytes(a.bit_length() // 8 + 1, 'little')
+# def _from_bytes(a):  return int.from_bytes(a)
+# def _as_integer_ratio(a)
+
+# Additional methods on Float
+# def _as_integer_ratio(a)
+def _is_integer(a):  return a.is_integer()
+def _hex(a):         return a.hex()
+# def _fromhex(a):     return float.fromhex(a)
+
 cmp_list = [_lt, _le, _eq, _ne, _gt, _ge]
 complex_cmp_list = [_eq, _ne]
 
@@ -93,6 +106,9 @@ complex_op_list = [_add, _sub, _mul, _truediv, _pow]
 
 uop_list = [_neg, _pos, _abs, _invert]
 float_complex_uop_list = [_neg, _pos, _abs]
+
+int_method_list = [_bit_length, _bit_count, _to_bytes]
+float_method_list = [_is_integer, _hex]
 
 def random_NumberType_test(n: int, comparison: bool):
     x, x_d = _randint()
@@ -112,7 +128,6 @@ def random_NumberType_test(n: int, comparison: bool):
                             else (y_d, x_d, y, x))
 
         try:
-            print(f'{op.__name__}({a}, {b})')
             x = op(a, b)
 
         except TimeoutError as te:
@@ -204,6 +219,20 @@ def test_NumberTypes():
 
         assert x == read_val(_client, x_d._ref)
 
+    # Additional methods on Integer
+    for op in int_method_list:
+        x, x_d = _randint()
+
+        o, o_d = op(x), op(x_d)
+        assert o == read_val(_client, o_d._ref)
+
+    # Additional methods on Float
+    for op in float_method_list:
+        x, x_d = _randfloat()
+
+        o, o_d = op(x), op(x_d)
+        assert o == read_val(_client, o_d._ref)
+
 
 def _randlist(n=None) -> (List, Proxy):
     n = randint(0, 10) if not n else n
@@ -269,11 +298,11 @@ def _rmul(r, x, X, i, j, v, V, k):         return (x * r)
 def _getitem(r, x, X, i, j, v, V, k):      return r[i]
 def _getslice(r, x, X, i, j, v, V, k):
     return (r[i:j] if not k else r[i:j:k])
-# def _len(r, x, X, i, j, v, V, k):          return len(r)
-# def _min(r, x, X, i, j, v, V, k):          return min(r)
-# def _max(r, x, X, i, j, v, V, k):          return max(r)
-# def _index(r, x, X, i, j, v, V, k):        return r.index(i)
-# def _count(r, x, X, i, j, v, V, k):        return r.count(i)
+def _len(r, x, X, i, j, v, V, k):          return len(r)
+def _min(r, x, X, i, j, v, V, k):          return min(r)
+def _max(r, x, X, i, j, v, V, k):          return max(r)
+def _index(r, x, X, i, j, v, V, k):        return r.index(i)
+def _count(r, x, X, i, j, v, V, k):        return r.count(i)
 
 def _setitem(r, x, X, i, j, v, V, k):      r[i] = v
 def _setslice(r, x, X, i, j, v, V, k):
@@ -283,21 +312,143 @@ def _delitem(r, x, X, i, j, v, V, k):      del r[i]
 def _delslice(r, x, X, i, j, v, V, k):
     if not k: del r[i:j]
     else:     del r[i:j:k]
-# def _append(r, x, X, i, j, v, V, k):       r.append(x)
-# def _clear(r, x, X, i, j, v, V, k):        r.clear()
-# def _copy(r, x, X, i, j, v, V, k):         return r.copy()
+def _append(r, x, X, i, j, v, V, k):       r.append(x)
+def _clear(r, x, X, i, j, v, V, k):        r.clear()
+def _copy(r, x, X, i, j, v, V, k):         return r.copy()
 def _iadd(r, x, X, i, j, v, V, k):         r += x
-# def _extend(r, x, X, i, j, v, V, k):       r.extend(X)
+def _extend(r, x, X, i, j, v, V, k):       r.extend(X)
 def _imul(r, x, X, i, j, v, V, k):         r *= x
-# def _insert(r, x, X, i, j, v, V, k):       r.insert(i, x)
-# def _pop(r, x, X, i, j, v, V, k):          r.pop(i)
-# def _remove(r, x, X, i, j, v, V, k):       r.remove(i)
-# def _reverse(r, x, X, i, j, v, V, k):      r.reverse()
+def _insert(r, x, X, i, j, v, V, k):       r.insert(i, x)
+def _pop(r, x, X, i, j, v, V, k):          r.pop(i)
+def _remove(r, x, X, i, j, v, V, k):       r.remove(i)
+def _reverse(r, x, X, i, j, v, V, k):      r.reverse()
 
-imm_op_list = [_contains, _not_contains, _add,
-               _mul, _rmul, _getitem, _getslice]
-mut_op_list = imm_op_list + [_setitem, _setslice, _delitem, _delslice,
-                             _iadd, _imul]
+imm_op_list = [_contains, _not_contains, _add, _mul, _rmul, _getitem, _getslice,
+               _len, _min, _max, _index, _count]
+mut_op_list = imm_op_list + [_setitem, _setslice, _delitem, _delslice, _append,
+                             _clear, _copy, _iadd, _extend, _imul, _insert,
+                             _pop, _remove, _reverse]
+
+# Additional methods on List
+# def _list():
+def _sort(r):    r.sort()
+
+list_method_list = [_sort]
+
+# Additional methods on Tuple
+# def _tuple():
+
+# Ranges
+# def _range():
+
+# Additional methods on String
+# def _str():
+def _capitalize(r):                       return r.capitalize()
+def _casefold(r):                         return r.casefold()
+def _center(r):                           return r.center(100)
+def _count(r):                            return r.count(r[0:2])
+def _encode(r):                           return r.encode()
+def _endswith(r):                         return r.endswith(r[-1])
+def _expandtabs(r):                       return r.expandtabs()
+def _find(r):                             return r.find(r[0:2])
+def _format(r):                           return r.format()
+def _format_map(r):                       return r.format_map({})
+def _index(r):                            return r.index(r[0:2])
+def _isalnum(r):                          return r.isalnum()
+def _isalpha(r):                          return r.isalpha()
+def _isascii(r):                          return r.isascii()
+def _isdecimal(r):                        return r.isdecimal()
+def _isdigit(r):                          return r.isdigit()
+def _isidentifier(r):                     return r.isidentifier()
+def _islower(r):                          return r.islower()
+def _isnumeric(r):                        return r.isnumeric()
+def _isprintable(r):                      return r.isprintable()
+def _isspace(r):                          return r.isspace()
+def _istitle(r):                          return r.istitle()
+def _isupper(r):                          return r.isupper()
+def _join(r):                             return r.join(['a', 'b', 'c'])
+def _ljust(r):                            return r.ljust(10)
+def _lower(r):                            return r.lower()
+def _lstrip(r):                           return r.lstrip()
+def _partition(r):                        return r.partition(r[0])
+def _removeprefix(r):                     return r.removeprefix(r[0:2])
+def _removesuffix(r):                     return r.removesuffix(r[-1])
+def _replace(r):                          return r.replace(r[0], r[-1])
+def _rfind(r):                            return r.rfind(r[0:2])
+def _rindex(r):                           return r.rindex(r[0:2])
+def _rjust(r):                            return r.rjust(10)
+def _rpartition(r):                       return r.rpartition(r[0])
+def _rsplit(r):                           return r.rsplit()
+def _rstrip(r):                           return r.rstrip()
+def _split(r):                            return r.split()
+def _splitlines(r):                       return r.splitlines()
+def _startswith(r):                       return r.startswith(r[0:2])
+def _strip(r):                            return r.strip()
+def _swapcase(r):                         return r.swapcase()
+def _title(r):                            return r.title()
+def _translate(r):                        return r.translate({})
+def _upper(r):                            return r.upper()
+def _zfill(r):                            return r.zfill(5)
+
+str_method_list = [
+    _capitalize,  _casefold,  _center,  _count,  _encode, _endswith,
+    _expandtabs,  _find,  _format,  _format_map, _index,  _isalnum,  _isalpha,
+    _isascii,  _isdecimal, _isdigit,  _isidentifier,  _islower,  _isnumeric,
+    _isprintable,  _isspace,  _istitle,  _isupper,  _join, _ljust,  _lower,
+    _lstrip,  _partition,  _removeprefix, _removesuffix,  _replace,  _rfind,
+    _rindex,  _rjust, _rpartition,  _rsplit,  _rstrip,  _split,  _splitlines,
+    _startswith,  _strip,  _swapcase,  _title,  _translate, _upper,  _zfill ]
+
+# Additional methods on bytes and bytearrays
+def _count(r):                            return r.count(r[0])
+def _removeprefix(r):                     return r.removeprefix(r[0:2])
+def _removesuffix(r):                     return r.removesuffix(r[0:2])
+# def _decode(r):                           return r.decode()
+def _endswith(r):                         return r.endswith(r[-2:])
+def _find(r):                             return r.find(r[0:2])
+def _index(r):                            return r.index(r[0:2])
+def _join(r):                             return r.join([b'\x00', b'\x01'])
+def _partition(r):                        return r.partition(r[0:1])
+def _replace(r):                          return r.replace(r[0:2], r[-2:])
+def _rfind(r):                            return r.rfind(r[0:2])
+def _rindex(r):                           return r.rindex(r[0:2])
+def _rpartition(r):                       return r.rpartition(r[0:1])
+def _startswith(r):                       return r.startswith(r[0:2])
+def _translate(r):                        return r.translate(None)
+def _center(r):                           return r.center(100)
+def _ljust(r):                            return r.ljust(10)
+def _lstrip(r):                           return r.lstrip()
+def _rjust(r):                            return r.rjust(10)
+def _rsplit(r):                           return r.rsplit()
+def _rstrip(r):                           return r.rstrip()
+def _split(r):                            return r.split()
+def _strip(r):                            return r.strip()
+def _capitalize(r):                       return r.capitalize()
+def _expandtabs(r):                       return r.expandtabs()
+def _isalnum(r):                          return r.isalnum()
+def _isalpha(r):                          return r.isalpha()
+def _isascii(r):                          return r.isascii()
+def _isdigit(r):                          return r.isdigit()
+def _islower(r):                          return r.islower()
+def _isspace(r):                          return r.isspace()
+def _istitle(r):                          return r.istitle()
+def _isupper(r):                          return r.isupper()
+def _lower(r):                            return r.lower()
+def _splitlines(r):                       return r.splitlines()
+def _swapcase(r):                         return r.swapcase()
+def _title(r):                            return r.title()
+def _upper(r):                            return r.upper()
+def _zfill(r):                            return r.zfill(10)
+
+bytes_method_list = [
+    _count, _removeprefix, _removesuffix, _endswith, _find, _index, _join,
+    _partition, _replace, _rfind, _rindex, _rpartition, _startswith, _translate,
+    _center, _ljust, _lstrip, _rjust, _rsplit, _rstrip, _split, _strip,
+    _capitalize, _expandtabs, _isalnum, _isalpha, _isascii, _isdigit, _islower,
+    _isspace, _istitle, _isupper, _lower, _splitlines, _swapcase, _title,
+    _upper, _zfill ] # _decode
+
+bytearrays_method_list = bytes_method_list
 
 def _get_args(r):
     x = choice(r) if len(r) > 0 else None
@@ -337,7 +488,7 @@ def random_SeqType_test(n: int, _randseq: callable):
         try:
             o_d = op(r_d, *args)
         except PrimeNotSupportedError as pe:
-            assert op in (_contains, _not_contains)
+            assert op in (_contains, _not_contains, _len, _min, _max)
             continue
 
         if o: assert o == read_val(_client, o_d._ref)
@@ -360,6 +511,34 @@ def test_SeqTypes():
 
     # ByteArray
     random_SeqType_test(100, _randbytearray)
+
+    # Additional methods on String
+    for op in list_method_list:
+        r, r_d = _randlist(10)
+
+        o, o_d = op(r), op(r_d)
+        assert r == read_val(_client, r_d._ref)
+
+    # Additional methods on String
+    for op in str_method_list:
+        r, r_d = _randstring(10)
+
+        o, o_d = op(r), op(r_d)
+        assert o == read_val(_client, o_d._ref)
+
+    # Additional methods on Bytes
+    for op in bytes_method_list:
+        r, r_d = _randbytes(10)
+
+        o, o_d = op(r), op(r_d)
+        assert o == read_val(_client, o_d._ref)
+
+    # Additional methods on ByteArrays
+    for op in bytearrays_method_list:
+        r, r_d = _randbytes(10)
+
+        o, o_d = op(r), op(r_d)
+        assert o == read_val(_client, o_d._ref)
 
 
 MY_CLASS = """
