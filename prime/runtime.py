@@ -34,7 +34,6 @@ BUILTIN_TYPES = [
 ] + [ type(None) ]
 
 
-
 class ExecutionRuntime():
     __initialized = False
     __ctx = {}

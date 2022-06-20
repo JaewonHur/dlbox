@@ -393,9 +393,12 @@ class Proxy(HasRef):
     # def __class_getitem__(cls, key):
     #     raise NotImplementedError()
 
-    # TODO: Emulate callable object
-    def __call__(self, *args, **kwargs):
-        raise NotImplementedError()
+    @_prime_op
+    def __call__(self, res: Union[Exception, str], *args, **kwargs) -> Proxy:
+        if isinstance(res, Exception):
+            raise res
+
+        return Proxy(res)
 
     @_prime_op
     def __len__(self, res: Union[Exception, str]) -> Proxy:
