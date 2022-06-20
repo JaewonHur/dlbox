@@ -214,7 +214,7 @@ def _randlist(n=None) -> (List, Proxy):
 
     return r, r_d
 
-def _randbytesarray(n=None) -> (bytearray, Proxy):
+def _randbytearray(n=None) -> (bytearray, Proxy):
     n = randint(0, 10) if not n else n
     r = bytearray([ randint(0, 255) for i in range(n) ])
 
@@ -252,7 +252,7 @@ def _any_imm_seq(n=None) -> (Any, Proxy):
     return _rand_seq(n)
 
 def _any_mut_seq(n=None) -> (Any, Proxy):
-    _rand_seq = choice([_randlist, _randbytesarray])
+    _rand_seq = choice([_randlist, _randbytearray])
 
     return _rand_seq(n)
 
@@ -315,7 +315,7 @@ def _get_args(r):
 def random_SeqType_test(n: int, _randseq: callable):
     if _randseq in (_randstring, _randtuple, _randbytes):
         mutable = False
-    elif _randseq in (_randlist, _randbytesarray):
+    elif _randseq in (_randlist, _randbytearray):
         mutable = True
 
     for i in range(n):
@@ -359,9 +359,52 @@ def test_SeqTypes():
     # List
     random_SeqType_test(100, _randlist)
 
-    # BytesArray
-    random_SeqType_test(100, _randbytesarray)
+    # ByteArray
+    random_SeqType_test(100, _randbytearray)
 
+
+MY_CLASS = """
+class MyClass():
+    def __init__(self, x):
+        self.x = x
+    def __eq__(self, o):
+        return (self.x == o.x)
+"""
+
+def test_Containers():
+    # List is container type
+    r, r_d = _randlist(10)
+    x, x_d = _any_number(True)
+
+    for (a, b) in ((x, x), (x, x_d), (x_d, x), (x_d, x_d)):
+        i = randint(0, 9)
+        r[i] = a
+        r_d[i] = b
+
+        assert read_val(_client, (r == r_d)._ref)
+
+    # Tuple is container type
+    r, r_d = _randtuple(10)
+    x, x_d = _any_number(True)
+
+    for (a, b) in ((x, x), (x, x_d), (x_d, x), (x_d, x_d)):
+        r = r + (a,)
+        r_d = r_d + (b,)
+
+        assert read_val(_client, (r == r_d)._ref)
+
+    # Custom class can be container type
+    name = 'MyClass'
+    import_class(name, MY_CLASS, globals())
+    _client.ExportDef(name, type, MY_CLASS)
+
+    o = MyClass.MyClass(3)
+    o_d_partial = MyClass.MyClass(Proxy(_client.AllocateObj(3)))
+    o_d = Proxy(_client.AllocateObj(o))
+
+    assert read_val(_client, (o == o_d_partial)._ref)
+    assert read_val(_client, (o == o_d)._ref)
+    assert read_val(_client, (o_d == o_d_partial)._ref)
 
 ################################################################################
 # This test should be performed last to kill the server                        #
