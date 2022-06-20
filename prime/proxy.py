@@ -48,11 +48,11 @@ Supported types of referenced variable:
 + Mutable sequences
 +   List
 +   Byte array
-  Sets
-    Set
-    Frozen set
-  Mappings
-    Dictionary
++ Sets
++   Set
++   Frozen set
++ Mappings
++   Dictionary
 
   Callable types
     User-defined function
