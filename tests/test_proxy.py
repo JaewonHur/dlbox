@@ -208,7 +208,6 @@ def test_NumberTypes():
 def _randlist(n=None) -> (List, Proxy):
     n = randint(0, 10) if not n else n
 
-    # TODO: How to export mutable variable containing Proxy
     r = [ _any_number()[0] for i in range(n) ]
     r_d = Proxy(_client.AllocateObj(r))
 
