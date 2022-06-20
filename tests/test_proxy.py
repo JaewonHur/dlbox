@@ -283,10 +283,18 @@ def _randset(n=None) -> (set, Proxy):
 
     return r, r_d
 
-def _randfrozenset(n=None) -> (set, Proxy):
+def _randfrozenset(n=None) -> (frozenset, Proxy):
     n = randint(0, 10) if not n else n
 
     r = frozenset([ randint(0, 10) for i in range(n) ])
+    r_d = Proxy(_client.AllocateObj(r))
+
+    return r, r_d
+
+def _randdict(n=None) -> (dict, Proxy):
+    n = randint(0, 10) if not n else n
+
+    r = {randint(0, 10):randint(0, 10) for i in range(n)}
     r_d = Proxy(_client.AllocateObj(r))
 
     return r, r_d
@@ -662,6 +670,78 @@ def test_SetTypes():
     # FrozenSet
     random_SetType_test(100, _randfrozenset)
 
+
+class MAP():
+    def _list(r, x, X):                      return list(r)
+    def _len(r, x, X):                       return len(r)
+    def _getitem(r, x, X):                   return r[x]
+    def _setitem(r, x, X):                   r[x] = x
+    def _delitem(r, x, X):                   del r[x]
+    def _contains(r, x, X):                  return (x in r)
+    def _not_contains(r, x, X):              return (x not in r)
+    # def _iter(r, x, X):                      return iter(r)
+    def _clear(r, x, X):                     r.clear()
+    def _copy(r, x, X):                      return r.copy()
+    def _fromkeys(r, x, X):                  return dict.fromkeys([])
+    def _get(r, x, X):                       return r.get(x)
+    # def _items(r, x, X):                     return r.items()
+    # def _keys(r, x, X):                      return r.keys()
+    def _pop(r, x, X):                       return r.pop(k)
+    def _popitem(r, x, X):                   return popitem()
+    # def _reversed(r, x, X):                  return reversed(r)
+    def _setdefault(r, x, X):                return setdefault(x)
+    def _update(r, x, X):                    return r.update(X)
+    # def _values(r, x, X):                    return r.values()
+    def _or(r, x, X):                        return (r | X)
+    def _update_r(r, x, X):                  r |= X
+
+map_op_list = [
+    MAP._list, MAP._len, MAP._getitem, MAP._setitem, MAP._delitem,
+    MAP._contains, MAP._not_contains, MAP._clear, MAP._copy,
+    MAP._fromkeys, MAP._get, MAP._pop, MAP._popitem, MAP._setdefault,
+    MAP._update, MAP._or, MAP._update_r
+] # _iter, _reversed, _items, _keys, _values
+
+def random_MapType_test(n: int, _randmap):
+    for i in range(n):
+        r, r_d = _randmap()
+
+        x = randint(0, 10)
+        x_d = Proxy(_client.AllocateObj(x))
+
+        X, X_d = _randmap()
+
+        op = choice(map_op_list)
+
+        try:
+            o = op(r, x, X)
+        except Exception as e:
+            with pytest.raises(type(e)):
+                op(r_d, x_d, X_d)
+            continue
+
+        try:
+            o_d = op(r_d, x_d, X_d)
+        except PrimeNotSupportedError as pe:
+            assert op in (MAP._contains, MAP._not_contains, MAP._len, MAP._list)
+            continue
+
+        print(f'{op}({r}, {r_d})')
+        if o: assert read_val(_client, (o == o_d)._ref)
+
+        assert r == read_val(_client, r_d._ref)
+
+
+def test_MapTypes():
+    # Proxy objects cannot be a key of MapType
+    a, a_d = _randint()
+    b, b_d = _randint()
+
+    with pytest.raises(PrimeNotSupportedError):
+        c_d = dict({a_d: 'a_d', b_d: 'b_d'})
+
+    # Dict
+    random_MapType_test(100, _randdict)
 
 
 MY_CLASS = """
