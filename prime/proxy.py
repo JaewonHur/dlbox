@@ -142,7 +142,7 @@ def _reflective_prime_op(func):
         res = self._client.InvokeMethod(self._ref, op, args_d, kwargs_d)
 
         # NOTE: Prime assumes that __ne__ is delegated to inverse of __eq__
-        if res is NotImplemented:
+        if res is NotImplemented or isinstance(res, AttributeError):
             rop = __reflective_ops[op]
 
             o_d = args_d[0]
