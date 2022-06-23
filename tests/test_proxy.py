@@ -208,17 +208,24 @@ def test_NumberTypes():
 
     # Unary computation on numeric type should return the same result
     for i in range(100):
-        x, x_d = _any_number(True)
+        signal.alarm(10)
+        try:
 
-        if isinstance(x, float) or isinstance(x, complex):
-            op = choice(float_complex_uop_list)
-        else:
-            op = choice(uop_list)
+            x, x_d = _any_number(True)
 
-        x = op(x)
-        x_d = op(x_d)
+            if isinstance(x, float) or isinstance(x, complex):
+                op = choice(float_complex_uop_list)
+            else:
+                op = choice(uop_list)
 
-        assert x == read_val(_client, x_d._ref)
+                x = op(x)
+                x_d = op(x_d)
+
+            assert x == read_val(_client, x_d._ref)
+        except TimeoutError:
+            continue
+
+    signal.alarm(0)
 
     # Additional methods on Integer
     for op in int_method_list:
