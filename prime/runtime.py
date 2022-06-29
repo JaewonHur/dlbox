@@ -11,6 +11,8 @@ import builtins
 import importlib.util
 from typing import types, List, Dict, Any
 
+from functools import partial
+
 from prime.utils import logger
 from prime.exceptions import catch_xcpt, UserError, NotImplementedOutputError
 from prime.hasref import HasRef
@@ -61,6 +63,9 @@ class ExecutionRuntime():
             self.__ctx[name] = obj
 
         return name
+
+    def _del_from_ctx(self, name: str):
+        del self.__ctx[name]
 
     @catch_xcpt(False)
     def ExportDef(self, name: str, tpe: bytes, source: str) -> str:
@@ -113,6 +118,11 @@ class ExecutionRuntime():
             if method in self.__ctx.keys():
                 method = self.__ctx[method]
 
+            elif method == '_del_from_ctx':
+                self._del_from_ctx(*[self.__ctx[k] for k in args])
+                self._del_from_ctx(*args)
+
+                return ""
             else:
                 method = getattr(builtins, method)
 

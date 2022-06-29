@@ -159,12 +159,14 @@ def _reflective_prime_op(func):
 
 class Proxy(HasRef):
     __slots__ = ('_ref',)
+    __refcnt = {}
 
     _client: PrimeClient = _client
 
     def __init__(self, ref: str):
         # TODO: Need to check referenced variable is not class definition
         super().__init__(ref)
+        self.__refcnt[ref] = self.__refcnt.get(ref, 0) + 1
 
     def __getattribute__(self, name: str) -> Any:
         __methods = (
@@ -282,9 +284,15 @@ class Proxy(HasRef):
     # def __init__(self, *args, **kwargs):
     #     raise NotImplementedError()
 
-    # TODO: Implement later
-    # def __del__(self):
-    #     raise NotImplementedError()
+    def __del__(self):
+        assert self.__refcnt[self._ref] > 0
+        self.__refcnt[self._ref] -= 1
+
+        if self.__refcnt[self._ref] == 0:
+            name = self._client.AllocateObj(self._ref)
+            null = self._client.InvokeMethod('__main__', '_del_from_ctx',
+                                             [name])
+            del null
 
     def __repr__(self) -> str:
         return f"'Proxy({self._ref})'"
