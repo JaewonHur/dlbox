@@ -154,33 +154,52 @@ class ExecutionRuntime():
         return name
 
     @catch_xcpt(True)
-    def FitModel(self, trainer: str, model: bytes, dataloader: str,
-                 args: List[str], kwargs: Dict[str,str]) -> bytes:
+    def FitModel(self, trainer: bytes, model: bytes, dataloader: bytes,
+                 epochs: Dict[int, (List[str], List[str])],
+                 args: List[bytes], kwargs: Dict[str,bytes]) -> bytes:
 
-        trainer: pl.Trainer = self.__ctx[trainer]
-        assert type(trainer) == pl.Trainer, \
+        HasRef._set_export(False)
+
+        trainer: pl.Trainer = dill.loads(trainer)
+        assert isinstance(trainer, pl.Trainer), \
             f'incorrect trainer type: {type(trainer)}'
 
-        dataloader: DataLoader = self.__ctx[dataloader]
-        assert type(dataloader) == DataLoader, \
+        model: pl.LightningModule = dill.loads()
+        assert isinstance(model, pl.LightningModule), \
+            f'incorrect model type: {type(model)}'
+
+        dataloader: DataLoader = dill.loads(dataloader)
+        assert isinstance(dataloader, DataLoader), \
             f'incorrect dataloader type: {type(dataloader)}'
 
-        path = '/tmp/__model.pt'
-        with open(path, 'wb') as fd:
-            fd.write(model)
+        # TODO: Sanitize epochs and construct DataSet
 
-        model = torch.load(path)
+        args_d = []
+        for i in args:
+            i_d = dill.loads(i)
+            tpe = type(i_d)
+            assert (tpe in BUILTIN_TYPES or tpe.__name__ in self.__ctx), \
+                f'type not defined: {tpe}'
 
-        args = [self.__ctx[k] for k in args]
-        kwargs = {k:self.__ctx[v] for k, v in kwargs.items()}
+            args_d.append(i_d)
+        args = args_d
+
+        kwargs_d = {}
+        for k, v in kwargs.items():
+            v_d = dill.loads(v)
+            tpe = type(v_d)
+            assert (tpe in BUILTIN_TYPES or tpe.__name__ in self.__ctx), \
+                f'type not defined: {tpe}'
+
+            kwargs_d[k] = v_d
+        kwargs = kwargs_d
+
+        HasRef._set_export(True)
 
         try:
             trainer.fit(model, dataloader, *args, **kwargs)
         except Exception as e:
             raise UserError(e)
 
-        torch.save(model, path)
-        with open(path, 'rb') as fd:
-            model = fd.read()
-
+        model = dill.dumps(model)
         return model

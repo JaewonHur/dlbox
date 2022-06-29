@@ -80,8 +80,11 @@ class PrimeClient:
         arg.trainer = trainer
         arg.model = model
         arg.dataloader = dataloader
-        arg.args.extend(args)
 
+        for k, v in epochs.items():
+            args.epochs[k] = v
+
+        arg.args.extend(args)
         for k, v in kwargs.items():
             arg.kwargs[k] = v
 
