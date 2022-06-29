@@ -267,6 +267,21 @@ class Proxy(HasRef):
 
         return Proxy(attr_d)
 
+    def __setattr__(self, name: str, attr: Any):
+        if name == '_ref':
+            object.__setattr__(self, name, attr)
+        else:
+            name_d = self._client.AllocateObj(name)
+            attr_d = self._client.AllocateObj(attr)
+
+            null_d = self._client.InvokeMethod('__main__', 'setattr',
+                                               [self._ref, name_d, attr_d])
+
+            if isinstance(null_d, Exception):
+                raise null_d
+
+            return Proxy(null_d)
+
     def _get_ref(self, obj: Union[Any, Proxy]) -> str:
         if isinstance(obj, Proxy):
             return obj._ref
@@ -289,10 +304,10 @@ class Proxy(HasRef):
         self.__refcnt[self._ref] -= 1
 
         if self.__refcnt[self._ref] == 0:
-            name = self._client.AllocateObj(self._ref)
-            null = self._client.InvokeMethod('__main__', '_del_from_ctx',
-                                             [name])
-            del null
+            name_d = self._client.AllocateObj(self._ref)
+            null_d = self._client.InvokeMethod('__main__', '_del_from_ctx',
+                                               [name_d])
+            del null_d
 
     def __repr__(self) -> str:
         return f"'Proxy({self._ref})'"
@@ -349,15 +364,7 @@ class Proxy(HasRef):
     def __bool__(self):
         raise PrimeNotSupportedError("'Proxy' does not support bool() conversion")
 
-    # TODO: Attribute related operation
-    # def __getattr__(self, name):
-    #     raise NotImplementedError()
-
     # def __getattribute__(self, name):
-    #     raise NotImplementedError()
-
-    # TODO: Implement later
-    # def __setattr__(self, name, value):
     #     raise NotImplementedError()
 
     def __delattr__(self, name):
