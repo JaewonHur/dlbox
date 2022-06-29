@@ -52,6 +52,7 @@ class ExecutionRuntime():
         cls.__initialized = True
         HasRef._set_ctx(cls.__ctx)
 
+    # TODO: Need lock?
     def _add_to_ctx(self, obj: Any, name: str = None) -> str:
         if name:
             # Force add, may replace already an existing content
@@ -64,6 +65,7 @@ class ExecutionRuntime():
 
         return name
 
+    # TODO: Need lock?
     def _del_from_ctx(self, name: str):
         del self.__ctx[name]
 

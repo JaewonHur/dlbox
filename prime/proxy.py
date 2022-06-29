@@ -166,6 +166,8 @@ class Proxy(HasRef):
     def __init__(self, ref: str):
         # TODO: Need to check referenced variable is not class definition
         super().__init__(ref)
+
+        # TODO: Need lock?
         self.__refcnt[ref] = self.__refcnt.get(ref, 0) + 1
 
     def __getattribute__(self, name: str) -> Any:
@@ -299,6 +301,7 @@ class Proxy(HasRef):
     # def __init__(self, *args, **kwargs):
     #     raise NotImplementedError()
 
+    # TODO: Need lock?
     def __del__(self):
         assert self.__refcnt[self._ref] > 0
         self.__refcnt[self._ref] -= 1
