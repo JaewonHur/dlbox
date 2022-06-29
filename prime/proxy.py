@@ -24,6 +24,7 @@ _client = PrimeClient()
 
 # HasRef of Prime client does not set ctx
 delattr(HasRef, '_set_ctx')
+delattr(HasRef, '_set_export')
 
 """
 Proxy type is used to wrap the referenced variable allocated in DE.

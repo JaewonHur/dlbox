@@ -48,9 +48,6 @@ class PrimeClient:
 
     @retrieve_xcpt(False)
     def AllocateObj(self, obj: object) -> Ref:
-        if isinstance(obj, HasRef):
-            return Ref(name=obj._ref)
-
         tpe = type(obj)
         tpe = dill.dumps(tpe)
         val = dill.dumps(obj)

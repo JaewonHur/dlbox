@@ -18,7 +18,7 @@ class PrimeNotSupportedError(Exception):
     def __init__(self, msg: str):
         self.msg = msg
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.msg
 
 
@@ -26,10 +26,21 @@ class PrimeError(Exception):
     def __init__(self, e: Exception):
         self.e = e
 
+    def __str__(self) -> str:
+        return str(self.e)
+
 
 class UserError(Exception):
     def __init__(self, e: Exception):
         self.e = e
+
+
+class PrimeNotAllowedError(Exception):
+    def __init__(self, msg: str):
+        self.msg = msg
+
+    def __str__(self) -> str:
+        return self.msg
 
 
 class NotImplementedOutputError(Exception):
@@ -51,6 +62,10 @@ def catch_xcpt(fitmodel: bool):
             except UserError as ue:
                 ue = dill.dumps(ue)
                 res = Model(error=ue) if fitmodel else Ref(error=ue)
+
+            except PrimeNotAllowedError as pnae:
+                pnae = dill.dumps(pnae)
+                res = Model(error=pnae) if fitmodel else Ref(error=pnae)
 
             except Exception as e:
                 pe = dill.dumps(PrimeError(e))
