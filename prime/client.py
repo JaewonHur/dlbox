@@ -73,8 +73,9 @@ class PrimeClient:
         return ref
 
     @retrieve_xcpt(True)
-    def FitModel(self, trainer: str, model: bytes, dataloader: str,
-                 args: List[str], kwargs: Dict[str,str]) -> Model:
+    def FitModel(self, trainer: bytes, model: bytes, dataloader: bytes,
+                 epochs: Dict[int, Epoch],
+                 args: List[bytes], kwargs: Dict[str,bytes]) -> Model:
         arg = FitModelArg()
         arg.trainer = trainer
         arg.model = model
