@@ -17,17 +17,6 @@ from prime.utils import logger
 from prime.exceptions import catch_xcpt, UserError, NotImplementedOutputError
 from prime.hasref import HasRef
 
-# TODO: import trusted libraries
-################################################################################
-# Trusted Libraries                                                            #
-################################################################################
-
-import torch
-import pytorch_lightning as pl
-from torch.utils.data import DataLoader
-
-################################################################################
-
 VAR_SFX = 'VAL'
 
 BUILTIN_TYPES = [
@@ -35,6 +24,45 @@ BUILTIN_TYPES = [
     if isinstance(getattr(builtins, d), type)
 ] + [ type(None) ]
 
+# TODO: import trusted libraries
+################################################################################
+# Trusted Libraries                                                            #
+################################################################################
+
+TRUSTED_PKGS = {}
+
+def _trust(pkg: str):
+    module = __import__(pkg)
+
+    global TRUSTED_PKGS
+    TRUSTED_PKGS[pkg] = module
+
+_trust('torch')
+_trust('pytorch_lightning')
+
+################################################################################
+
+def _is_trusted(tpe: type) -> bool:
+    global TRUSTED_PKGS
+
+    module = tpe.__module__
+    name = tpe.__name__
+
+    pkg = module.split('.')[0]
+    if pkg not in TRUSTED_PKGS.keys():
+        return False
+
+    m = TRUSTED_PKGS[pkg]
+    for n in module.split('.')[1:]:
+        if not hasattr(m, n):
+            return False
+
+        m = getattr(m, n)
+
+    if not hasattr(m, name):
+        return False
+
+    return True
 
 class ExecutionRuntime():
     __initialized = False
@@ -101,8 +129,8 @@ class ExecutionRuntime():
         tpe, obj = dill.loads(tpe), dill.loads(val)
         tpe = type(obj) if issubclass(tpe, HasRef) else tpe
 
-        assert (tpe in BUILTIN_TYPES or tpe.__name__ in self.__ctx), \
-            f'type not defined: {tpe}'
+        assert (tpe in BUILTIN_TYPES or tpe.__name__ in self.__ctx
+                or _is_trusted(tpe)), f'type not defined: {tpe}'
         assert tpe == type(obj), f'type mismatch: {tpe} vs {type(obj)}'
         assert obj is not NotImplemented, f'invalid type: {obj}'
 
@@ -125,6 +153,7 @@ class ExecutionRuntime():
                 self._del_from_ctx(*args)
 
                 return ""
+
             else:
                 method = getattr(builtins, method)
 
@@ -157,6 +186,9 @@ class ExecutionRuntime():
     def FitModel(self, trainer: bytes, model: bytes, dataloader: bytes,
                  epochs: Dict[int, (List[str], List[str])],
                  args: List[bytes], kwargs: Dict[str,bytes]) -> bytes:
+
+        import pytorch_lightning as pl
+        from torch.utils.data import DataLoader
 
         HasRef._set_export(False)
 
