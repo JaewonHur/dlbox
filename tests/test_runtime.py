@@ -95,7 +95,7 @@ def test_AllocateObj(_client: PrimeClient):
     assert isinstance(class_in_de, str)
 
     attr = _client.AllocateObj('x')
-    new_x = _client.InvokeMethod('__main__', 'getattr', [class_in_de, attr], {})
+    new_x = _client.InvokeMethod('__main__', 'builtins.getattr', [class_in_de, attr], {})
 
     assert read_val(_client, new_x) == x
 
