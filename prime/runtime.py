@@ -44,11 +44,21 @@ _trust('pytorch_lightning')
 
 ################################################################################
 
-def get_path(obj: Any) -> str:
+def get_name(obj: Any) -> str:
     try:
         return f'{obj.__module__}.{obj.__name__}'
     except:
         return ''
+
+def path_exists(m: ModuleType, n: str) -> bool:
+    if hasattr(m, '__path__'):
+        path = '/'.join(m.__path__[0].split('/')[:-1])
+        if (os.path.exists(f'{path}/{n}') or
+            os.path.exists(f'{path}/{n}.py')):
+            return True
+
+    return False
+
 
 def get_from(path: str) -> Any:
     pkg = path.split('.')[0]
@@ -59,7 +69,7 @@ def get_from(path: str) -> Any:
     for n in path.split('.')[1:]:
         if hasattr(m, n):
             m = getattr(m, n)
-        elif hasattr(m, '__path__') and os.path.exists(f'{m.__path__}.{n}'):
+        elif path_exists(m, n):
             m = __import__(f'{m.__name__}.{n}')
         else:
             raise Exception(f'{path} is not from trusted packages')
@@ -67,17 +77,16 @@ def get_from(path: str) -> Any:
     return m
 
 
-def from_trusted(path: str) -> bool:
-    print(f'from_trusted({path})')
-    pkg = path.split('.')[0]
+def from_trusted(name: str) -> bool:
+    pkg = name.split('.')[0]
     if pkg not in TRUSTED_PKGS:
         return False
 
     m = TRUSTED_PKGS[pkg]
-    for n in path.split('.')[1:]:
+    for n in name.split('.')[1:]:
         if hasattr(m, n):
             m = getattr(m, n)
-        elif hasattr(m, '__path__') and os.path.exists(f'{m.__path__[0]}.{n}'):
+        elif path_exists(m, n):
             m = __import__(f'{m.__name__}.{n}')
         else:
             return False
@@ -153,7 +162,7 @@ class ExecutionRuntime():
         # TODO: Still need to check a class instance from trusted package does
         # not contain malicious method
         assert (tpe in BUILTIN_TYPES or tpe.__name__ in self.__ctx
-                or from_trusted(get_path(tpe))), \
+                or from_trusted(get_name(tpe))), \
                 f'type not defined: {tpe}'
         assert tpe == type(obj), f'type mismatch: {tpe} vs {type(obj)}'
         assert obj is not NotImplemented, f'invalid type: {obj}'
