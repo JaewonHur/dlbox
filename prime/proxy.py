@@ -80,6 +80,9 @@ Supported types of referenced variable:
     Class method object
 """
 
+def get_path(obj: Any) -> str:
+    return f'{obj.__module__}.{obj.__name__}'
+
 def _prime_op(func):
     def wrapper(self: Proxy, *args, **kwargs) -> Union[Proxy, NotImplementedType]:
         args_d = [ self._get_ref(i) for i in args ]
@@ -262,7 +265,7 @@ class Proxy(HasRef):
 
     def __getattr__(self, name: str) -> Proxy:
         name_d = self._client.AllocateObj(name)
-        attr_d = self._client.InvokeMethod('__main__', 'getattr',
+        attr_d = self._client.InvokeMethod('__main__', get_path(getattr),
                                            [self._ref, name_d])
 
         if isinstance(attr_d, Exception):
@@ -277,7 +280,7 @@ class Proxy(HasRef):
             name_d = self._client.AllocateObj(name)
             attr_d = self._client.AllocateObj(attr)
 
-            null_d = self._client.InvokeMethod('__main__', 'setattr',
+            null_d = self._client.InvokeMethod('__main__', get_path(setattr),
                                                [self._ref, name_d, attr_d])
 
             if isinstance(null_d, Exception):
@@ -458,7 +461,7 @@ class Proxy(HasRef):
     @_prime_op
     def __iter__(self, res: Union[Exception, str]) -> Proxy:
         if isinstance(res, AttributeError):
-            res = self._client.InvokeMethod('__main__', 'iter',
+            res = self._client.InvokeMethod('__main__', get_path(iter),
                                             [self._ref])
 
         if isinstance(res, Exception):

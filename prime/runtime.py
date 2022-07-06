@@ -9,7 +9,8 @@ import sys
 import dill
 import builtins
 import importlib.util
-from typing import types, List, Dict, Any
+from typing import types, List, Dict, Any, Optional, Type
+from types import FunctionType
 
 from functools import partial
 
@@ -37,32 +38,52 @@ def _trust(pkg: str):
     global TRUSTED_PKGS
     TRUSTED_PKGS[pkg] = module
 
+_trust('builtins')
 _trust('torch')
 _trust('pytorch_lightning')
 
 ################################################################################
 
-def _is_trusted(tpe: type) -> bool:
-    global TRUSTED_PKGS
+def get_path(obj: Any) -> str:
+    try:
+        return f'{obj.__module__}.{obj.__name__}'
+    except:
+        return ''
 
-    module = tpe.__module__
-    name = tpe.__name__
+def get_from(path: str) -> Any:
+    pkg = path.split('.')[0]
+    if pkg not in TRUSTED_PKGS:
+        raise Exception(f'{path} is not from trusted packages')
 
-    pkg = module.split('.')[0]
-    if pkg not in TRUSTED_PKGS.keys():
+    m = TRUSTED_PKGS[pkg]
+    for n in path.split('.')[1:]:
+        if hasattr(m, n):
+            m = getattr(m, n)
+        elif hasattr(m, '__path__') and os.path.exists(f'{m.__path__}.{n}'):
+            m = __import__(f'{m.__name__}.{n}')
+        else:
+            raise Exception(f'{path} is not from trusted packages')
+
+    return m
+
+
+def from_trusted(path: str) -> bool:
+    print(f'from_trusted({path})')
+    pkg = path.split('.')[0]
+    if pkg not in TRUSTED_PKGS:
         return False
 
     m = TRUSTED_PKGS[pkg]
-    for n in module.split('.')[1:]:
-        if not hasattr(m, n):
+    for n in path.split('.')[1:]:
+        if hasattr(m, n):
+            m = getattr(m, n)
+        elif hasattr(m, '__path__') and os.path.exists(f'{m.__path__[0]}.{n}'):
+            m = __import__(f'{m.__name__}.{n}')
+        else:
             return False
 
-        m = getattr(m, n)
-
-    if not hasattr(m, name):
-        return False
-
     return True
+
 
 class ExecutionRuntime():
     __initialized = False
@@ -129,8 +150,11 @@ class ExecutionRuntime():
         tpe, obj = dill.loads(tpe), dill.loads(val)
         tpe = type(obj) if issubclass(tpe, HasRef) else tpe
 
+        # TODO: Still need to check a class instance from trusted package does
+        # not contain malicious method
         assert (tpe in BUILTIN_TYPES or tpe.__name__ in self.__ctx
-                or _is_trusted(tpe)), f'type not defined: {tpe}'
+                or from_trusted(get_path(tpe))), \
+                f'type not defined: {tpe}'
         assert tpe == type(obj), f'type mismatch: {tpe} vs {type(obj)}'
         assert obj is not NotImplemented, f'invalid type: {obj}'
 
@@ -154,10 +178,13 @@ class ExecutionRuntime():
 
                 return ""
 
-            else:
-                method = getattr(builtins, method)
+            elif from_trusted(method):
+                method = get_from(method)
 
-        else:
+            else:
+                raise Exception(f'{method} is not trusted')
+
+        else: # obj is allocated in context
             obj = self.__ctx[obj]
 
             try:
