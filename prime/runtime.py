@@ -60,19 +60,19 @@ def path_exists(m: ModuleType, n: str) -> bool:
     return False
 
 
-def get_from(path: str) -> Any:
-    pkg = path.split('.')[0]
+def get_from(name: str) -> Any:
+    pkg = name.split('.')[0]
     if pkg not in TRUSTED_PKGS:
-        raise Exception(f'{path} is not from trusted packages')
+        raise Exception(f'{name} is not from trusted packages')
 
     m = TRUSTED_PKGS[pkg]
-    for n in path.split('.')[1:]:
+    for n in name.split('.')[1:]:
         if hasattr(m, n):
             m = getattr(m, n)
         elif path_exists(m, n):
             m = __import__(f'{m.__name__}.{n}')
         else:
-            raise Exception(f'{path} is not from trusted packages')
+            raise Exception(f'{name} is not from trusted packages')
 
     return m
 
