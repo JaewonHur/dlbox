@@ -2,7 +2,6 @@
 # Copyright (c) 2022
 #
 
-# from prime.
 from __future__ import annotations
 
 import sys
@@ -17,6 +16,7 @@ from functools import partial
 from prime.utils import logger
 from prime.exceptions import catch_xcpt, UserError, NotImplementedOutputError
 from prime.hasref import HasRef
+from prime.data import build_dataloader
 
 VAR_SFX = 'VAL'
 
@@ -31,6 +31,7 @@ def _trust(pkg: str):
 
     global TRUSTED_PKGS
     TRUSTED_PKGS[pkg] = module
+
 
 _trust('builtins')
 _trust('torch')
@@ -230,27 +231,24 @@ class ExecutionRuntime():
                  d_args: List[bytes], d_kwargs: Dict[str, bytes],
                  args: List[bytes], kwargs: Dict[str,bytes]) -> bytes:
 
+        import torch
         import pytorch_lightning as pl
-        from torch.utils.data import DataLoader
 
         HasRef._set_export(False)
 
-        trainer: pl.Trainer = dill.loads(trainer)
-        assert isinstance(trainer, pl.Trainer), \
-            f'incorrect trainer type: {type(trainer)}'
-
-        model: pl.LightningModule = dill.loads()
-        assert isinstance(model, pl.LightningModule), \
-            f'incorrect model type: {type(model)}'
-
-        dataloader: DataLoader = dill.loads(dataloader)
-        assert isinstance(dataloader, DataLoader), \
-            f'incorrect dataloader type: {type(dataloader)}'
-
-        # TODO: Sanitize epochs and construct DataSet
+        trainer = self._deserialize(trainer)
+        model = self._deserialize(model)
 
         d_args = [ self._deserialize(i) for i in d_args ]
         d_kwargs = { k:self._deserialize(v) for k, v in d_kwargs.items() }
+
+        tagged_epochs = {}
+        for k, v in epochs.items():
+            samples = [ (s, self.__ctx[s]) for s in v[0] ]
+            labels = [ (l, self.__ctx[l]) for l in v[1] ]
+            tagged_epochs[k] = (samples, labels)
+
+        dataloader = build_dataloader(tagged_epochs, d_args, d_kwargs)
 
         args = [ self._deserialize(i) for i in args ]
         kwargs = { k:self._deserialize(v) for k, v in kwargs.items() }
@@ -264,3 +262,4 @@ class ExecutionRuntime():
 
         model = dill.dumps(model)
         return model
+

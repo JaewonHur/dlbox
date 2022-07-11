@@ -22,9 +22,9 @@ from prime_pb2_grpc import *
 utils.run_server()
 _client = PrimeClient()
 
-# HasRef of Prime client does not set ctx
-delattr(HasRef, '_set_ctx')
-delattr(HasRef, '_set_export')
+# TODO: HasRef of Prime client does not set ctx
+# delattr(HasRef, '_set_ctx')
+# delattr(HasRef, '_set_export')
 
 """
 Proxy type is used to wrap the referenced variable allocated in DE.
@@ -258,8 +258,8 @@ class Proxy(HasRef):
             '__ceil__',
         )
 
-        if name in __methods:
-            print('Direct access to special methods of Proxy is discouraged', file=sys.stderr)
+        # if name in __methods:
+        #     print('Direct access to special methods of Proxy is discouraged', file=sys.stderr)
 
         return object.__getattribute__(self, name)
 
@@ -305,16 +305,16 @@ class Proxy(HasRef):
     # def __init__(self, *args, **kwargs):
     #     raise NotImplementedError()
 
-    # TODO: Need lock?
-    def __del__(self):
-        assert self.__refcnt[self._ref] > 0
-        self.__refcnt[self._ref] -= 1
+    # TODO
+    # def __del__(self):
+    #     assert self.__refcnt[self._ref] > 0
+    #     self.__refcnt[self._ref] -= 1
 
-        if self.__refcnt[self._ref] == 0:
-            name_d = self._client.AllocateObj(self._ref)
-            null_d = self._client.InvokeMethod('__main__', '_del_from_ctx',
-                                               [name_d])
-            del null_d
+    #     if self.__refcnt[self._ref] == 0:
+    #         name_d = self._client.AllocateObj(self._ref)
+    #         null_d = self._client.InvokeMethod('__main__', '_del_from_ctx',
+    #                                            [name_d])
+    #         del null_d
 
     def __repr__(self) -> str:
         return f"'Proxy({self._ref})'"
@@ -371,6 +371,7 @@ class Proxy(HasRef):
     def __bool__(self):
         raise PrimeNotSupportedError("'Proxy' does not support bool() conversion")
 
+    # TODO
     # def __getattribute__(self, name):
     #     raise NotImplementedError()
 

@@ -75,28 +75,25 @@ class PrimeClient:
                  epochs: Dict[int, Tuple[List[str], List[str]]],
                  d_args: List[Any], d_kwargs: Dict[str,Any],
                  args: List[Any], kwargs: Dict[str,Any]) -> Model:
-        arg = FitModelArg()
-        arg.trainer = trainer
-        arg.model = model
 
+        _epochs = {}
         for k, v in epochs.items():
             assert len(v[0]) == len(v[1]), \
                 'Numbers of samples and labels in epoch should be the same'
 
-            epoch = Epoch(v[0], v[1])
-            args.epochs[k] = epoch
+            epoch = Epoch(samples=v[0], labels=v[1])
+            _epochs[k] = epoch
 
         d_args = [ dill.dumps(i) for i in d_args ]
         d_kwargs = { k:dill.dumps(v) for k, v in d_kwargs.items() }
 
-        arg.d_args = d_args
-        arg.d_kwargs = d_kwargs
-
         args = [ dill.dumps(i) for i in args ]
         kwargs = { k:dill.dumps(v) for k, v in kwargs.items() }
 
-        arg.args = args
-        arg.kwargs = kwargs
+        arg = FitModelArg(trainer=trainer, model=model,
+                          epochs=_epochs,
+                          d_args=d_args, d_kwargs=d_kwargs,
+                          args=args, kwargs=kwargs)
 
         model = self.stub.FitModel(arg)
 
