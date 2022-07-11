@@ -9,7 +9,7 @@ import sys
 import dill
 import builtins
 import importlib.util
-from typing import types, List, Dict, Any, Optional, Type
+from typing import types, List, Dict, Any, Optional, Type, Tuple
 from types import FunctionType
 
 from functools import partial
@@ -127,6 +127,21 @@ class ExecutionRuntime():
     def _del_from_ctx(self, name: str):
         del self.__ctx[name]
 
+    # TODO: Still need to check a class instance from trusted package does
+    # not contain malicious method
+    def _deserialize(self, val: bytes) -> Any:
+        obj = dill.loads(val)
+        tpe = type(obj)
+
+        assert obj is not NotImplemented, f'invalid type: {obj}'
+        assert tpe == type(obj), f'type mismatch: {tpe} vs {type(obj)} of {obj}'
+        assert (tpe in BUILTIN_TYPES or tpe.__name__ in self.__ctx
+                or from_trusted(get_name(tpe))), \
+                f'type not defined: {tpe}'
+
+        return obj
+
+
     @catch_xcpt(False)
     def ExportDef(self, name: str, tpe: bytes, source: str) -> str:
         tpe = dill.loads(tpe)
@@ -155,18 +170,9 @@ class ExecutionRuntime():
         return name
 
     @catch_xcpt(False)
-    def AllocateObj(self, tpe: bytes, val: bytes) -> str:
-        tpe, obj = dill.loads(tpe), dill.loads(val)
-        tpe = type(obj) if issubclass(tpe, HasRef) else tpe
+    def AllocateObj(self, val: bytes) -> str:
 
-        # TODO: Still need to check a class instance from trusted package does
-        # not contain malicious method
-        assert (tpe in BUILTIN_TYPES or tpe.__name__ in self.__ctx
-                or from_trusted(get_name(tpe))), \
-                f'type not defined: {tpe}'
-        assert tpe == type(obj), f'type mismatch: {tpe} vs {type(obj)}'
-        assert obj is not NotImplemented, f'invalid type: {obj}'
-
+        obj = self._deserialize(val)
         name = self._add_to_ctx(obj)
 
         logger.debug(f'{name}: {obj}')
@@ -219,8 +225,9 @@ class ExecutionRuntime():
         return name
 
     @catch_xcpt(True)
-    def FitModel(self, trainer: bytes, model: bytes, dataloader: bytes,
-                 epochs: Dict[int, (List[str], List[str])],
+    def FitModel(self, trainer: bytes, model: bytes,
+                 epochs: Dict[int, Tuple[List[str], List[str]]],
+                 d_args: List[bytes], d_kwargs: Dict[str, bytes],
                  args: List[bytes], kwargs: Dict[str,bytes]) -> bytes:
 
         import pytorch_lightning as pl
@@ -242,25 +249,11 @@ class ExecutionRuntime():
 
         # TODO: Sanitize epochs and construct DataSet
 
-        args_d = []
-        for i in args:
-            i_d = dill.loads(i)
-            tpe = type(i_d)
-            assert (tpe in BUILTIN_TYPES or tpe.__name__ in self.__ctx), \
-                f'type not defined: {tpe}'
+        d_args = [ self._deserialize(i) for i in d_args ]
+        d_kwargs = { k:self._deserialize(v) for k, v in d_kwargs.items() }
 
-            args_d.append(i_d)
-        args = args_d
-
-        kwargs_d = {}
-        for k, v in kwargs.items():
-            v_d = dill.loads(v)
-            tpe = type(v_d)
-            assert (tpe in BUILTIN_TYPES or tpe.__name__ in self.__ctx), \
-                f'type not defined: {tpe}'
-
-            kwargs_d[k] = v_d
-        kwargs = kwargs_d
+        args = [ self._deserialize(i) for i in args ]
+        kwargs = { k:self._deserialize(v) for k, v in kwargs.items() }
 
         HasRef._set_export(True)
 

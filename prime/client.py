@@ -5,7 +5,7 @@
 import grpc
 import dill
 
-from typing import types, Type, List, Dict, Any
+from typing import types, Type, List, Dict, Any, Tuple
 
 from prime.utils import logger
 from prime.exceptions import retrieve_xcpt
@@ -48,10 +48,8 @@ class PrimeClient:
 
     @retrieve_xcpt(False)
     def AllocateObj(self, obj: object) -> Ref:
-        tpe = type(obj)
-        tpe = dill.dumps(tpe)
         val = dill.dumps(obj)
-        arg = AllocateObjArg(type=tpe, val=val)
+        arg = AllocateObjArg(val=val)
 
         ref = self.stub.AllocateObj(arg)
 
@@ -73,20 +71,32 @@ class PrimeClient:
         return ref
 
     @retrieve_xcpt(True)
-    def FitModel(self, trainer: bytes, model: bytes, dataloader: bytes,
-                 epochs: Dict[int, Epoch],
-                 args: List[bytes], kwargs: Dict[str,bytes]) -> Model:
+    def FitModel(self, trainer: bytes, model: bytes,
+                 epochs: Dict[int, Tuple[List[str], List[str]]],
+                 d_args: List[Any], d_kwargs: Dict[str,Any],
+                 args: List[Any], kwargs: Dict[str,Any]) -> Model:
         arg = FitModelArg()
         arg.trainer = trainer
         arg.model = model
-        arg.dataloader = dataloader
 
         for k, v in epochs.items():
-            args.epochs[k] = v
+            assert len(v[0]) == len(v[1]), \
+                'Numbers of samples and labels in epoch should be the same'
 
-        arg.args.extend(args)
-        for k, v in kwargs.items():
-            arg.kwargs[k] = v
+            epoch = Epoch(v[0], v[1])
+            args.epochs[k] = epoch
+
+        d_args = [ dill.dumps(i) for i in d_args ]
+        d_kwargs = { k:dill.dumps(v) for k, v in d_kwargs.items() }
+
+        arg.d_args = d_args
+        arg.d_kwargs = d_kwargs
+
+        args = [ dill.dumps(i) for i in args ]
+        kwargs = { k:dill.dumps(v) for k, v in kwargs.items() }
+
+        arg.args = args
+        arg.kwargs = kwargs
 
         model = self.stub.FitModel(arg)
 

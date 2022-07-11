@@ -31,10 +31,9 @@ class PrimeServer(PrimeServerServicer):
 
     def AllocateObj(self, arg: AllocateObjArg, ctx: grpc.ServicerContext) -> Ref:
 
-        tpe = arg.type
         val = arg.val
 
-        ref = self._runtime.AllocateObj(tpe, val)
+        ref = self._runtime.AllocateObj(val)
 
         return ref
 
@@ -53,12 +52,17 @@ class PrimeServer(PrimeServerServicer):
 
         trainer = arg.trainer
         model = arg.model
-        dataloader = arg.dataloader
+
         epochs = { k:(v.samples, v.labels) for k, v in arg.epochs.items() }
+
+        d_args = arg.d_args
+        d_kwargs = arg.d_kwargs
+
         args = arg.args
         kwargs = arg.kwargs
 
-        model = self._runtime.FitModel(trainer, model, dataloader, epochs,
+        model = self._runtime.FitModel(trainer, model, epochs,
+                                       d_args, d_kwargs,
                                        args, kwargs)
 
         return model
