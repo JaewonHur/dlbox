@@ -20,12 +20,6 @@ from prime.hasref import HasRef
 
 VAR_SFX = 'VAL'
 
-BUILTIN_TYPES = [
-    getattr(builtins, d) for d in dir(builtins)
-    if isinstance(getattr(builtins, d), type)
-] + [ type(None) ]
-
-# TODO: import trusted libraries
 ################################################################################
 # Trusted Libraries                                                            #
 ################################################################################
@@ -60,7 +54,7 @@ def path_exists(m: ModuleType, n: str) -> bool:
     return False
 
 
-def get_from(name: str) -> Any:
+def get_from(name: str) -> FunctionType:
     pkg = name.split('.')[0]
     if pkg not in TRUSTED_PKGS:
         raise Exception(f'{name} is not from trusted packages')
@@ -77,7 +71,14 @@ def get_from(name: str) -> Any:
     return m
 
 
-def from_trusted(name: str) -> bool:
+def from_trusted(tpe: type) -> bool:
+    if tpe is type(None): return True
+
+    try:
+        name = f'{tpe.__module__}.{tpe.__name__}'
+    except:
+        return False
+
     pkg = name.split('.')[0]
     if pkg not in TRUSTED_PKGS:
         return False
@@ -91,7 +92,10 @@ def from_trusted(name: str) -> bool:
         else:
             return False
 
-    return True
+    if tpe is m:
+        return True
+    else:
+        return True
 
 
 class ExecutionRuntime():
@@ -133,11 +137,10 @@ class ExecutionRuntime():
         obj = dill.loads(val)
         tpe = type(obj)
 
-        assert obj is not NotImplemented, f'invalid type: {obj}'
-        assert tpe == type(obj), f'type mismatch: {tpe} vs {type(obj)} of {obj}'
-        assert (tpe in BUILTIN_TYPES or tpe.__name__ in self.__ctx
-                or from_trusted(get_name(tpe))), \
-                f'type not defined: {tpe}'
+        assert not tpe in [NotImplemented, type, FunctionType], \
+            f'invalid type: {obj}'
+        assert (from_trusted(tpe) or tpe.__name__ in self.__ctx), \
+            f'type not trusted: {tpe}'
 
         return obj
 
@@ -193,11 +196,8 @@ class ExecutionRuntime():
 
                 return ""
 
-            elif from_trusted(method):
-                method = get_from(method)
-
             else:
-                raise Exception(f'{method} is not trusted')
+                method = get_from(method)
 
         else: # obj is allocated in context
             obj = self.__ctx[obj]

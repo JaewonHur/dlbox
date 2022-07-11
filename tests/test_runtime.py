@@ -113,7 +113,7 @@ def test_PrimeError(_client: PrimeClient):
     # Allocate object which is not defined in DE should raise PrimeError
     not_in_de = NotInDE(1)
     with pytest.raises(PrimeError,
-                       match="type not defined: <class 'tests.test_runtime.NotInDE'>"):
+                       match="type not trusted: <class 'tests.test_runtime.NotInDE'>"):
         output = _client.AllocateObj(not_in_de)
 
     # Invoke a method on not existing object should raise PrimeError
