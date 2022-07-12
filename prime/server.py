@@ -15,7 +15,7 @@ from prime_pb2_grpc import *
 
 class PrimeServer(PrimeServerServicer):
     def __init__(self):
-        self._runtime = ExecutionRuntime()
+        self._runtime = ExecutionRuntime(globals())
 
         is_server()
 
@@ -53,7 +53,7 @@ class PrimeServer(PrimeServerServicer):
         trainer = arg.trainer
         model = arg.model
 
-        epochs = { k:(v.samples, v.labels) for k, v in arg.epochs.items() }
+        epoch = (arg.epoch.samples, arg.epoch.labels)
 
         d_args = arg.d_args
         d_kwargs = arg.d_kwargs
@@ -61,7 +61,7 @@ class PrimeServer(PrimeServerServicer):
         args = arg.args
         kwargs = arg.kwargs
 
-        model = self._runtime.FitModel(trainer, model, epochs,
+        model = self._runtime.FitModel(trainer, model, epoch,
                                        d_args, d_kwargs,
                                        args, kwargs)
 

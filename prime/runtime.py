@@ -105,7 +105,9 @@ class ExecutionRuntime():
     __initialized = False
     __ctx = {}
 
-    def __init__(self):
+    def __init__(self, g_ctx: Dict[str, Any]):
+        self.g_ctx = g_ctx
+
         if self.__initialized:
             raise RuntimeError('There can exist only one ExecutionRuntime')
         self.__init()
@@ -153,7 +155,7 @@ class ExecutionRuntime():
         assert not tpe in [NotImplemented, type, FunctionType], \
             f'invalid type: {obj}'
         assert (from_trusted(tpe) or self._from_ctx(tpe)), \
-            f'type not trusted: {tpe}'
+            f'type not trusted: {tpe}, {self.__ctx}'
 
         return obj
 
@@ -174,12 +176,14 @@ class ExecutionRuntime():
             assert name not in globals()
 
             try:
-                exec(source)
+                locals()['__name__'] = '__main__'
+                exec(source, locals())
+                del locals()['__name__']
             except Exception as e:
                 raise UserError(e)
 
-            globals()[name] = locals()[name]
-            obj = globals()[name]
+            obj = locals()[name]
+            self.g_ctx[name] = obj
 
         else:
             module_path = fullname.split('.')[:-1]
@@ -276,7 +280,7 @@ class ExecutionRuntime():
 
     @catch_xcpt(True)
     def FitModel(self, trainer: bytes, model: bytes,
-                 epochs: Dict[int, Tuple[List[str], List[str]]],
+                 epoch: Tuple[List[str], List[str]],
                  d_args: List[bytes], d_kwargs: Dict[str, bytes],
                  args: List[bytes], kwargs: Dict[str,bytes]) -> bytes:
 
@@ -291,13 +295,15 @@ class ExecutionRuntime():
         d_args = [ self._deserialize(i) for i in d_args ]
         d_kwargs = { k:self._deserialize(v) for k, v in d_kwargs.items() }
 
-        tagged_epochs = {}
-        for k, v in epochs.items():
-            samples = [ (s, self.__ctx[s]) for s in v[0] ]
-            labels = [ (l, self.__ctx[l]) for l in v[1] ]
-            tagged_epochs[k] = (samples, labels)
+        samples, labels = epoch
+        assert len(samples) == len(labels), \
+            'Numbers of samples and labels should be the same'
 
-        dataloader = build_dataloader(tagged_epochs, d_args, d_kwargs)
+        tagged_samples = [ (s, self.__ctx[s]) for s in samples ]
+        tagged_labels = [ (l, self.__ctx[l]) for l in labels ]
+        tagged_epoch = (tagged_samples, tagged_labels)
+
+        dataloader = build_dataloader(tagged_epoch, d_args, d_kwargs)
 
         args = [ self._deserialize(i) for i in args ]
         kwargs = { k:self._deserialize(v) for k, v in kwargs.items() }
