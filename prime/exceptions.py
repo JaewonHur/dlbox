@@ -5,6 +5,7 @@
 # TODO: import prime
 
 import dill
+import traceback
 
 from typing import Union
 
@@ -68,6 +69,8 @@ def catch_xcpt(fitmodel: bool):
                 res = Model(error=pnae) if fitmodel else Ref(error=pnae)
 
             except Exception as e:
+                traceback.print_exc()
+
                 pe = dill.dumps(PrimeError(e))
                 res = Model(error=pe) if fitmodel else Ref(error=pe)
 
