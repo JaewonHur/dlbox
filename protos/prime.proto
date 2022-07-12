@@ -28,18 +28,18 @@ service PrimeServer {
 
 /* Input message for ExportDef
    Args:
-     name (string)   : name of the definition which is to be defined in DE.
-     type (bytes)    : type of the definition,
-                       must be one of <class 'type'>, <class 'function'>.
-     source (string) : relocatable source code of the definition,
-                       source must be self-confined 
-                         (i.e., it must contain all referenced objects).
-                       name of definition in source must match `name`.
+     fullname (string)   : name of the definition which is to be defined in DE.
+     type (bytes)        : type of the definition,
+                           must be one of <class 'type'>, <class 'function'>.
+     source (string)     : relocatable source code of the definition,
+                           source must be self-confined
+                             (i.e., it must contain all referenced objects).
+                           name of definition in source must match `name`.
 */ 
 message ExportDefArg {
-  string name   = 1;
-  bytes  type   = 2;
-  string source = 3;
+  string fullname = 1;
+  bytes  type     = 2;
+  string source   = 3;
 }
 
 /* Input message for AllocateObj

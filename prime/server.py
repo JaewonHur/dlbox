@@ -21,11 +21,11 @@ class PrimeServer(PrimeServerServicer):
 
     def ExportDef(self, arg: ExportDefArg, ctx: grpc.ServicerContext) -> Ref:
 
-        name = arg.name
+        fullname = arg.fullname
         tpe = arg.type
         source = arg.source
 
-        ref = self._runtime.ExportDef(name, tpe, source)
+        ref = self._runtime.ExportDef(fullname, tpe, source)
 
         return ref
 

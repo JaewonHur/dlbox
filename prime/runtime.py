@@ -4,8 +4,10 @@
 
 from __future__ import annotations
 
+import os
 import sys
 import dill
+import shutil
 import builtins
 import importlib.util
 from typing import types, List, Dict, Any, Optional, Type, Tuple
@@ -39,7 +41,7 @@ _trust('pytorch_lightning')
 
 ################################################################################
 
-def get_name(obj: Any) -> str:
+def get_fullname(obj: type) -> str:
     try:
         return f'{obj.__module__}.{obj.__name__}'
     except:
@@ -132,6 +134,16 @@ class ExecutionRuntime():
     def _del_from_ctx(self, name: str):
         del self.__ctx[name]
 
+
+    def _from_ctx(self, tpe: type) -> bool:
+        if get_fullname(tpe) not in self.__ctx:
+            return False
+
+        if tpe is not self.__ctx[get_fullname(tpe)]:
+            return False
+
+        return True
+
     # TODO: Still need to check a class instance from trusted package does
     # not contain malicious method
     def _deserialize(self, val: bytes) -> Any:
@@ -140,36 +152,73 @@ class ExecutionRuntime():
 
         assert not tpe in [NotImplemented, type, FunctionType], \
             f'invalid type: {obj}'
-        assert (from_trusted(tpe) or tpe.__name__ in self.__ctx), \
+        assert (from_trusted(tpe) or self._from_ctx(tpe)), \
             f'type not trusted: {tpe}'
 
         return obj
 
 
     @catch_xcpt(False)
-    def ExportDef(self, name: str, tpe: bytes, source: str) -> str:
+    def ExportDef(self, fullname: str, tpe: bytes, source: str) -> str:
         tpe = dill.loads(tpe)
 
         assert tpe in (type, types.FunctionType), f'not supported type: {tpe}'
 
-        module = f'/tmp/__{name}.py'
+        # TODO: Sandbox codes
+        # Malicious codes can change states of global variables
 
-        with open(module, 'w') as fd:
-            fd.write(source)
+        if fullname.startswith('__main__'):
+            # NOTE: Do not support nested definition
+            assert len(fullname.split('.')) == 2
+            name = fullname.split('.')[1]
+            assert name not in globals()
 
-        spec = importlib.util.spec_from_file_location(name, module)
-        module = importlib.util.module_from_spec(spec)
+            try:
+                exec(source)
+            except Exception as e:
+                raise UserError(e)
 
-        sys.modules[name] = module
+            globals()[name] = locals()[name]
+            obj = globals()[name]
 
-        try:
-            spec.loader.exec_module(module)
-        except Exception as e:
-            raise UserError(e)
+        else:
+            module_path = fullname.split('.')[:-1]
+            name = fullname.split('.')[-1]
 
-        self._add_to_ctx(getattr(module, name), name)
+            for i in range(len(module_path) -1):
+                p = f'/tmp/{"/".join(module_path[:i+1])}'
+                os.mkdir(f'{p}')
 
-        logger.debug(f'{name}: {self.__ctx[name]}')
+                with open(p + '/__init__.py', 'w') as fd:
+                    fd.write(f'import {".".join(module_path[:i+2])}')
+
+            with open(f'/tmp/{"/".join(module_path)}.py', 'w') as fd:
+                fd.write(source)
+
+            root = module_path[0]
+            path = (f'/tmp/{root}.py' if len(module_path) == 1
+                    else f'/tmp/{root}/__init__.py')
+            spec = importlib.util.spec_from_file_location(root, path)
+            module = importlib.util.module_from_spec(spec)
+            sys.modules[root] = module
+
+            try:
+                spec.loader.exec_module(module)
+            except Exception as e:
+                raise UserError(e)
+
+            globals()[root] = sys.modules[root]
+
+            if len(module_path) == 1: os.remove(f'/tmp/{root}.py')
+            else: shutil.rmtree(f'/tmp/{root}')
+
+            obj = module
+            for n in fullname.split('.')[1:]:
+                obj = getattr(obj, n)
+
+        self._add_to_ctx(obj, fullname)
+
+        logger.debug(f'{name}: {self.__ctx[fullname]}')
 
         return name
 

@@ -487,7 +487,7 @@ class Proxy(HasRef):
     @_prime_op
     def __contains__(self, res: Union[Exception, str], item) -> Proxy:
         if isinstance(res, AttributeError):
-            __in__ = self._client.ExportDef('__in__', FunctionType,
+            __in__ = self._client.ExportDef('__main__.__in__', FunctionType,
                                             "def __in__(x, y): return (y in x)")
             res = self._client.InvokeMethod('__main__', __in__,
                                             [self._ref, item])

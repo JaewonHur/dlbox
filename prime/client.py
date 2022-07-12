@@ -35,12 +35,11 @@ class PrimeClient:
             return False
 
     @retrieve_xcpt(False)
-    def ExportDef(self, name: str, tpe: types, source: str) -> Ref:
-        assert name.isidentifier(), f'not identifer: {name}'
+    def ExportDef(self, fullname: str, tpe: types, source: str) -> Ref:
         assert tpe in (type, types.FunctionType), f'not supported type: {tpe}'
 
         tpe = dill.dumps(tpe)
-        arg = ExportDefArg(name=name, type=tpe, source=source)
+        arg = ExportDefArg(fullname=fullname, type=tpe, source=source)
 
         ref = self.stub.ExportDef(arg)
 
