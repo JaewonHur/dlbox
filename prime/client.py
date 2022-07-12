@@ -71,17 +71,15 @@ class PrimeClient:
 
     @retrieve_xcpt(True)
     def FitModel(self, trainer: bytes, model: bytes,
-                 epochs: Dict[int, Tuple[List[str], List[str]]],
+                 epoch: Tuple[List[str], List[str]],
                  d_args: List[Any], d_kwargs: Dict[str,Any],
                  args: List[Any], kwargs: Dict[str,Any]) -> Model:
 
-        _epochs = {}
-        for k, v in epochs.items():
-            assert len(v[0]) == len(v[1]), \
-                'Numbers of samples and labels in epoch should be the same'
+        samples, labels = epoch
+        assert len(samples) == len(labels), \
+            'Numbers of samples and labels in epoch should be the same'
 
-            epoch = Epoch(samples=v[0], labels=v[1])
-            _epochs[k] = epoch
+        _epoch = Epoch(samples=samples, labels=labels)
 
         d_args = [ dill.dumps(i) for i in d_args ]
         d_kwargs = { k:dill.dumps(v) for k, v in d_kwargs.items() }
@@ -90,7 +88,7 @@ class PrimeClient:
         kwargs = { k:dill.dumps(v) for k, v in kwargs.items() }
 
         arg = FitModelArg(trainer=trainer, model=model,
-                          epochs=_epochs,
+                          epoch=_epoch,
                           d_args=d_args, d_kwargs=d_kwargs,
                           args=args, kwargs=kwargs)
 

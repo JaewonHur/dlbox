@@ -7,36 +7,34 @@ from typing import Dict, Tuple, List
 from torch import Tensor
 from torch.utils.data import DataLoader, Dataset
 
-def FairDataset(Dataset):
-    def __init__(self, epochs: Dict[int, Tuple[List[str], List[str]]]):
-        self.epochs = epochs
+class FairDataset(Dataset):
+    def __init__(self, epoch: Tuple[List[Tensor], List[Tensor]]):
+        super().__init__()
+
+        self.samples, self.labels = epoch
         self.ctr = 0
 
+    def __len__(self):
+        return len(self.samples)
+
     def __getitem__(self, idx):
-        if self.ctr == len(self.epochs):
-            raise IndexError()
-        else:
-            sample, label = self.epochs[self.ctr][idx]
+        return (self.samples[idx], self.labels[idx])
 
-            return (sample, label)
 
-def build_dataloader(tagged_epochs: Dict[int, Tuple[List[Tuple[str, Tensor]],
-                                                    List[Tuple[str, Tensor]]]],
+def build_dataloader(tagged_epoch: Tuple[List[Tuple[str, Tensor]],
+                                         List[Tuple[str, Tensor]]],
                      args: List, kwargs: Dict) -> DataLoader:
 
-    epochs = {}
-    for k, v in tagged_epochs.items():
-        t_samples = [ s[0] for s in v[0] ]
-        t_labels = [ l[0] for l in v[1] ]
+    tag_s = [ i[0] for i in tagged_epoch[0] ]
+    tag_l = [ i[0] for i in tagged_epoch[1] ]
 
-        # TODO: Sanitize dataflow in t_samples, t_labels
+    samples = [ i[1] for i in tagged_epoch[0] ]
+    labels = [ i[1] for i in tagged_epoch[1] ]
 
-        samples = [ s[1] for s in v[0] ]
-        labels = [ l[1] for l in v[1] ]
+    # TODO: Check tags
 
-        epochs[k] = (samples, labels)
-
-    dataset = FairDataset(epochs)
+    epoch = (samples, labels)
+    dataset = FairDataset(epoch)
     dataloader = DataLoader(dataset, *args, **kwargs)
 
     return dataloader
