@@ -17,7 +17,7 @@ import prime
 from prime.proxy import Proxy, _client
 from prime.exceptions import PrimeNotSupportedError
 
-from tests.common import export_f_output, read_val, import_class
+from tests.common import export_f_output, read_val, import_class, fullname
 
 export_f_output(_client)
 
@@ -784,7 +784,7 @@ def test_Containers():
     # Custom class can be container type
     name = 'MyClass'
     import_class(name, MY_CLASS, globals())
-    _client.ExportDef(name, type, MY_CLASS)
+    _client.ExportDef(fullname(MyClass.MyClass), type, MY_CLASS)
 
     o = MyClass.MyClass(3)
     o_d_partial = MyClass.MyClass(Proxy(_client.AllocateObj(3)))

@@ -13,13 +13,13 @@ import prime
 from prime import PrimeClient
 from prime.exceptions import PrimeError, UserError
 
-from tests.common import export_f_output, read_val, import_class, import_prime
+from tests.common import export_f_output, read_val, import_class, import_prime, fullname
 
 F_BENIGN = """
-benign = 3/1
+v = 3/1
 
 def benign():
-    val = benign + 3
+    val = v + 3
     return val
 """
 
@@ -50,7 +50,7 @@ def test_ExportDef(_client: PrimeClient):
     tpe = types.FunctionType
     source = """def foo():\n\tprint('foo')"""
 
-    foo = _client.ExportDef(name, tpe, source)
+    foo = _client.ExportDef('__main__.foo', tpe, source)
 
     assert foo == 'foo'
 
@@ -89,7 +89,7 @@ def test_AllocateObj(_client: PrimeClient):
 
     x = 1
     class_in_fe = MyClass.MyClass(x)
-    assert _client.ExportDef(name, type, MY_CLASS) == 'MyClass'
+    assert _client.ExportDef(fullname(MyClass.MyClass), type, MY_CLASS) == 'MyClass'
 
     class_in_de = _client.AllocateObj(class_in_fe)
     assert isinstance(class_in_de, str)
@@ -107,8 +107,8 @@ def test_PrimeError(_client: PrimeClient):
     # Mistmatch in function def and name should raise PrimeError
     name = 'not_output'
     tpe = types.FunctionType
-    with pytest.raises(PrimeError, match="module 'not_output' has no attribute 'not_output'"):
-        output = _client.ExportDef(name, tpe, F_BENIGN)
+    with pytest.raises(PrimeError, match="'not_output'"):
+        output = _client.ExportDef('__main__.not_output', tpe, F_BENIGN)
 
     # Allocate object which is not defined in DE should raise PrimeError
     not_in_de = NotInDE(1)
@@ -124,7 +124,7 @@ def test_PrimeError(_client: PrimeClient):
     # raise PrimeError
     name = 'MyClass'
     import_class(name, MY_CLASS, globals())
-    _client.ExportDef(name, type, MY_CLASS)
+    _client.ExportDef(fullname(MyClass.MyClass), type, MY_CLASS)
 
     class_in_fe = MyClass.MyClass(1)
     class_in_de = _client.AllocateObj(class_in_fe)
@@ -143,7 +143,7 @@ def test_UserError(_client: PrimeClient):
     # Error in exported module should give UserError
     name = 'error'
     tpe = types.FunctionType
-    output = _client.ExportDef(name, tpe, F_ERROR)
+    output = _client.ExportDef('__main__.error', tpe, F_ERROR)
 
     with pytest.raises(ZeroDivisionError, match='division by zero'):
         raise output
@@ -151,7 +151,7 @@ def test_UserError(_client: PrimeClient):
     # Invoke a non-existing method on existing object should raise UserError
     name = 'MyClass'
     import_class(name, MY_CLASS, globals())
-    _client.ExportDef(name, type, MY_CLASS)
+    _client.ExportDef(fullname(MyClass.MyClass), type, MY_CLASS)
 
     class_in_fe = MyClass.MyClass(1)
     class_in_de = _client.AllocateObj(class_in_fe)
