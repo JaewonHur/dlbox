@@ -305,18 +305,18 @@ class Proxy(HasRef):
     # def __init__(self, *args, **kwargs):
     #     raise NotImplementedError()
 
-    # def __del__(self):
-    #     assert self.__refcnt[self._ref] > 0
-    #     self.__refcnt[self._ref] -= 1
+    def __del__(self):
+        assert self.__refcnt[self._ref] > 0
+        self.__refcnt[self._ref] -= 1
 
-    #     if self.__refcnt[self._ref] == 0:
-    #         try:
-    #             name_d = self._client.AllocateObj(self._ref)
-    #             null_d = self._client.InvokeMethod('__main__', '_del_from_ctx',
-    #                                                [name_d])
-    #             del null_d
-    #         except:
-    #             pass
+        if self.__refcnt[self._ref] == 0:
+            try:
+                name_d = self._client.AllocateObj(self._ref)
+                null_d = self._client.InvokeMethod('__main__', '_del_from_ctx',
+                                                   [name_d])
+                del null_d
+            except:
+                pass
 
     def __repr__(self) -> str:
         return f"'Proxy({self._ref})'"
