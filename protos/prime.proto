@@ -2,6 +2,8 @@
 
 syntax = "proto3";
 
+import "google/protobuf/empty.proto";
+
 package prime;
 
 // Prime service definition
@@ -13,6 +15,8 @@ service PrimeServer {
   rpc ExportDef (ExportDefArg) returns (Ref) {}
   // Copy object in FE to DE
   rpc AllocateObj (AllocateObjArg) returns (Ref) {}
+  // Delete object in DE
+  rpc DeleteObj (DeleteObjArg) returns (google.protobuf.Empty) {}
   // Invoke method in DE
   rpc InvokeMethod (InvokeMethodArg) returns (Ref) {}
 
@@ -48,6 +52,14 @@ message ExportDefArg {
 */
 message AllocateObjArg {
   bytes  val  = 1;
+}
+
+/* Input message for DeleteObj
+   Args;
+     val (string)  : name of the object to be deleted.
+*/
+message DeleteObjArg {
+  string name = 1;
 }
   
 /* Input message for InvokeMethod

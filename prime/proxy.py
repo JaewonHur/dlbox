@@ -11,6 +11,7 @@ from functools import partial
 
 import prime
 from prime import utils
+from prime.utils import logger
 from prime.client import PrimeClient
 from prime.exceptions import PrimeNotSupportedError
 from prime.hasref import HasRef
@@ -311,10 +312,7 @@ class Proxy(HasRef):
 
         if self.__refcnt[self._ref] == 0:
             try:
-                name_d = self._client.AllocateObj(self._ref)
-                null_d = self._client.InvokeMethod('__main__', '_del_from_ctx',
-                                                   [name_d])
-                del null_d
+                self._client.DeleteObj(self._ref)
             except:
                 pass
 

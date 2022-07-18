@@ -54,6 +54,11 @@ class PrimeClient:
 
         return ref
 
+    def DeleteObj(self, name: str):
+        arg = DeleteObjArg(name=name)
+
+        self.stub.DeleteObj(arg)
+
     @retrieve_xcpt(False)
     def InvokeMethod(self, obj: str, method: str, args: List[str]=[],
                      kwargs: Dict[str,str]={}) -> Ref:

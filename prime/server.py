@@ -37,6 +37,14 @@ class PrimeServer(PrimeServerServicer):
 
         return ref
 
+    def DeleteObj(self, arg: DeleteObjArg, ctx: grpc.ServicerContext):
+
+        name = arg.name
+        self._runtime.DeleteObj(name)
+
+        from google.protobuf.empty_pb2 import Empty
+        return Empty()
+
     def InvokeMethod(self, arg: InvokeMethodArg, ctx: grpc.ServicerContext) -> Ref:
 
         obj = arg.obj

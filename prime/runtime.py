@@ -136,7 +136,6 @@ class ExecutionRuntime():
     def _del_from_ctx(self, name: str):
         del self.__ctx[name]
 
-
     def _from_ctx(self, tpe: type) -> bool:
         if get_fullname(tpe) not in self.__ctx:
             return False
@@ -236,6 +235,9 @@ class ExecutionRuntime():
 
         return name
 
+    def DeleteObj(self, name: str):
+        self._del_from_ctx(name)
+
     @catch_xcpt(False)
     def InvokeMethod(self, obj: str, method: str,
                      args: List[str], kwargs: Dict[str,str]) -> str:
@@ -243,12 +245,6 @@ class ExecutionRuntime():
         if obj == '__main__':
             if method in self.__ctx.keys():
                 method = self.__ctx[method]
-
-            elif method == '_del_from_ctx':
-                self._del_from_ctx(*[self.__ctx[k] for k in args])
-                self._del_from_ctx(*args)
-
-                return ""
 
             else:
                 method = get_from(method)
