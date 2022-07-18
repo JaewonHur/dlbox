@@ -130,10 +130,13 @@ class ExecutionRuntime():
 
             self.__ctx[name] = obj
 
+        logger.debug(f'{name}: {hex(id(obj))}')
         return name
 
     # TODO: Need lock?
     def _del_from_ctx(self, name: str):
+
+        logger.debug(f'{name}')
         del self.__ctx[name]
 
     def _from_ctx(self, tpe: type) -> bool:
@@ -164,6 +167,8 @@ class ExecutionRuntime():
         tpe = dill.loads(tpe)
 
         assert tpe in (type, types.FunctionType), f'not supported type: {tpe}'
+
+        logger.debug(f'{fullname} ({tpe})')
 
         # TODO: Sandbox codes
         # Malicious codes can change states of global variables
@@ -220,18 +225,18 @@ class ExecutionRuntime():
                 obj = getattr(obj, n)
 
         self._add_to_ctx(obj, fullname)
-
-        logger.debug(f'{name}: {self.__ctx[fullname]}')
-
         return name
 
     @catch_xcpt(False)
     def AllocateObj(self, val: bytes) -> str:
 
         obj = self._deserialize(val)
-        name = self._add_to_ctx(obj)
+        if type(obj) in [type, FunctionType]:
+            logger.debug(f'{obj.__module__}.{obj.__name__}')
+        else:
+            logger.debug(f'{type(obj).__module__}.{type(obj).__name__}')
 
-        logger.debug(f'{name}: {obj}')
+        name = self._add_to_ctx(obj)
 
         return name
 
@@ -257,6 +262,7 @@ class ExecutionRuntime():
             except Exception as e:
                 raise UserError(e)
 
+        logger.debug(f'{method}')
         args = [self.__ctx[k] for k in args]
         kwargs = {k:self.__ctx[v] for k, v in kwargs.items()}
 
@@ -269,9 +275,6 @@ class ExecutionRuntime():
             raise NotImplementedOutputError()
 
         name = self._add_to_ctx(out)
-
-        logger.debug(f'{name}: {out}')
-
         return name
 
     @catch_xcpt(True)
@@ -288,6 +291,7 @@ class ExecutionRuntime():
         trainer = self._deserialize(trainer)
         model = self._deserialize(model)
 
+        logger.debug(f'{model}')
         d_args = [ self._deserialize(i) for i in d_args ]
         d_kwargs = { k:self._deserialize(v) for k, v in d_kwargs.items() }
 
