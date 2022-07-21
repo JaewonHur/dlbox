@@ -42,6 +42,18 @@ _trust('pytorch_lightning')
 
 ################################################################################
 
+################################################################################
+# Custom Sample Initialization Function                                        #
+################################################################################
+
+def sample_init() -> Tuple['torch.Tensor', 'torch.Tensor']:
+    samples = TRUSTED_PKGS['torch'].Tensor(range(6 * 10)).reshape(10, 2, 3)
+    labels = TRUSTED_PKGS['torch'].Tensor([0, 1] * 5)
+
+    return (samples, labels)
+
+################################################################################
+
 def get_fullname(obj: type) -> str:
     try:
         return f'{obj.__module__}.{obj.__name__}'
@@ -114,6 +126,14 @@ class ExecutionRuntime():
         self.__init()
 
         self.ctr = 0
+
+        self.init_samples()
+
+    def init_samples(self):
+        samples, labels = sample_init()
+
+        self._add_to_ctx(samples, '_SAMPLES')
+        self._add_to_ctx(labels, '_LABELS')
 
     @classmethod
     def __init(cls: ExecutionRuntime):
