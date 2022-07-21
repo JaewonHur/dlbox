@@ -13,6 +13,7 @@ import types
 from typing import Any
 
 import prime
+from prime.proxy import _client
 from prime import PrimeClient
 
 logdir = f'{os.getcwd()}/test-logs'
@@ -27,11 +28,11 @@ def output(x):
         dill.dump(x, fd)
 """
 
-def export_f_output(_client: prime.PrimeClient):
+def export_f_output(_client: PrimeClient):
     output = _client.ExportDef('__main__.output', types.FunctionType, F_OUTPUT)
     assert output == 'output'
 
-def read_val(_client: prime.PrimeClient, x: Any) -> Any:
+def read_val(_client: PrimeClient, x: Any) -> Any:
     _client.InvokeMethod('__main__', '__main__.output', [x])
     with open('/tmp/x.txt', 'rb') as fd:
         x = dill.load(fd)
@@ -53,17 +54,3 @@ def import_class(name: str, src: str, __global: dict):
     __global[name] = module
     spec.loader.exec_module(module)
 
-def import_prime(func):
-    def wrapper():
-        prime.utils.log_to_file(logdir + '/' + now.strftime('%Y-%m-%d-%X') + '_'
-                                + func.__name__ + '.txt')
-
-        prime.utils.run_server()
-
-        time.sleep(1)
-        _client = PrimeClient()
-
-        func(_client)
-        prime.utils.kill_server()
-
-    return wrapper
