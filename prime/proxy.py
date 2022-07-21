@@ -86,11 +86,8 @@ def get_path(obj: Any) -> str:
 
 def _prime_op(func):
     def wrapper(self: Proxy, *args, **kwargs) -> Union[Proxy, NotImplementedType]:
-        args_d = [ self._get_ref(i) for i in args ]
-        kwargs_d = { k:self._get_ref(v) for k, v in kwargs.items() }
-
         res = self._client.InvokeMethod(self._ref, func.__name__,
-                                        args_d, kwargs_d)
+                                        args, kwargs)
 
         if res is NotImplemented:
             return res
@@ -141,10 +138,7 @@ def _reflective_prime_op(func):
         assert len(args) == 1 and not kwargs, ''
 
         op = func.__name__
-
-        args_d = [ self._get_ref(i) for i in args ]
-        kwargs_d = { k:self._get_ref(v) for k, v in kwargs.items() }
-        res = self._client.InvokeMethod(self._ref, op, args_d, kwargs_d)
+        res = self._client.InvokeMethod(self._ref, op, args, kwargs)
 
         # NOTE: Prime assumes that __ne__ is delegated to inverse of __eq__
         if res is NotImplemented or isinstance(res, AttributeError):
@@ -152,7 +146,7 @@ def _reflective_prime_op(func):
 
             o_d = args_d[0]
 
-            res = self._client.InvokeMethod(o_d, rop, [self._ref])
+            res = self._client.InvokeMethod(o_d, rop, [self])
 
         if res is NotImplemented:
             return res
@@ -265,9 +259,8 @@ class Proxy(HasRef):
         return object.__getattribute__(self, name)
 
     def __getattr__(self, name: str) -> Proxy:
-        name_d = self._client.AllocateObj(name)
-        attr_d = self._client.InvokeMethod('__main__', get_path(getattr),
-                                           [self._ref, name_d])
+        attr_d = self._client.InvokeMethod(self._ref, '__getattr__'
+                                           [name])
 
         if isinstance(attr_d, Exception):
             raise attr_d
@@ -278,22 +271,13 @@ class Proxy(HasRef):
         if name == '_ref':
             object.__setattr__(self, name, attr)
         else:
-            name_d = self._client.AllocateObj(name)
-            attr_d = self._client.AllocateObj(attr)
-
-            null_d = self._client.InvokeMethod('__main__', get_path(setattr),
-                                               [self._ref, name_d, attr_d])
+            null_d = self._client.InvokeMethod(self._ref, '__setattr__',
+                                               [name, attr])
 
             if isinstance(null_d, Exception):
                 raise null_d
 
             return Proxy(null_d)
-
-    def _get_ref(self, obj: Union[Any, Proxy]) -> str:
-        if isinstance(obj, Proxy):
-            return obj._ref
-        else:
-            return self._client.AllocateObj(obj)
 
 
     """ Special methods should be emulated """
@@ -463,7 +447,7 @@ class Proxy(HasRef):
     def __iter__(self, res: Union[Exception, str]) -> Proxy:
         if isinstance(res, AttributeError):
             res = self._client.InvokeMethod('__main__', get_path(iter),
-                                            [self._ref])
+                                            [self])
 
         if isinstance(res, Exception):
             raise res
@@ -487,10 +471,8 @@ class Proxy(HasRef):
     @_prime_op
     def __contains__(self, res: Union[Exception, str], item) -> Proxy:
         if isinstance(res, AttributeError):
-            __in__ = self._client.ExportDef('__main__.__in__', FunctionType,
-                                            "def __in__(x, y): return (y in x)")
-            res = self._client.InvokeMethod('__main__', __in__,
-                                            [self._ref, item])
+            res = self._client.InvokeMethod(self._ref, '__contains__',
+                                            [item])
 
         if isinstance(res, Exception):
             raise res

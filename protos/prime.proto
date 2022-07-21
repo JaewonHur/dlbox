@@ -13,8 +13,6 @@ service PrimeServer {
 
   // Export class or function definition from FE to DE
   rpc ExportDef (ExportDefArg) returns (Ref) {}
-  // Copy object in FE to DE
-  rpc AllocateObj (AllocateObjArg) returns (Ref) {}
   // Delete object in DE
   rpc DeleteObj (DeleteObjArg) returns (google.protobuf.Empty) {}
   // Invoke method in DE
@@ -46,14 +44,6 @@ message ExportDefArg {
   string source   = 3;
 }
 
-/* Input message for AllocateObj
-   Args:
-     val (bytes)   : serialized value of the object.
-*/
-message AllocateObjArg {
-  bytes  val  = 1;
-}
-
 /* Input message for DeleteObj
    Args;
      val (string)  : name of the object to be deleted.
@@ -67,17 +57,14 @@ message DeleteObjArg {
      obj (string)                : name of the object defined in DE, which contains method.
                                    if `obj` is not set, the method is global.
      method (string)             : name of the method to be invoked.
-     args (repeated string)      : list of the name of the objects in DE, which will
-                                   be used as input arguments.
-                                   all included object must be already defined in DE.
-     kwargs (map<string,string>) : map of key and object name to be used as keyword arguments.
-                                   all included object must be already defined in DE.
+     args (repeated bytes)       : list of the objects in DE, which will be used as input arguments.
+     kwargs (map<string,bytes>)  : map of key and object to be used as keyword arguments.
 */
 message InvokeMethodArg {
   string             obj    = 1;
   string             method = 2;
-  repeated string    args   = 3;
-  map<string,string> kwargs = 4;
+  repeated bytes     args   = 3;
+  map<string,bytes>  kwargs = 4;
 }
 
 /* Input message for FitModel

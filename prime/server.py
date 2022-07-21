@@ -29,14 +29,6 @@ class PrimeServer(PrimeServerServicer):
 
         return ref
 
-    def AllocateObj(self, arg: AllocateObjArg, ctx: grpc.ServicerContext) -> Ref:
-
-        val = arg.val
-
-        ref = self._runtime.AllocateObj(val)
-
-        return ref
-
     def DeleteObj(self, arg: DeleteObjArg, ctx: grpc.ServicerContext):
 
         name = arg.name

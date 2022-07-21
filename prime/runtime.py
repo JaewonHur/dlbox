@@ -227,25 +227,12 @@ class ExecutionRuntime():
         self._add_to_ctx(obj, fullname)
         return name
 
-    @catch_xcpt(False)
-    def AllocateObj(self, val: bytes) -> str:
-
-        obj = self._deserialize(val)
-        if type(obj) in [type, FunctionType]:
-            logger.debug(f'{obj.__module__}.{obj.__name__}')
-        else:
-            logger.debug(f'{type(obj).__module__}.{type(obj).__name__}')
-
-        name = self._add_to_ctx(obj)
-
-        return name
-
     def DeleteObj(self, name: str):
         self._del_from_ctx(name)
 
     @catch_xcpt(False)
     def InvokeMethod(self, obj: str, method: str,
-                     args: List[str], kwargs: Dict[str,str]) -> str:
+                     args: List[bytes], kwargs: Dict[str,bytes]) -> str:
 
         if obj == '__main__':
             if method in self.__ctx.keys():
@@ -263,8 +250,8 @@ class ExecutionRuntime():
                 raise UserError(e)
 
         logger.debug(f'{method}')
-        args = [self.__ctx[k] for k in args]
-        kwargs = {k:self.__ctx[v] for k, v in kwargs.items()}
+        args = [ self._deserialize(i) for i in args ]
+        kwargs = { k:self._deserialize(v) for k, v in kwargs.items() }
 
         try:
             out = method(*args, **kwargs)
