@@ -96,65 +96,6 @@ def _prime_op(func):
 
     return wrapper
 
-def _reflective_prime_op(func):
-    __reflective_ops = {
-        '__lt__'       : '__gt__',
-        '__le__'       : '__ge__',
-        '__gt__'       : '__lt__',
-        '__ge__'       : '__le__',
-        '__eq__'       : '__eq__',
-        '__ne__'       : '__ne__',
-        '__add__'      : '__radd__',
-        '__sub__'      : '__rsub__',
-        '__mul__'      : '__rmul__',
-        '__matmul__'   : '__rmatmul__',
-        '__truediv__'  : '__rtruediv__',
-        '__floordiv__' : '__rfloordiv__',
-        '__mod__'      : '__rmod__',
-        '__divmod__'   : '__rdivmod__',
-        '__pow__'      : '__rpow__',
-        '__lshift__'   : '__rlshift__',
-        '__rshift__'   : '__rrshift__',
-        '__and__'      : '__rand__',
-        '__xor__'      : '__rxor__',
-        '__or__'       : '__ror__',
-        '__radd__'     : '__add__',
-        '__rsub__'     : '__sub__',
-        '__rmul__'     : '__mul__',
-        '__rmatmul__'  : '__matmul__',
-        '__rtruediv__' : '__truediv__',
-        '__rfloordiv__': '__floordiv__',
-        '__rmod__'     : '__mod__',
-        '__rdivmod__'  : '__divmod__',
-        '__rpow__'     : '__pow__',
-        '__rlshift__'  : '__lshift__',
-        '__rrshift__'  : '__rshift__',
-        '__rand__'     : '__and__',
-        '__rxor__'     : '__xor__',
-        '__ror__'      : '__or__',
-    }
-
-    def wrapper(self: Proxy, *args, **kwargs) -> Union[Proxy, NotImplementedType]:
-        assert len(args) == 1 and not kwargs, ''
-
-        op = func.__name__
-        res = self._client.InvokeMethod(self._ref, op, args, kwargs)
-
-        # NOTE: Prime assumes that __ne__ is delegated to inverse of __eq__
-        if res is NotImplemented or isinstance(res, AttributeError):
-            rop = __reflective_ops[op]
-
-            o_d = args_d[0]
-
-            res = self._client.InvokeMethod(o_d, rop, [self])
-
-        if res is NotImplemented:
-            return res
-        else:
-            return func(self, res, *args_d, **kwargs_d)
-
-    return wrapper
-
 
 class Proxy(HasRef):
     __slots__ = ('_ref',)
@@ -312,37 +253,37 @@ class Proxy(HasRef):
     def __format__(self, format_spec) -> str:
         return self.__str__()
 
-    @_reflective_prime_op
+    @_prime_op
     def __lt__(self, res: Union[Exception, str], o) -> Proxy:
         if isinstance(res, Exception):
             raise res
         return Proxy(res)
 
-    @_reflective_prime_op
+    @_prime_op
     def __le__(self, res: Union[Exception, str], o) -> Proxy:
         if isinstance(res, Exception):
             raise res
         return Proxy(res)
 
-    @_reflective_prime_op
+    @_prime_op
     def __eq__(self, res: Union[Exception, str], o) -> Proxy:
         if isinstance(res, Exception):
             raise res
         return Proxy(res)
 
-    @_reflective_prime_op
+    @_prime_op
     def __ne__(self, res: Union[Exception, str], o) -> Proxy:
         if isinstance(res, Exception):
             raise res
         return Proxy(res)
 
-    @_reflective_prime_op
+    @_prime_op
     def __gt__(self, res: Union[Exception, str], o) -> Proxy:
         if isinstance(res, Exception):
             raise res
         return Proxy(res)
 
-    @_reflective_prime_op
+    @_prime_op
     def __ge__(self, res: Union[Exception, str], o) -> Proxy:
         if isinstance(res, Exception):
             raise res
@@ -447,7 +388,7 @@ class Proxy(HasRef):
     def __iter__(self, res: Union[Exception, str]) -> Proxy:
         if isinstance(res, AttributeError):
             res = self._client.InvokeMethod('__main__', get_path(iter),
-                                            [self])
+                                            [self._ref])
 
         if isinstance(res, Exception):
             raise res
@@ -479,169 +420,169 @@ class Proxy(HasRef):
 
         return Proxy(res)
 
-    @_reflective_prime_op
+    @_prime_op
     def __add__(self, res: Union[Exception, str], o) -> Proxy:
         if isinstance(res, Exception):
             raise res
         return Proxy(res)
 
-    @_reflective_prime_op
+    @_prime_op
     def __sub__(self, res: Union[Exception, str], o) -> Proxy:
         if isinstance(res, Exception):
             raise res
         return Proxy(res)
 
-    @_reflective_prime_op
+    @_prime_op
     def __mul__(self, res: Union[Exception, str], o) -> Proxy:
         if isinstance(res, Exception):
             raise res
         return Proxy(res)
 
-    @_reflective_prime_op
+    @_prime_op
     def __matmul__(self, res: Union[Exception, str], o) -> Proxy:
         if isinstance(res, Exception):
             raise res
         return Proxy(res)
 
-    @_reflective_prime_op
+    @_prime_op
     def __truediv__(self, res: Union[Exception, str], o) -> Proxy:
         if isinstance(res, Exception):
             raise res
         return Proxy(res)
 
-    @_reflective_prime_op
+    @_prime_op
     def __floordiv__(self, res: Union[Exception, str], o) -> Proxy:
         if isinstance(res, Exception):
             raise res
         return Proxy(res)
 
-    @_reflective_prime_op
+    @_prime_op
     def __mod__(self, res: Union[Exception, str], o) -> Proxy:
         if isinstance(res, Exception):
             raise res
         return Proxy(res)
 
-    @_reflective_prime_op
+    @_prime_op
     def __divmod__(self, res: Union[Exception, str], o) -> Proxy:
         if isinstance(res, Exception):
             raise res
         return Proxy(res)
 
-    @_reflective_prime_op
+    @_prime_op
     def __pow__(self, res: Union[Exception, str], o) -> Proxy:
         if isinstance(res, Exception):
             raise res
         return Proxy(res)
 
-    @_reflective_prime_op
+    @_prime_op
     def __lshift__(self, res: Union[Exception, str], o) -> Proxy:
         if isinstance(res, Exception):
             raise res
         return Proxy(res)
 
-    @_reflective_prime_op
+    @_prime_op
     def __rshift__(self, res: Union[Exception, str], o) -> Proxy:
         if isinstance(res, Exception):
             raise res
         return Proxy(res)
 
-    @_reflective_prime_op
+    @_prime_op
     def __and__(self, res: Union[Exception, str], o) -> Proxy:
         if isinstance(res, Exception):
             raise res
         return Proxy(res)
 
-    @_reflective_prime_op
+    @_prime_op
     def __xor__(self, res: Union[Exception, str], o) -> Proxy:
         if isinstance(res, Exception):
             raise res
         return Proxy(res)
 
-    @_reflective_prime_op
+    @_prime_op
     def __or__(self, res: Union[Exception, str], o) -> Proxy:
         if isinstance(res, Exception):
             raise res
         return Proxy(res)
 
-    @_reflective_prime_op
+    @_prime_op
     def __radd__(self, res: Union[Exception, str], o) -> Proxy:
         if isinstance(res, Exception):
             raise res
         return Proxy(res)
 
-    @_reflective_prime_op
+    @_prime_op
     def __rsub__(self, res: Union[Exception, str], o) -> Proxy:
         if isinstance(res, Exception):
             raise res
         return Proxy(res)
 
-    @_reflective_prime_op
+    @_prime_op
     def __rmul__(self, res: Union[Exception, str], o) -> Proxy:
         if isinstance(res, Exception):
             raise res
         return Proxy(res)
 
-    @_reflective_prime_op
+    @_prime_op
     def __rmatmul__(self, res: Union[Exception, str], o) -> Proxy:
         if isinstance(res, Exception):
             raise res
         return Proxy(res)
 
-    @_reflective_prime_op
+    @_prime_op
     def __rtruediv__(self, res: Union[Exception, str], o) -> Proxy:
         if isinstance(res, Exception):
             raise res
         return Proxy(res)
 
-    @_reflective_prime_op
+    @_prime_op
     def __rfloordiv__(self, res: Union[Exception, str], o) -> Proxy:
         if isinstance(res, Exception):
             raise res
         return Proxy(res)
 
-    @_reflective_prime_op
+    @_prime_op
     def __rmod__(self, res: Union[Exception, str], o) -> Proxy:
         if isinstance(res, Exception):
             raise res
         return Proxy(res)
 
-    @_reflective_prime_op
+    @_prime_op
     def __rdivmod__(self, res: Union[Exception, str], o) -> Proxy:
         if isinstance(res, Exception):
             raise res
         return Proxy(res)
 
-    @_reflective_prime_op
+    @_prime_op
     def __rpow__(self, res: Union[Exception, str], o) -> Proxy:
         if isinstance(res, Exception):
             raise res
         return Proxy(res)
 
-    @_reflective_prime_op
+    @_prime_op
     def __rlshift__(self, res: Union[Exception, str], o) -> Proxy:
         if isinstance(res, Exception):
             raise res
         return Proxy(res)
 
-    @_reflective_prime_op
+    @_prime_op
     def __rrshift__(self, res: Union[Exception, str], o) -> Proxy:
         if isinstance(res, Exception):
             raise res
         return Proxy(res)
 
-    @_reflective_prime_op
+    @_prime_op
     def __rand__(self, res: Union[Exception, str], o) -> Proxy:
         if isinstance(res, Exception):
             raise res
         return Proxy(res)
 
-    @_reflective_prime_op
+    @_prime_op
     def __rxor__(self, res: Union[Exception, str], o) -> Proxy:
         if isinstance(res, Exception):
             raise res
         return Proxy(res)
 
-    @_reflective_prime_op
+    @_prime_op
     def __ror__(self, res: Union[Exception, str], o) -> Proxy:
         if isinstance(res, Exception):
             raise res

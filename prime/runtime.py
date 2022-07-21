@@ -19,6 +19,7 @@ from prime.utils import logger
 from prime.exceptions import catch_xcpt, UserError, NotImplementedOutputError
 from prime.hasref import HasRef
 from prime.data import build_dataloader
+from prime.emul import emulate
 
 VAR_SFX = 'VAL'
 
@@ -254,7 +255,7 @@ class ExecutionRuntime():
         kwargs = { k:self._deserialize(v) for k, v in kwargs.items() }
 
         try:
-            out = method(*args, **kwargs)
+            out = emulate(method, obj)(*args, **kwargs)
         except Exception as e:
             raise UserError(e)
 
