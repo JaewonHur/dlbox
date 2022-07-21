@@ -5,6 +5,13 @@
 from typing import Any
 from types import FunctionType
 
+import builtins
+
+def contains(obj: Any, item: Any) -> bool:
+    return (item in obj)
+
+builtins.contains = contains
+
 _reflective_ops = {
     '__lt__'       : '__gt__',
     '__le__'       : '__ge__',

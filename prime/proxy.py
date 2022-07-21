@@ -92,7 +92,7 @@ def _prime_op(func):
         if res is NotImplemented:
             return res
         else:
-            return func(self, res, *args_d, **kwargs_d)
+            return func(self, res, *args, **kwargs)
 
     return wrapper
 
@@ -200,8 +200,11 @@ class Proxy(HasRef):
         return object.__getattribute__(self, name)
 
     def __getattr__(self, name: str) -> Proxy:
-        attr_d = self._client.InvokeMethod(self._ref, '__getattr__'
-                                           [name])
+        if name == 'mro':
+            raise AttributeError
+
+        attr_d = self._client.InvokeMethod('__main__', get_path(getattr),
+                                           [self, name])
 
         if isinstance(attr_d, Exception):
             raise attr_d
@@ -212,8 +215,8 @@ class Proxy(HasRef):
         if name == '_ref':
             object.__setattr__(self, name, attr)
         else:
-            null_d = self._client.InvokeMethod(self._ref, '__setattr__',
-                                               [name, attr])
+            null_d = self._client.InvokeMethod('__main__', get_path(setattr),
+                                               [self, name, attr])
 
             if isinstance(null_d, Exception):
                 raise null_d
@@ -412,8 +415,8 @@ class Proxy(HasRef):
     @_prime_op
     def __contains__(self, res: Union[Exception, str], item) -> Proxy:
         if isinstance(res, AttributeError):
-            res = self._client.InvokeMethod(self._ref, '__contains__',
-                                            [item])
+            res = self._client.InvokeMethod('__main__', 'builtins.contains',
+                                            [self, item])
 
         if isinstance(res, Exception):
             raise res
