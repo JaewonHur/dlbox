@@ -9,6 +9,8 @@ from types import FunctionType
 from enum import Enum
 from torch import Tensor
 
+from prime.rule import TagError
+
 
 class Status(Enum):
     SAFE      = 0
@@ -86,8 +88,8 @@ class TagSack:
         return self.tags[i]
 
     def __str__(self) -> str:
-        tagstr = '\n  '.join(str(t) for t in self.tags)
-        return f'tagsack[{len(self)}](\n{tagstr})'
+        tagstr = ('\n' + ' ' * 51).join(str(t) for t in self.tags)
+        return f'tagsack[{len(self)}](\n{" "*51}{tagstr})'
 
 
 class TaintTracker:
@@ -113,7 +115,7 @@ class TaintTracker:
         M.set_n(N)
 
 
-def propagate(method: FunctionType, _self: Any,
+def propagate(method: FunctionType, module: Optional[str], _self: Any,
               tags: List[Union[Tag, TagSack]],
               kwtags: Dict[str, Union[Tag, TagSack]]) -> Tag:
 

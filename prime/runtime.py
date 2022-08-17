@@ -11,7 +11,7 @@ import shutil
 import builtins
 import importlib.util
 from typing import types, List, Dict, Any, Optional, Type, Tuple, Union
-from types import FunctionType
+from types import FunctionType, MethodType
 
 from functools import partial
 
@@ -71,7 +71,7 @@ def path_exists(m: ModuleType, n: str) -> bool:
     return False
 
 
-def get_from(name: str) -> FunctionType:
+def get_from(name: str) -> (str, FunctionType):
     pkg = name.split('.')[0]
     if pkg not in TRUSTED_PKGS:
         raise Exception(f'{name} is not from trusted packages')
@@ -85,7 +85,7 @@ def get_from(name: str) -> FunctionType:
         else:
             raise Exception(f'{name} is not from trusted packages')
 
-    return m
+    return pkg, m
 
 
 def from_trusted(tpe: type) -> bool:
@@ -294,19 +294,29 @@ class ExecutionRuntime():
                      args: List[bytes], kwargs: Dict[str,bytes]) -> str:
 
         if obj: # obj is allocated in context
-            obj = self.__ctx[obj]
+            obj = self.__ctx[obj] # Class instance or instance method
 
             try:
                 method = getattr(obj, method)
             except Exception as e:
                 raise UserError(e)
 
+            if isinstance(obj, MethodType): # instance method
+                # TODO: This assumes obj.__self__ is class instance
+                _self = obj.__self__
+                module = (_self.__module__ if hasattr(_self, '__module__')
+                          else None)
+            else:
+                module = (obj.__module__ if hasattr(obj, '__module__')
+                          else None)
+
         else: # obj is not specified
             if method in self.__ctx:
                 method = self.__ctx[method]
+                module = '__main__' # Exported functions only
 
             else:
-                method = get_from(method)
+                module, method = get_from(method)
 
         logger.debug(f'{method}')
         t_args = [ self._deserialize(i) for i in args ]
@@ -323,10 +333,15 @@ class ExecutionRuntime():
         except Exception as e:
             raise UserError(e)
 
+        try:
+            tag = propagate(method, module, obj, tags, kwtags)
+        except TagError as e:
+            raise PrimeNotAllowedError(e.msg)
+
         if out is NotImplemented:
             raise NotImplementedOutputError()
 
-        name = self._add_to_ctx(out, DangerTag())
+        name = self._add_to_ctx(out, tag)
         return name
 
     @catch_xcpt(True)
