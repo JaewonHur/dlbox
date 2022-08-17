@@ -73,8 +73,7 @@ def test_ExportDef():
 def test_InvokeMethod():
     export_f_output(_client)
 
-    samples = torch.Tensor(range(6 * 10)).reshape(10, 2, 3)
-    labels = torch.Tensor([0, 1] * 5)
+    samples, labels = sample_init()
 
     assert torch.equal(read_val(_client, samples_d), samples)
     assert torch.equal(read_val(_client, labels_d), labels)
@@ -127,5 +126,9 @@ def test_UserError():
 # Kill server after all tests are completed                                    #
 ################################################################################
 
-def test_KillServer():
-    prime.utils.kill_server()
+@pytest.fixture(scope="session", autouse=True)
+def cleanup(request):
+    def kill_server():
+        try: prime.utils.kill_server()
+        except: pass
+    request.addfinalizer(kill_server)

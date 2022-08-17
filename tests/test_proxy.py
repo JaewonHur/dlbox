@@ -3,7 +3,9 @@
 #
 
 import pytest
+import torch
 from torch import Tensor
+from types import MethodType
 
 import prime
 from prime.proxy import Proxy, _client
@@ -25,7 +27,6 @@ def test_initServer():
 
 
 def test_Proxy():
-    # TODO
     pass
 
 
@@ -33,5 +34,9 @@ def test_Proxy():
 # Kill server after all tests are completed                                    #
 ################################################################################
 
-def test_KillServer():
-    prime.utils.kill_server()
+@pytest.fixture(scope="session", autouse=True)
+def cleanup(request):
+    def kill_server():
+        try: prime.utils.kill_server()
+        except: pass
+    request.addfinalizer(kill_server)

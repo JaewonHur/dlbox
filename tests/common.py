@@ -9,6 +9,7 @@ import importlib.util
 import datetime
 import time
 import types
+from torch import Tensor
 
 from typing import Any
 
@@ -54,3 +55,8 @@ def import_class(name: str, src: str, __global: dict):
     __global[name] = module
     spec.loader.exec_module(module)
 
+def sample_init() -> (Tensor, Tensor):
+    samples = Tensor(range(6 * 10)).reshape(10, 2, 3)
+    labels = Tensor([0, 1] * 5)
+
+    return samples, labels
