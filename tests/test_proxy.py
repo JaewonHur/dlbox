@@ -5,7 +5,6 @@
 import pytest
 import torch
 from torch import Tensor
-from types import MethodType
 
 import prime
 from prime.proxy import Proxy, _client
@@ -27,7 +26,22 @@ def test_initServer():
 
 
 def test_Proxy():
-    pass
+    samples, labels = sample_init()
+
+    # Check attribute access is correct
+    for a in [ i for i in dir(samples) if not i.startswith('_') ]:
+        try:
+            attr = getattr(samples, a)
+        except:
+            with pytest.raises(RuntimeError):
+                getattr(samples_d, a)
+            continue
+
+        if not hasattr(attr, '__name__'): continue
+
+        # Normally, get __name__ of Proxy should be avoided
+        assert read_val(_client, getattr(samples_d, a).__name__) == a
+
 
 
 ################################################################################
