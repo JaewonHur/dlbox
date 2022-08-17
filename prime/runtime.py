@@ -293,20 +293,20 @@ class ExecutionRuntime():
     def InvokeMethod(self, obj: str, method: str,
                      args: List[bytes], kwargs: Dict[str,bytes]) -> str:
 
-        if obj == '__main__':
-            if method in self.__ctx.keys():
-                method = self.__ctx[method]
-
-            else:
-                method = get_from(method)
-
-        else: # obj is allocated in context
+        if obj: # obj is allocated in context
             obj = self.__ctx[obj]
 
             try:
                 method = getattr(obj, method)
             except Exception as e:
                 raise UserError(e)
+
+        else: # obj is not specified
+            if method in self.__ctx:
+                method = self.__ctx[method]
+
+            else:
+                method = get_from(method)
 
         logger.debug(f'{method}')
         t_args = [ self._deserialize(i) for i in args ]

@@ -91,7 +91,7 @@ def test_PrimeError():
     not_in_de = NotInDE(1)
     with pytest.raises(PrimeError,
                        match="type not trusted: <class 'tests.test_runtime.NotInDE'>"):
-        output = _client.InvokeMethod('__main__', 'builtins.str', [not_in_de])
+        output = _client.InvokeMethod('', 'builtins.str', [not_in_de])
 
     # Invoke a method on not existing object should raise PrimeError
     with pytest.raises(PrimeError):
@@ -100,7 +100,7 @@ def test_PrimeError():
     # Invoke a non-existing __main__ method should raise PrimeError
     with pytest.raises(PrimeError,
                        match="not_existing is not from trusted packages"):
-        output = _client.InvokeMethod('__main__', 'not_existing')
+        output = _client.InvokeMethod('', 'not_existing')
 
 def test_UserError():
 

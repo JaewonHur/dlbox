@@ -203,7 +203,7 @@ class Proxy(HasRef):
         if name == 'mro':
             raise AttributeError
 
-        attr_d = self._client.InvokeMethod('__main__', get_path(getattr),
+        attr_d = self._client.InvokeMethod('', get_path(getattr),
                                            [self, name])
 
         if isinstance(attr_d, Exception):
@@ -215,7 +215,7 @@ class Proxy(HasRef):
         if name == '_ref':
             object.__setattr__(self, name, attr)
         else:
-            null_d = self._client.InvokeMethod('__main__', get_path(setattr),
+            null_d = self._client.InvokeMethod('', get_path(setattr),
                                                [self, name, attr])
 
             if isinstance(null_d, Exception):
@@ -390,7 +390,7 @@ class Proxy(HasRef):
     @_prime_op
     def __iter__(self, res: Union[Exception, str]) -> Proxy:
         if isinstance(res, AttributeError):
-            res = self._client.InvokeMethod('__main__', get_path(iter),
+            res = self._client.InvokeMethod('', get_path(iter),
                                             [self._ref])
 
         if isinstance(res, Exception):
@@ -415,7 +415,7 @@ class Proxy(HasRef):
     @_prime_op
     def __contains__(self, res: Union[Exception, str], item) -> Proxy:
         if isinstance(res, AttributeError):
-            res = self._client.InvokeMethod('__main__', 'builtins.contains',
+            res = self._client.InvokeMethod('', 'builtins.contains',
                                             [self, item])
 
         if isinstance(res, Exception):
