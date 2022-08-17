@@ -5,13 +5,36 @@ from types import NoneType
 
 from prime.exceptions import PrimeNotAllowedError
 
+
+class FromRef:
+    def __init__(self):
+        self.refs = []
+
+    def _add(self, ref: str):
+        self.refs.append(ref)
+
+    def __getitem__(self, i: int):
+        return self.refs[i]
+
+    def __len__(self) -> int:
+        return len(self.refs)
+
+    def __bool__(self) -> bool:
+        return bool(self.refs)
+
+    def __str__(self) -> str:
+        return str(self.refs)
+
+
 class HasRef(object):
     __ctx: Optional[NoneType, Dict] = None
     __can_export: bool = True
+    __fromref: FromRef = None
 
     def __new__(cls: HasRef, ref: str):
         if cls.__ctx:
             if cls.__can_export:
+                cls.__fromref._add(ref)
                 return cls.__ctx[ref]
             else:
                 raise PrimeNotAllowedError(f'{ref}')
@@ -28,6 +51,10 @@ class HasRef(object):
     @classmethod
     def _set_export(cls, allow: bool):
         cls.__can_export = allow
+
+    @classmethod
+    def _set_fromref(cls, fromref: FromRef):
+        cls.__fromref = fromref
 
     def __getstate__(self):
         pass

@@ -10,16 +10,17 @@ import dill
 import shutil
 import builtins
 import importlib.util
-from typing import types, List, Dict, Any, Optional, Type, Tuple
+from typing import types, List, Dict, Any, Optional, Type, Tuple, Union
 from types import FunctionType
 
 from functools import partial
 
 from prime.utils import logger
-from prime.exceptions import catch_xcpt, UserError, NotImplementedOutputError
-from prime.hasref import HasRef
+from prime.exceptions import *
+from prime.hasref import FromRef, HasRef
 from prime.data import build_dataloader
 from prime.emul import emulate
+from prime.taint import *
 
 VAR_SFX = 'VAL'
 
@@ -117,12 +118,13 @@ def from_trusted(tpe: type) -> bool:
 class ExecutionRuntime():
     __initialized = False
     __ctx = {}
+    __taints: TaintTracker = None
 
     def __init__(self, g_ctx: Dict[str, Any]):
         self.g_ctx = g_ctx
 
         if self.__initialized:
-            raise RuntimeError('There can exist only one ExecutionRuntime')
+            raise Exception('There can exist only one ExecutionRuntime')
         self.__init()
 
         self.ctr = 0
@@ -132,26 +134,38 @@ class ExecutionRuntime():
     def init_samples(self):
         samples, labels = sample_init()
 
-        self._add_to_ctx(samples, '_SAMPLES')
-        self._add_to_ctx(labels, '_LABELS')
+        assert len(samples) == len(labels), \
+            'Number of samples and labels mismatch'
+
+        # TODO: Need to handle container Tensor
+        self.__taints.init(len(samples))
+
+        s_tags = [ UndefTag(i) for i in range(len(samples)) ]
+        l_tags = [ SafeTag(hash(l)) for l in labels ] # TODO: UndefTag
+
+        s_tagsack = TagSack(s_tags)
+        l_tagsack = TagSack(l_tags)
+
+        self._add_to_ctx(samples, s_tagsack, '_SAMPLES')
+        self._add_to_ctx(labels, l_tagsack, '_LABELS')
 
     @classmethod
     def __init(cls: ExecutionRuntime):
         cls.__initialized = True
         HasRef._set_ctx(cls.__ctx)
+        cls.__taints = TaintTracker()
 
     # TODO: Need lock?
-    def _add_to_ctx(self, obj: Any, name: str = None) -> str:
-        if name:
-            # Force add, may replace already an existing content
-            self.__ctx[name] = obj
-        else:
+    def _add_to_ctx(self, obj: Any, tag: Union[Tag, TagSack],
+                    name: str = None) -> str:
+        if not name:
             name = f'{self.ctr}{VAR_SFX}'
             self.ctr += 1
 
-            self.__ctx[name] = obj
+        self.__ctx[name] = obj
+        self.__taints[name] = tag
 
-        logger.debug(f'{name}: {hex(id(obj))}')
+        logger.debug(f'{name:<8}: {hex(id(obj))} <--- {tag}')
         return name
 
     # TODO: Need lock?
@@ -171,7 +185,11 @@ class ExecutionRuntime():
 
     # TODO: Still need to check a class instance from trusted package does
     # not contain malicious method
-    def _deserialize(self, val: bytes) -> Any:
+    def _deserialize(self, val: bytes) -> (Union[Tag, TagSack], Any):
+
+        # TODO: is it thread-safe?
+        fromref = FromRef()
+        HasRef._set_fromref(fromref)
         obj = dill.loads(val)
         tpe = type(obj)
 
@@ -180,7 +198,27 @@ class ExecutionRuntime():
         assert (from_trusted(tpe) or self._from_ctx(tpe)), \
             f'type not trusted: {tpe}, {self.__ctx}'
 
-        return obj
+        if fromref:
+            if tpe == TRUSTED_PKGS['torch'].Tensor:
+                assert len(fromref) == 1 and self.__ctx[fromref[0]] is obj, \
+                    f'exporting container tensor pointing a DE variable is not allowed'
+
+                ref = fromref[0]
+                tag = self.__taints[ref]
+
+            else:
+                # TODO
+                raise PrimeNotAllowedError(
+                    f'exporting non-tensor variable containing tensor is not supported')
+
+                # for ref in fromref:
+                #     self.__taints[ref] = DangerTag()
+
+                # tag = DangerTag() # TODO: Can give weaker tag?
+        else:
+            tag = SafeTag(hash(val))
+
+        return tag, obj
 
 
     @catch_xcpt(False)
@@ -245,7 +283,7 @@ class ExecutionRuntime():
             for n in fullname.split('.')[1:]:
                 obj = getattr(obj, n)
 
-        self._add_to_ctx(obj, fullname)
+        self._add_to_ctx(obj, SafeTag(hash(source)), fullname)
         return name
 
     def DeleteObj(self, name: str):
@@ -271,8 +309,14 @@ class ExecutionRuntime():
                 raise UserError(e)
 
         logger.debug(f'{method}')
-        args = [ self._deserialize(i) for i in args ]
-        kwargs = { k:self._deserialize(v) for k, v in kwargs.items() }
+        t_args = [ self._deserialize(i) for i in args ]
+        t_kwargs = { k:self._deserialize(v) for k, v in kwargs.items() }
+
+        args = [ i[1] for i in t_args ]
+        kwargs = { k:v[1] for k,v in t_kwargs }
+
+        tags = [ i[0] for i in t_args ]
+        kwtags = { k:v[0] for k,v in t_kwargs }
 
         try:
             out = emulate(method, obj)(*args, **kwargs)
@@ -282,7 +326,7 @@ class ExecutionRuntime():
         if out is NotImplemented:
             raise NotImplementedOutputError()
 
-        name = self._add_to_ctx(out)
+        name = self._add_to_ctx(out, DangerTag())
         return name
 
     @catch_xcpt(True)
@@ -296,12 +340,12 @@ class ExecutionRuntime():
 
         HasRef._set_export(False)
 
-        trainer = self._deserialize(trainer)
-        model = self._deserialize(model)
+        _, trainer = self._deserialize(trainer)
+        _, model = self._deserialize(model)
 
         logger.debug(f'{model}')
-        d_args = [ self._deserialize(i) for i in d_args ]
-        d_kwargs = { k:self._deserialize(v) for k, v in d_kwargs.items() }
+        d_args = [ self._deserialize(i)[1] for i in d_args ]
+        d_kwargs = { k:self._deserialize(v)[1] for k, v in d_kwargs.items() }
 
         samples, labels = epoch
         assert len(samples) == len(labels), \
@@ -313,8 +357,8 @@ class ExecutionRuntime():
 
         dataloader = build_dataloader(tagged_epoch, d_args, d_kwargs)
 
-        args = [ self._deserialize(i) for i in args ]
-        kwargs = { k:self._deserialize(v) for k, v in kwargs.items() }
+        args = [ self._deserialize(i)[1] for i in args ]
+        kwargs = { k:self._deserialize(v)[1] for k, v in kwargs.items() }
 
         HasRef._set_export(True)
 
