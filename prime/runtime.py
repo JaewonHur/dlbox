@@ -47,7 +47,7 @@ _trust('pytorch_lightning')
 # Custom Sample Initialization Function                                        #
 ################################################################################
 
-def sample_init() -> Tuple['torch.Tensor', 'torch.Tensor']:
+def sample_init() -> ('torch.Tensor', 'torch.Tensor'):
     samples = TRUSTED_PKGS['torch'].Tensor(range(6 * 10)).reshape(10, 2, 3)
     labels = TRUSTED_PKGS['torch'].Tensor([0, 1] * 5)
 
@@ -193,28 +193,27 @@ class ExecutionRuntime():
         obj = dill.loads(val)
         tpe = type(obj)
 
-        assert not tpe in [NotImplemented, type, FunctionType], \
+        obj_in_ctx = len(fromref) == 1 and self.__ctx[fromref[0]] is obj
+
+        assert (not tpe in [NotImplemented, type, FunctionType] or obj_in_ctx), \
             f'invalid type: {obj}'
-        assert (from_trusted(tpe) or self._from_ctx(tpe)), \
+        assert (from_trusted(tpe) or self._from_ctx(tpe) or obj_in_ctx), \
             f'type not trusted: {tpe}, {self.__ctx}'
 
-        if fromref:
-            if tpe == TRUSTED_PKGS['torch'].Tensor:
-                assert len(fromref) == 1 and self.__ctx[fromref[0]] is obj, \
-                    f'exporting container tensor pointing a DE variable is not allowed'
+        if obj_in_ctx:
+            ref = fromref[0]
+            tag = self.__taints[ref]
 
-                ref = fromref[0]
-                tag = self.__taints[ref]
+        elif fromref:
+            # TODO
+            raise PrimeNotAllowedError(
+                f'exporting variable containing references is not allowed')
 
-            else:
-                # TODO
-                raise PrimeNotAllowedError(
-                    f'exporting non-tensor variable containing tensor is not supported')
+            # for ref in fromref:
+            #     self.__taints[ref] = DangerTag()
 
-                # for ref in fromref:
-                #     self.__taints[ref] = DangerTag()
+            # tag = DangerTag() # TODO: Can give weaker tag?
 
-                # tag = DangerTag() # TODO: Can give weaker tag?
         else:
             tag = SafeTag(hash(val))
 
@@ -301,7 +300,7 @@ class ExecutionRuntime():
             except Exception as e:
                 raise UserError(e)
 
-            if isinstance(obj, MethodType): # instance method
+            if callable(obj) and hasattr(obj, '__self__'): # instance method
                 # TODO: This assumes obj.__self__ is class instance
                 _self = obj.__self__
                 module = (_self.__module__ if hasattr(_self, '__module__')
