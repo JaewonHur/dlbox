@@ -12,7 +12,7 @@ import builtins
 import importlib.util
 from typing import types, List, Dict, Any, Optional, Type, Tuple, Union, Callable
 from types import FunctionType, MethodType
-
+from collections.abc import Iterator
 from functools import partial
 
 from prime.utils import logger
@@ -307,6 +307,11 @@ class ExecutionRuntime():
                 _self = obj.__self__
                 module = (_self.__module__ if hasattr(_self, '__module__')
                           else None)
+
+            elif isinstance(self_tag, TagSackIterator):
+                # TagSackIterator can only be constructed from Tensor
+                module = 'torch'
+
             else:
                 module = (obj.__module__ if hasattr(obj, '__module__')
                           else None)
@@ -340,6 +345,9 @@ class ExecutionRuntime():
             # FIXME: This is only for test purpose ##############################
             # Remove this before release! #######################################
             if hasattr(method, '__name__') and method.__name__ == 'output':
+                tag = DangerTag()
+
+            elif method.__name__ == 'getattr' and args[1] == '__name__':
                 tag = DangerTag()
             ####################################################################
 

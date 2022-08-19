@@ -70,10 +70,10 @@ class M:
             u = self.samples | m.samples
 
             if u == self.F:
-                return M(set(), Status.SAFE)
+                return M(Status.SAFE)
 
             else:
-                return M(u, Status.UNDEF)
+                return M(Status.UNDEF, u)
 
     def __str__(self) -> str:
         if self.status == Status.UNDEF:
@@ -104,7 +104,16 @@ class Tag:
 
         return Tag(h, m)
 
-    def set_danger():
+    def is_safe(self) -> bool:
+        return (self.m.status == Status.SAFE)
+
+    def is_undef(self) -> bool:
+        return (self.m.status == Status.UNDEF)
+
+    def is_danger(self) -> bool:
+        return (self.m.status == Status.DANGER)
+
+    def set_danger(self):
         self.h = 0
         self.m = M(Status.DANGER)
 
@@ -130,9 +139,28 @@ class TagSack:
     def __getitem__(self, i: int) -> Tag:
         return self.tags[i]
 
+    def __setitem__(self, i: int, v: Union[Tag, TagSack]):
+        if isinstance(v, TagSack):
+            raise TagError('nesting TagSack is prohibited')
+
+        self.tags[i] = v
+
     def __str__(self) -> str:
         tagstr = ('\n' + ' ' * 51).join(str(t) for t in self.tags)
         return f'tagsack[{len(self)}](\n{" "*51}{tagstr})'
+
+
+class TagSackIterator:
+    def __init__(self, tagsack: TagSack):
+        self.tagsack = tagsack
+        self.it = iter(self.tagsack)
+
+    def __iter__(self) -> TagSackIterator:
+        self.it = iter(self.tagsack)
+        return self
+
+    def __next__(self) -> Tag:
+        return next(self.it)
 
 
 class TaintTracker:
@@ -184,4 +212,4 @@ def taint(method: Callable, module: Optional[str],
     else:
         _taint = taint_rules['default']
 
-    return _taint(method, self_tag, tags, kwtags)
+    return _taint(method, args, kwargs, self_tag, tags, kwtags)
