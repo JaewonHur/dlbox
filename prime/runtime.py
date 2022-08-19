@@ -173,6 +173,7 @@ class ExecutionRuntime():
 
         logger.debug(f'{name}')
         del self.__ctx[name]
+        del self.__taints[name]
 
     def _from_ctx(self, tpe: type) -> bool:
         if get_fullname(tpe) not in self.__ctx:
@@ -293,6 +294,7 @@ class ExecutionRuntime():
                      args: List[bytes], kwargs: Dict[str,bytes]) -> str:
 
         if obj: # obj is allocated in context
+            self_tag = self.__taints[obj]
             obj = self.__ctx[obj] # Class instance or instance method
 
             try:
@@ -310,6 +312,8 @@ class ExecutionRuntime():
                           else None)
 
         else: # obj is not specified
+            self_tag = None
+
             if method in self.__ctx:
                 method = self.__ctx[method]
                 module = '__main__' # Exported functions only
@@ -333,7 +337,15 @@ class ExecutionRuntime():
             raise UserError(e)
 
         try:
-            tag = propagate(method, module, obj, tags, kwtags)
+            # FIXME: This is only for test purpose ##############################
+            # Remove this before release! #######################################
+            if hasattr(method, '__name__') and method.__name__ == 'output':
+                tag = DangerTag()
+            ####################################################################
+
+            else:
+                tag = taint(method, module, args, kwargs,
+                            self_tag, tags, kwtags)
         except TagError as e:
             raise PrimeNotAllowedError(e.msg)
 
