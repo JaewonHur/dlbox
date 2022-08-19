@@ -5,6 +5,8 @@
 from typing import Any
 from types import FunctionType
 
+from functools import partial
+
 import builtins
 
 def contains(obj: Any, item: Any) -> bool:
@@ -51,9 +53,9 @@ _reflective_ops = {
 
 def emulate(method: FunctionType, _self: Any) -> FunctionType:
     if method.__name__ in _reflective_ops:
-        def emul_reflective(*args, **kwargs) -> Any:
+        def emul_reflective(m, *args, **kwargs) -> Any:
             try:
-                out = method(*args, **kwargs)
+                out = m(*args, **kwargs)
                 if out is NotImplemented:
                     raise AttributeError
 
@@ -62,15 +64,15 @@ def emulate(method: FunctionType, _self: Any) -> FunctionType:
             except AttributeError:
                 pass
 
-            rop = _reflective_ops[method.__name__]
+            rop = _reflective_ops[m.__name__]
             o = args[0]
 
-            method = getattr(o, rop)
-            out = method(_self)
+            m = getattr(o, rop)
+            out = m(_self)
 
             return out
 
-        return emul_reflective
+        return partial(emul_reflective, method)
 
     else:
         return method
