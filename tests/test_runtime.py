@@ -18,9 +18,6 @@ from prime.exceptions import PrimeError, UserError
 
 from tests.common import *
 
-samples_d = Proxy('_SAMPLES')
-labels_d = Proxy('_LABELS')
-
 F_BENIGN = """
 v = 3/1
 
@@ -70,10 +67,9 @@ def test_ExportDef():
 
     assert foo == 'foo'
 
-def test_InvokeMethod():
+@with_args
+def test_InvokeMethod(samples_d, labels_d, samples, labels):
     export_f_output(_client)
-
-    samples, labels = sample_init()
 
     assert torch.equal(read_val(_client, samples_d), samples)
     assert torch.equal(read_val(_client, labels_d), labels)

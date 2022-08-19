@@ -14,7 +14,7 @@ from torch import Tensor
 from typing import Any
 
 import prime
-from prime.proxy import _client
+from prime.proxy import _client, Proxy
 from prime import PrimeClient
 
 logdir = f'{os.getcwd()}/test-logs'
@@ -34,9 +34,10 @@ def export_f_output(_client: PrimeClient):
     assert output == 'output'
 
 def read_val(_client: PrimeClient, x: Any) -> Any:
-    _client.InvokeMethod('', '__main__.output', [x])
+    o = _client.InvokeMethod('', '__main__.output', [x])
     with open('/tmp/x.txt', 'rb') as fd:
         x = dill.load(fd)
+    _client.DeleteObj(o)
 
     return x
 
@@ -60,3 +61,17 @@ def sample_init() -> (Tensor, Tensor):
     labels = Tensor([0, 1] * 5)
 
     return samples, labels
+
+
+samples_d = Proxy('_SAMPLES')
+labels_d = Proxy('_LABELS')
+
+samples, labels = sample_init()
+
+def with_args(func):
+    def wrapper():
+        global samples_d, labels_d, samples, labels
+
+        func(samples_d, labels_d, samples, labels)
+
+    return wrapper
