@@ -103,7 +103,7 @@ def _call(*a) -> Optional[Tag]:
 def _len(*a) -> Optional[Tag]:
 
     if isinstance(a[SELF_TAG], TagSack):
-        return DangerTag()
+        return DangerTag() # TODO: check tags
 
     else:
         tag = Tag.merge(hash(method), [self_tag])

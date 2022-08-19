@@ -53,7 +53,7 @@ def test_Proxy(samples_d, labels_d, samples, labels):
     with pytest.raises(PrimeNotSupportedError,
                        match=re.escape("'Proxy' does not support bool() conversion")):
 
-        if samples_d[i][0][0] == samples_d[i][0][0]:
+        if samples_d[i] == samples_d[i]:
             print('Should not be printed', file=sys.stderr)
 
     with pytest.raises(PrimeNotSupportedError,
@@ -62,18 +62,18 @@ def test_Proxy(samples_d, labels_d, samples, labels):
 
     # getitem is correct
     i = randint(0, len(samples) - 1)
-    assert read_val(_client, samples_d[i][0][0]) == samples[i][0][0]
+    assert torch.equal(read_val(_client, samples_d[i]), samples[i])
     assert read_val(_client, labels_d[i]) == labels[i]
 
     # setitem is correct
     v = randint(0, 10)
-    samples[i][0][0] = v
-    samples_d[i][0][0] = v
-    assert read_val(_client, samples_d[i][0][0]) == samples[i][0][0]
+    samples[i] = v
+    samples_d[i] = v
+    assert torch.equal(read_val(_client, samples_d[i]), samples[i])
 
     # iterator is correct
     for i, v in enumerate(samples_d):
-        assert read_val(_client, v[0][0]) == samples[i][0][0]
+        assert torch.equal(read_val(_client, v), samples[i])
 
 
 ################################################################################
