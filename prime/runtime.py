@@ -10,7 +10,7 @@ import dill
 import shutil
 import builtins
 import importlib.util
-from typing import types, List, Dict, Any, Optional, Type, Tuple, Union
+from typing import types, List, Dict, Any, Optional, Type, Tuple, Union, Callable
 from types import FunctionType, MethodType
 
 from functools import partial
@@ -195,7 +195,7 @@ class ExecutionRuntime():
 
         obj_in_ctx = len(fromref) == 1 and self.__ctx[fromref[0]] is obj
 
-        assert (not tpe in [NotImplemented, type, FunctionType] or obj_in_ctx), \
+        assert (not tpe in [NotImplemented, type, Callable] or obj_in_ctx), \
             f'invalid type: {obj}'
         assert (from_trusted(tpe) or self._from_ctx(tpe) or obj_in_ctx), \
             f'type not trusted: {tpe}, {self.__ctx}'
