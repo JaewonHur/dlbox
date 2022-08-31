@@ -293,6 +293,17 @@ class ExecutionRuntime():
     def InvokeMethod(self, obj: str, method: str,
                      args: List[bytes], kwargs: Dict[str,bytes]) -> Union[str,bytes]:
 
+        # FIXME: This is only for test purpose ##############################
+        # Remove this before release! #######################################
+        if obj == '' and method == 'get_tag':
+            tag, _ = self._deserialize(args[0])
+            with open('/tmp/x.txt', 'w') as fd:
+                fd.write(str(tag))
+
+            return dill.dumps(None)
+
+        ####################################################################
+
         if obj: # obj is allocated in context
             self_tag = self.__taints[obj]
             obj = self.__ctx[obj] # Class instance or instance method

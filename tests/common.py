@@ -11,7 +11,8 @@ import time
 import types
 from torch import Tensor
 
-from typing import Any
+from typing import Any, Union
+from types import FunctionType
 
 import prime
 from prime.proxy import _client, Proxy
@@ -33,11 +34,18 @@ def export_f_output(_client: PrimeClient):
     output = _client.ExportDef('__main__.output', types.FunctionType, F_OUTPUT)
     assert output == 'output'
 
-def read_val(_client: PrimeClient, x: Any) -> Any:
+def read_val(_client: PrimeClient, x: Proxy) -> Any:
     o = _client.InvokeMethod('', '__main__.output', [x])
     with open('/tmp/x.txt', 'rb') as fd:
         x = dill.load(fd)
     _client.DeleteObj(o)
+
+    return x
+
+def read_tag(_client: PrimeClient, x: Proxy) -> str:
+    o = _client.InvokeMethod('', 'get_tag', [x])
+    with open('/tmp/x.txt', 'r') as fd:
+        x = fd.read()
 
     return x
 
@@ -62,6 +70,12 @@ def sample_init() -> (Tensor, Tensor):
 
     return samples, labels
 
+def reset_server():
+    prime.utils.kill_server()
+    prime.utils.run_server()
+
+    global samples, labels
+    samples, labels = sample_init()
 
 samples_d = Proxy('_SAMPLES')
 labels_d = Proxy('_LABELS')
@@ -75,3 +89,16 @@ def with_args(func):
         func(samples_d, labels_d, samples, labels)
 
     return wrapper
+
+def R(func: str) -> FunctionType:
+    def fun(*args, **kwargs) -> Union[Proxy, Any]:
+        ret = _client.InvokeMethod('', func, args, kwargs)
+
+        if isinstance(ret, Exception):
+            raise ret
+        elif isinstance(ret, str):
+            return Proxy(ret)
+        else:
+            return ret
+
+    return fun
