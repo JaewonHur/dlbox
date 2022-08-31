@@ -20,16 +20,23 @@ KWTAGS   = 5
 
 def _default(*a) -> Tag:
     method, args, kwargs, self_tag, tags, kwtags = a
+    method = method.__name__
 
     # TODO: Need to handle tensor functions
     if isinstance(self_tag, TagSack):
+        raise TagError(f'TagSack cannot invoke {method}')
+
+    # TODO: release this constraint
+    if not all(not isinstance(t, TagSack)
+               for t in tags + list(kwtags.values())):
         raise TagError(f'{method} is not allowed on TagSack')
 
     self_tag = [self_tag] if self_tag else []
     kwtags = [ Tag(hash(k) ^ t.h, t.m) for k, v in kwtags.items() ]
 
+    # TODO: handle iadd
     return Tag.merge(hash(method), self_tag + tags + kwtags,
-                     method.__name__ == '__add__')
+                     method == '__add__')
 
 def _getattr(*a) -> Union[Tag, TagSack]:
     if not a[TAGS][1].is_safe():
@@ -53,10 +60,18 @@ def _next(*a) -> Tag:
     return next(a[SELF_TAG])
 
 def _contains(*a) -> Tag:
-    if not isinstance(a[TAGS][0], TagSack):
+    method, args, kwargs, self_tag, tags, kwtags = a
+
+    if method.__name__ == 'contains':
+        self_tag = tags[0]
+        tag = a[TAGS][1]
+    else:
+        tag = a[TAGS][0]
+
+    if not isinstance(self_tag, TagSack):
         raise TagError('contains on tagged Tensor is prohibited')
 
-    return a[TAGS][1]
+    return tag
 
 def _getitem(*a) -> Union[Tag, TagSack]:
     if not isinstance(a[SELF_TAG], TagSack):
@@ -73,12 +88,9 @@ def _getitem(*a) -> Union[Tag, TagSack]:
     else:
         tag = self_tag[args[0]]
 
-    logger.debug(f'_getitem tag: {tag}')
-
     return tag
 
-# TODO: Handle set multiple items (e.g., a[1:3] = [1, 2, 3])
-def _setitem(*a) -> Union[Tag, TagSack]:
+def _setitem(*a):
     if not isinstance(a[SELF_TAG], TagSack):
         raise TagError('__setitem__ on tagged Tensor is prohibited')
 
@@ -86,8 +98,11 @@ def _setitem(*a) -> Union[Tag, TagSack]:
     args = a[ARGS]
     tags = a[TAGS]
 
-    assert not isinstance(args[0], slice), 'setitem using slice is prohibited'
-    self_tag[args[0]] = tags[0]
+    if isinstance(args[0], slice):
+        raise TagError('setitem using slice is prohibited')
+
+    self_tag[args[0]] = tags[1]
+
 
 def _call(*a) -> Tag:
     method, args, kwargs, self_tag, tags, kwtags = a
@@ -145,15 +160,16 @@ def _len(*a) -> Tag:
 
 
 rule_table = {
-    'getattr':     _getattr,
-    'setattr':     _setattr,
-    '__iter__':    _iter,
-    '__next__':    _next,
-    'contains':    _contains,
-    '__getitem__': _getitem,
-    '__setitem__': _setitem,
-    '__call__':    _call,
-    '__len__':     _len,
+    'getattr':      _getattr,
+    'setattr':      _setattr,
+    '__iter__':     _iter,
+    '__next__':     _next,
+    '__contains__': _contains,
+    'contains':     _contains,
+    '__getitem__':  _getitem,
+    '__setitem__':  _setitem,
+    '__call__':     _call,
+    '__len__':      _len,
 }
 
 def taint_torch(method: Callable,
