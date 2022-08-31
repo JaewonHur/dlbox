@@ -58,7 +58,7 @@ def test_Proxy(samples_d, labels_d, samples, labels):
 
     with pytest.raises(PrimeNotSupportedError,
                        match=re.escape("'Proxy' does not support __index__()")):
-        print(f'Should not be printed: {len(samples_d)}')
+        print(f'Should not be printed: {len(samples_d[0:5])}')
 
     # getitem is correct
     i = randint(0, len(samples) - 1)
