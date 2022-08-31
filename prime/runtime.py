@@ -291,7 +291,7 @@ class ExecutionRuntime():
 
     @catch_xcpt(False)
     def InvokeMethod(self, obj: str, method: str,
-                     args: List[bytes], kwargs: Dict[str,bytes]) -> str:
+                     args: List[bytes], kwargs: Dict[str,bytes]) -> Union[str,bytes]:
 
         if obj: # obj is allocated in context
             self_tag = self.__taints[obj]
@@ -360,8 +360,9 @@ class ExecutionRuntime():
         if out is NotImplemented:
             raise NotImplementedOutputError()
 
-        name = self._add_to_ctx(out, tag)
-        return name
+        ret = (dill.dumps(out) if isinstance(tag, Tag) and tag.is_safe()
+               else self._add_to_ctx(out, tag))
+        return ret
 
     @catch_xcpt(True)
     def FitModel(self, trainer: bytes, model: bytes,

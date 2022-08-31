@@ -54,7 +54,8 @@ def catch_xcpt(fitmodel: bool):
         def wrapper(*args, **kwargs) -> Union[Ref, Model]:
             try:
                 res = func(*args, **kwargs)
-                res = Model(val=res) if fitmodel else Ref(name=res)
+                res = (Model(val=res) if fitmodel else
+                       (Ref(name=res) if isinstance(res, str) else Ref(obj=res)))
 
             except NotImplementedOutputError as e:
                 ne = dill.dumps(e)
@@ -95,7 +96,8 @@ def retrieve_xcpt(fitmodel: bool):
                 else:
                     raise err
             else:
-                ret = res.name if not fitmodel else res.val
+                ret = (dill.loads(res.val) if fitmodel else
+                       res.name if res.name else dill.loads(res.obj))
                 return ret
 
         return wrapper

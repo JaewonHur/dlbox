@@ -91,8 +91,10 @@ def _prime_op(func):
 
         if res is NotImplemented:
             return res
-        else:
+        elif isinstance(res, str):
             return func(self, res, *args, **kwargs)
+        else: # bytes
+            return res
 
     return wrapper
 

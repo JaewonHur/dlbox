@@ -106,7 +106,8 @@ message Epoch {
 */
 message Ref {
   optional string name  = 1;
-  optional bytes  error = 2;
+  optional bytes  obj   = 2;
+  optional bytes  error = 3;
 }
 
 /* Message containing optimized ML model
