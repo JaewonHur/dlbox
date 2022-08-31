@@ -139,7 +139,8 @@ class TagSack:
     def is_safe(self) -> bool:
         h = self.tags[0].h
 
-        return (all(t.h == h for t in self.tags) and
+        return (len(self.tags) == M.N and
+                all(t.h == h for t in self.tags) and
                 all(t.m.has_only(i) for i, t in enumerate(self.tags)))
 
     def __len__(self) -> int:

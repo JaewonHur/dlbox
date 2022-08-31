@@ -7,6 +7,7 @@ from typing import Any, Callable, Union, List, Optional
 from types import FunctionType
 from collections.abc import Iterator
 
+from prime.utils import logger
 from prime.taint import TagError, Tag, TagSack, TagSackIterator, DangerTag, SafeTag
 
 
@@ -57,8 +58,7 @@ def _contains(*a) -> Tag:
 
     return a[TAGS][1]
 
-# TODO: Handle get multiple items (e.g., a[1:3])
-def _getitem(*a) -> Tag:
+def _getitem(*a) -> Union[Tag, TagSack]:
     if not isinstance(a[SELF_TAG], TagSack):
         raise TagError('__getitem__ on tagged Tensor is prohibited')
 
@@ -68,10 +68,17 @@ def _getitem(*a) -> Tag:
     self_tag = a[SELF_TAG]
     args = a[ARGS]
 
-    return self_tag[args[0]]
+    if isinstance(args[0], slice):
+        tag = TagSack(self_tag[args[0]])
+    else:
+        tag = self_tag[args[0]]
+
+    logger.debug(f'_getitem tag: {tag}')
+
+    return tag
 
 # TODO: Handle set multiple items (e.g., a[1:3] = [1, 2, 3])
-def _setitem(*a) -> Tag:
+def _setitem(*a) -> Union[Tag, TagSack]:
     if not isinstance(a[SELF_TAG], TagSack):
         raise TagError('__setitem__ on tagged Tensor is prohibited')
 
@@ -79,6 +86,7 @@ def _setitem(*a) -> Tag:
     args = a[ARGS]
     tags = a[TAGS]
 
+    assert not isinstance(args[0], slice), 'setitem using slice is prohibited'
     self_tag[args[0]] = tags[0]
 
 def _call(*a) -> Tag:
