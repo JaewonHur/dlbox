@@ -7,7 +7,7 @@ from typing import Any, Callable, Union, List, Optional
 from types import FunctionType
 from collections.abc import Iterator
 
-from prime.taint import TagError, Tag, TagSack, TagSackIterator, DangerTag
+from prime.taint import TagError, Tag, TagSack, TagSackIterator, DangerTag, SafeTag
 
 
 METHOD   = 0
@@ -20,6 +20,7 @@ KWTAGS   = 5
 def _default(*a) -> Optional[Tag]:
     method, args, kwargs, self_tag, tags, kwtags = a
 
+    # TODO: Need to handle tensor functions
     if isinstance(self_tag, TagSack):
         raise TagError(f'{method} is not allowed on TagSack')
 
@@ -82,32 +83,57 @@ def _setitem(*a) -> Optional[Tag]:
 
 def _call(*a) -> Optional[Tag]:
     method, args, kwargs, self_tag, tags, kwtags = a
+    method = method.__self__.__name__
 
     # TODO: release this constraint later
-    if method.__self__.__name__.endswith('_'):
+    if method.endswith('_'):
         raise TagError('in-place operation is not allowed')
 
+    # TODO: return SafeTag on safe operations
     if isinstance(self_tag, TagSack):
-        return DangerTag()
+        if method == 'mean':
+            arg_is_safe = (not args or args[0] == 0
+                           or (type(args[0]) in (list, tuple)
+                               and args[0] and args[0][0] == 0))
+
+            tag = (SafeTag() if arg_is_safe and self_tag.is_safe()
+                   else DangerTag())
+
+        elif method == 'sum':
+            arg_is_safe = (not args or args[0] == 0
+                           or (type(args[0]) in (list, tuple)
+                               and args[0] and args[0][0] == 0))
+
+            tag = (SafeTag() if arg_is_safe and self_tag.is_safe()
+                   else DangerTag())
+
+        else:
+            raise TagError(f'{method} is not allowed on TagSack')
 
     elif isinstance(self_tag, Tag):
 
         kwtags = [ Tag(hash(k) ^ t.h, t.m) for k, v in kwtags.items() ]
 
         tag = Tag.merge(hash(method), [self_tag] + tags + kwtags)
-        return tag
 
     else: # Functions
-        return DangerTag()
+        raise TagError('method must have tag')
+
+    return tag
 
 def _len(*a) -> Optional[Tag]:
+    method, args, _, self_tag, _, _ = a
 
-    if isinstance(a[SELF_TAG], TagSack):
-        return DangerTag() # TODO: check tags
+    if isinstance(self_tag, TagSack):
+        if self_tag.is_safe():
+            tag = SafeTag()
+        else:
+            tag = DangerTag()
 
     else:
         tag = Tag.merge(hash(method), [self_tag])
-        return tag
+
+    return tag
 
 
 rule_table = {

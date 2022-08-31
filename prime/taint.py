@@ -28,11 +28,11 @@ class Status(Enum):
 
 class H(int):
     # TODO: Change hashing
-    def __xor__(self, h: H):
+    def __xor__(self, h: H) -> H:
         i = int(self)
         j = int(h)
 
-        return i ^ j
+        return H(i ^ j)
 
 
 class M:
@@ -49,6 +49,9 @@ class M:
     def set_n(cls, N: int):
         cls.N = N
         cls.F = set(range(cls.N))
+
+    def has_only(self, i: int) -> bool:
+        return self.samples ==  { i }
 
     def __len__(self) -> int:
         if self.status == Status.UNDEF:
@@ -123,7 +126,7 @@ class Tag:
         return f'tag({h[0:5]}..{h[-2:]},{self.m})'
 
 
-def SafeTag(i: int) -> Tag:  return Tag(H(i), M(Status.SAFE))
+def SafeTag(i: int = 0) -> Tag:  return Tag(H(i), M(Status.SAFE))
 def DangerTag() -> Tag:      return Tag(H(0), M(Status.DANGER))
 def UndefTag(i: int) -> Tag: return Tag(H(0), M(Status.UNDEF, set([i])))
 
@@ -132,6 +135,12 @@ def UndefTag(i: int) -> Tag: return Tag(H(0), M(Status.UNDEF, set([i])))
 class TagSack:
     def __init__(self, tags: List[Tag]):
         self.tags = tags
+
+    def is_safe(self) -> bool:
+        h = self.tags[0].h
+
+        return (all(t.h == h for t in self.tags) and
+                all(t.m.has_only(i) for i, t in enumerate(self.tags)))
 
     def __len__(self) -> int:
         return len(self.tags)
