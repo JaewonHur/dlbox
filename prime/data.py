@@ -3,7 +3,7 @@
 #
 
 import queue
-from typing import Dict, Tuple, List
+from typing import Dict, Tuple, List, Any
 from collections import namedtuple
 
 from torch import Tensor
@@ -53,9 +53,10 @@ class FairDataset(Dataset):
             raise TagError(f'tag does not match has\n[{idx}] tag: {tag}, h: {hex(h)[0:5]}')
 
 
-def build_dataloader(dqueue: queue.Queue) -> DataLoader:
+def build_dataloader(dqueue: queue.Queue,
+                     d_args: List[Any], d_kwargs: Dict[str,Any]) -> DataLoader:
 
     dataset = FairDataset(dqueue)
-    dataloader = DataLoader(dataset)
+    dataloader = DataLoader(dataset, *d_args, **d_kwargs)
 
     return dataloader
