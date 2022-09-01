@@ -156,7 +156,9 @@ class TagSack:
         self.tags[i] = v
 
     def __str__(self) -> str:
-        tagstr = ('\n' + ' ' * 51).join(str(t) for t in self.tags)
+        tags = self.tags[:2] + (['...', self.tags[-1]] if len(self.tags) > 2
+                                else [])
+        tagstr = ('\n' + ' ' * 51).join(str(t) for t in tags)
         return f'tagsack[{len(self)}](\n{" "*51}{tagstr})'
 
 
