@@ -5,6 +5,7 @@ from __future__ import annotations
 
 from typing import Any, Callable, Union, List, Optional
 from types import FunctionType
+from copy import deepcopy
 from collections.abc import Iterator
 
 from prime.utils import logger
@@ -18,25 +19,38 @@ SELF_TAG = 3
 TAGS     = 4
 KWTAGS   = 5
 
-def _default(*a) -> Tag:
+def _default(*a) -> Optional[Tag]:
     method, args, kwargs, self_tag, tags, kwtags = a
     method = method.__name__
 
     # TODO: Need to handle tensor functions
     if isinstance(self_tag, TagSack):
-        raise TagError(f'TagSack cannot invoke {method}')
+        if not self_tag.is_safe():
+            raise TagError(f'unsafe TagSack cannot invoke {method}')
+
+        if not all(not isinstance(t, TagSack)
+                   for t in tags + list(kwtags.values())):
+            raise TagError(f'TagSack cannot be used as an argument of {method}')
+
+        kwtags = [ Tag(hash(k) ^ t.h, t.m) for k, t in kwtags.items() ]
+        for i in range(len(self_tag)):
+            self_tag[i] = Tag.merge(hash(method),
+                                    [self_tag[i]] + tags + kwtags)
+
+        return deepcopy(self_tag)
 
     # TODO: release this constraint
-    if not all(not isinstance(t, TagSack)
-               for t in tags + list(kwtags.values())):
+    elif not all(not isinstance(t, TagSack)
+                 for t in tags + list(kwtags.values())):
         raise TagError(f'{method} is not allowed on TagSack')
 
-    self_tag = [self_tag] if self_tag else []
-    kwtags = [ Tag(hash(k) ^ t.h, t.m) for k, v in kwtags.items() ]
+    else: # All arguments are Tag
+        self_tag = [self_tag] if self_tag else []
+        kwtags = [ Tag(hash(k) ^ t.h, t.m) for k, t in kwtags.items() ]
 
-    # TODO: handle iadd
-    return Tag.merge(hash(method), self_tag + tags + kwtags,
-                     method == '__add__')
+        # TODO: handle iadd
+        return Tag.merge(hash(method), self_tag + tags + kwtags,
+                         method == '__add__')
 
 def _getattr(*a) -> Union[Tag, TagSack]:
     if not a[TAGS][1].is_safe():
@@ -114,18 +128,12 @@ def _call(*a) -> Tag:
 
     # TODO: return SafeTag on safe operations
     if isinstance(self_tag, TagSack):
-        if method == 'mean':
-            arg_is_safe = (not args or args[0] == 0
-                           or (type(args[0]) in (list, tuple)
-                               and args[0] and args[0][0] == 0))
+        if method in ('mean', 'std', 'sum'):
+            arg = (args[0] if args
+                   else (kwargs['axis'] if 'axis' in kwargs else None))
 
-            tag = (SafeTag() if arg_is_safe and self_tag.is_safe()
-                   else DangerTag())
-
-        elif method == 'sum':
-            arg_is_safe = (not args or args[0] == 0
-                           or (type(args[0]) in (list, tuple)
-                               and args[0] and args[0][0] == 0))
+            arg_is_safe = ((arg is None) or
+                           ((type(arg) in (list, tuple)) and arg[0] == 0))
 
             tag = (SafeTag() if arg_is_safe and self_tag.is_safe()
                    else DangerTag())
@@ -135,7 +143,7 @@ def _call(*a) -> Tag:
 
     elif isinstance(self_tag, Tag):
 
-        kwtags = [ Tag(hash(k) ^ t.h, t.m) for k, v in kwtags.items() ]
+        kwtags = [ Tag(hash(k) ^ t.h, t.m) for k, t in kwtags.items() ]
 
         tag = Tag.merge(hash(method), [self_tag] + tags + kwtags)
 
