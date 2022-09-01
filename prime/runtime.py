@@ -7,6 +7,7 @@ from __future__ import annotations
 import os
 import sys
 import dill
+import queue
 import shutil
 import builtins
 import importlib.util
@@ -130,6 +131,8 @@ class ExecutionRuntime():
         self.ctr = 0
 
         self.init_samples()
+        self.dqueue = queue.Queue
+        self.is_learning = False
 
     def init_samples(self):
         samples, labels = sample_init()
@@ -377,42 +380,41 @@ class ExecutionRuntime():
 
     @catch_xcpt(True)
     def FitModel(self, trainer: bytes, model: bytes,
-                 epoch: Tuple[List[str], List[str]],
                  d_args: List[bytes], d_kwargs: Dict[str, bytes],
-                 args: List[bytes], kwargs: Dict[str,bytes]) -> bytes:
+                 args: List[bytes], kwargs: Dict[str, bytes]) -> bytes:
 
         import torch
         import pytorch_lightning as pl
 
         HasRef._set_export(False)
 
-        _, trainer = self._deserialize(trainer)
-        _, model = self._deserialize(model)
+        trainer = self._deserialize(trainer)[1]
+        model   = self._deserialize(model)[1]
 
         logger.debug(f'{model}')
-        d_args = [ self._deserialize(i)[1] for i in d_args ]
-        d_kwargs = { k:self._deserialize(v)[1] for k, v in d_kwargs.items() }
 
-        samples, labels = epoch
-        assert len(samples) == len(labels), \
-            'Numbers of samples and labels should be the same'
+        d_args   = [ self._deserialize(i)[1] for i in d_args ]
+        d_kwargs = { k:self._deserialize(v)[1] for k, v in d_kwargs }
 
-        tagged_samples = [ (s, self.__ctx[s]) for s in samples ]
-        tagged_labels = [ (l, self.__ctx[l]) for l in labels ]
-        tagged_epoch = (tagged_samples, tagged_labels)
-
-        dataloader = build_dataloader(tagged_epoch, d_args, d_kwargs)
-
-        args = [ self._deserialize(i)[1] for i in args ]
-        kwargs = { k:self._deserialize(v)[1] for k, v in kwargs.items() }
+        args   = [ self._deserialize(i)[1] for i in args ]
+        kwargs = { k:self._deserialize(v)[1] for k, v in kwargs }
 
         HasRef._set_export(True)
 
+        if self.is_learning:
+            raise PrimeNotSupportedError('already learning')
+
+        assert self.dqueue.empty(), 'dqueue is not empty'
+
+        dataloader = build_dataloader(self.dqueue, d_args, d_kwargs)
+
+        self.is_learning = True
         try:
             trainer.fit(model, dataloader, *args, **kwargs)
         except Exception as e:
             raise UserError(e)
+        finally:
+            self.is_learning = False
 
         model = dill.dumps(model)
         return model
-

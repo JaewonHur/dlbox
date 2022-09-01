@@ -53,17 +53,14 @@ class PrimeServer(PrimeServerServicer):
         trainer = arg.trainer
         model = arg.model
 
-        epoch = (arg.epoch.samples, arg.epoch.labels)
-
         d_args = arg.d_args
         d_kwargs = arg.d_kwargs
 
         args = arg.args
         kwargs = arg.kwargs
 
-        model = self._runtime.FitModel(trainer, model, epoch,
-                                       d_args, d_kwargs,
-                                       args, kwargs)
+        model = self._runtime.FitModel(trainer, model,
+                                       d_args, d_kwargs, args, kwargs)
 
         return model
 
