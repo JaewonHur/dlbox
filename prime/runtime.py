@@ -20,7 +20,7 @@ from prime.utils import logger
 from prime.exceptions import *
 from prime.hasref import FromRef, HasRef
 from prime.emul import emulate
-from prime.data import DataPair, Sample, Label, build_dataloader
+from prime.data import DataPair, Sample, Label, FairDataset, build_dataloader
 from prime.taint import *
 
 VAR_SFX = 'VAL'
@@ -147,6 +147,7 @@ class ExecutionRuntime():
         assert len(samples) == len(labels), \
             'Number of samples and labels mismatch'
 
+        FairDataset.set_n(len(samples))
         self.__taints.init(len(samples))
 
         s_tags = [ UndefTag(0, i) for i in range(len(samples)) ]
@@ -248,14 +249,20 @@ class ExecutionRuntime():
             assert name not in globals()
 
             try:
-                locals()['__name__'] = '__main__'
-                exec(source, locals())
-                del locals()['__name__']
+                venv = {}
+                venv['__name__'] = '__main__'
+
+                for pkg, module in TRUSTED_PKGS.items():
+                    venv[pkg] = module
+
+                exec(source, venv)
+
             except Exception as e:
                 raise UserError(e)
 
-            obj = locals()[name]
-            self.g_ctx[name] = obj
+            obj = venv[name]
+            globals()[name] = obj
+            # self.g_ctx[name] = obj
 
         else:
             module_path = fullname.split('.')[:-1]
@@ -276,14 +283,16 @@ class ExecutionRuntime():
                     else f'/tmp/{root}/__init__.py')
             spec = importlib.util.spec_from_file_location(root, path)
             module = importlib.util.module_from_spec(spec)
-            sys.modules[root] = module
 
             try:
+                for pkg, m in TRUSTED_PKGS.items():
+                    setattr(module, pkg, m)
+
                 spec.loader.exec_module(module)
             except Exception as e:
                 raise UserError(e)
 
-            globals()[root] = sys.modules[root]
+            sys.modules[root] = module
 
             if len(module_path) == 1: os.remove(f'/tmp/{root}.py')
             else: shutil.rmtree(f'/tmp/{root}')
@@ -437,4 +446,4 @@ class ExecutionRuntime():
 
             self.dqueue.put(p)
 
-        return dill.dumps(n)
+        return dill.dumps(self.dqueue.qsize())
