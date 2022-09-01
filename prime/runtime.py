@@ -143,8 +143,8 @@ class ExecutionRuntime():
         # TODO: Need to handle container Tensor
         self.__taints.init(len(samples))
 
-        s_tags = [ UndefTag(i) for i in range(len(samples)) ]
-        l_tags = [ SafeTag(hash(l)) for l in labels ] # TODO: UndefTag
+        s_tags = [ UndefTag(0, i) for i in range(len(samples)) ]
+        l_tags = [ UndefTag(1, i) for i in range(len(labels)) ]
 
         s_tagsack = TagSack(s_tags)
         l_tagsack = TagSack(l_tags)

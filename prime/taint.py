@@ -126,9 +126,9 @@ class Tag:
         return f'tag({h[0:5]}..{h[-2:]},{self.m})'
 
 
-def SafeTag(i: int = 0) -> Tag:  return Tag(H(i), M(Status.SAFE))
-def DangerTag() -> Tag:      return Tag(H(0), M(Status.DANGER))
-def UndefTag(i: int) -> Tag: return Tag(H(0), M(Status.UNDEF, set([i])))
+def SafeTag(i: int = 0) -> Tag:      return Tag(H(i), M(Status.SAFE))
+def DangerTag() -> Tag:              return Tag(H(0), M(Status.DANGER))
+def UndefTag(h: int, i: int) -> Tag: return Tag(H(h), M(Status.UNDEF, set([i])))
 
 
 # NOTE: Support only 1-axis
