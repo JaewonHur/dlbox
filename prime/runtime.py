@@ -19,8 +19,8 @@ from functools import partial
 from prime.utils import logger
 from prime.exceptions import *
 from prime.hasref import FromRef, HasRef
-from prime.data import build_dataloader
 from prime.emul import emulate
+from prime.data import DataPair, Sample, Label, build_dataloader
 from prime.taint import *
 
 VAR_SFX = 'VAL'
@@ -131,7 +131,7 @@ class ExecutionRuntime():
         self.ctr = 0
 
         self.init_samples()
-        self.dqueue = queue.Queue
+        self.dqueue = queue.Queue()
         self.is_learning = False
 
     def init_samples(self):
@@ -418,3 +418,16 @@ class ExecutionRuntime():
 
         model = dill.dumps(model)
         return model
+
+    @catch_xcpt(False)
+    def SupplyData(self, datapairs: List[Tuple[bytes]]) -> bytes:
+
+        logger.debug(f'{len(datapairs)}')
+
+        for pair in datapairs:
+            p = DataPair(Sample(*self._deserialize(pair[0])),
+                         Label(*self._deserialize(pair[1])))
+
+            self.dqueue.put(p)
+
+        return dill.dumps(None)

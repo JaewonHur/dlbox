@@ -24,6 +24,8 @@ service PrimeServer {
 
   // Fit model in DE
   rpc FitModel (FitModelArg) returns (Model) {}
+  // Supply data for FitModel
+  rpc SupplyData (SupplyDataArg) returns (Ref) {}
 
 /*********************************************************/
 }
@@ -87,6 +89,14 @@ message FitModelArg {
   map<string,bytes>  kwargs     = 7;
 }
 
+/* Input message for SupplyData
+   Args:
+     datapairs (repeated DataPair) : list of DataPairs containing samples and labels.
+*/
+message SupplyDataArg {
+  repeated DataPair  datapairs = 1;
+}
+
 /* Reference to the object in DE
    Args:
      name (string) : name of the object in DE.
@@ -106,4 +116,14 @@ message Ref {
 message Model {
   optional bytes val   = 1;
   optional bytes error = 2;
+}
+
+/* Message of sample & label pair
+   Args:
+     sample (bytes) : serialized bytes of sample
+     label  (bytes) : serialized bytes of label
+*/
+message DataPair {
+  bytes sample = 1;
+  bytes label  = 2;
 }

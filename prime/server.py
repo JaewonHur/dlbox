@@ -64,6 +64,14 @@ class PrimeServer(PrimeServerServicer):
 
         return model
 
+    def SupplyData(self, arg: SupplyDataArg, ctx: grpc.ServicerContext) -> Ref:
+
+        datapairs = [ (p.sample, p.label) for p in arg.datapairs ]
+
+        ref = self._runtime.SupplyData(datapairs)
+
+        return ref
+
 
 @click.command()
 @click.option('--port', default=50051, help='grpc port number')

@@ -6,6 +6,7 @@ import grpc
 import dill
 
 from typing import types, Type, List, Dict, Any, Tuple
+import pytorch_lightning as pl
 
 from prime.utils import logger
 from prime.exceptions import retrieve_xcpt
@@ -66,13 +67,15 @@ class PrimeClient:
             arg.kwargs[k] = v
 
         ref = self.stub.InvokeMethod(arg)
-
         return ref
 
     @retrieve_xcpt(True)
-    def FitModel(self, trainer: bytes, model: bytes,
+    def FitModel(self, trainer: pl.Trainer, model: pl.LightningModule,
                  d_args: List[Any], d_kwargs: Dict[str, Any],
                  args: List[Any], kwargs: Dict[str, Any]) -> Model:
+
+        trainer = dill.dumps(trainer)
+        model   = dill.dumps(model)
 
         d_args   = [ dill.dumps(i) for i in d_args ]
         d_kwargs = { k:dill.dumps(v) for k, v in d_kwargs.items() }
@@ -86,3 +89,14 @@ class PrimeClient:
 
         model = self.stub.FitModel(arg)
         return model
+
+    @retrieve_xcpt(False)
+    def SupplyData(self, datapairs: List[Tuple['Proxy']]) -> Ref:
+
+        datapairs = [ DataPair(sample=dill.dumps(p[0]), label=dill.dumps(p[1]))
+                      for p in datapairs ]
+
+        arg = SupplyDataArg(datapairs=datapairs)
+
+        ref = self.stub.SupplyData(arg)
+        return ref
