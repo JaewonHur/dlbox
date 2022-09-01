@@ -351,10 +351,10 @@ class ExecutionRuntime():
         t_kwargs = { k:self._deserialize(v) for k, v in kwargs.items() }
 
         args = [ i[1] for i in t_args ]
-        kwargs = { k:v[1] for k,v in t_kwargs }
+        kwargs = { k:v[1] for k,v in t_kwargs.items() }
 
         tags = [ i[0] for i in t_args ]
-        kwtags = { k:v[0] for k,v in t_kwargs }
+        kwtags = { k:v[0] for k,v in t_kwargs.items() }
 
         try:
             out = emulate(method, obj)(*args, **kwargs)
@@ -400,10 +400,10 @@ class ExecutionRuntime():
         logger.debug(f'{model}')
 
         d_args   = [ self._deserialize(i)[1] for i in d_args ]
-        d_kwargs = { k:self._deserialize(v)[1] for k, v in d_kwargs }
+        d_kwargs = { k:self._deserialize(v)[1] for k, v in d_kwargs.items() }
 
         args   = [ self._deserialize(i)[1] for i in args ]
-        kwargs = { k:self._deserialize(v)[1] for k, v in kwargs }
+        kwargs = { k:self._deserialize(v)[1] for k, v in kwargs.items() }
 
         HasRef._set_export(True)
 
