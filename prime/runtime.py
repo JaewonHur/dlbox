@@ -422,7 +422,8 @@ class ExecutionRuntime():
     @catch_xcpt(False)
     def SupplyData(self, datapairs: List[Tuple[bytes]]) -> bytes:
 
-        logger.debug(f'{len(datapairs)}')
+        n = len(datapairs)
+        logger.debug(f'{n}')
 
         for pair in datapairs:
             p = DataPair(Sample(*self._deserialize(pair[0])),
@@ -430,4 +431,4 @@ class ExecutionRuntime():
 
             self.dqueue.put(p)
 
-        return dill.dumps(None)
+        return dill.dumps(n)
