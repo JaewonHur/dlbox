@@ -121,7 +121,7 @@ class ExecutionRuntime():
     __ctx = {}
     __taints: TaintTracker = None
 
-    def __init__(self, g_ctx: Dict[str, Any]):
+    def __init__(self, g_ctx: Dict[str, Any], ci: Optional[str]):
         self.g_ctx = g_ctx
 
         if self.__initialized:
@@ -130,17 +130,23 @@ class ExecutionRuntime():
 
         self.ctr = 0
 
+        self.ci = ci
         self.init_samples()
         self.dqueue = queue.Queue()
         self.is_learning = False
 
     def init_samples(self):
-        samples, labels = sample_init()
+
+        if self.ci is None:
+            samples, labels = sample_init()
+        elif self.ci == 'mnist':
+            raise NotImplementedError()
+        else:
+            raise NotImplementedError(f'cannot test {ci}')
 
         assert len(samples) == len(labels), \
             'Number of samples and labels mismatch'
 
-        # TODO: Need to handle container Tensor
         self.__taints.init(len(samples))
 
         s_tags = [ UndefTag(0, i) for i in range(len(samples)) ]

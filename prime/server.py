@@ -5,6 +5,7 @@
 import grpc
 import click
 from concurrent import futures
+from typing import Optional
 
 from prime.utils import logger, is_server
 from prime.runtime import ExecutionRuntime
@@ -14,8 +15,8 @@ from prime_pb2_grpc import *
 
 
 class PrimeServer(PrimeServerServicer):
-    def __init__(self):
-        self._runtime = ExecutionRuntime(globals())
+    def __init__(self, ci: Optional[str] = None):
+        self._runtime = ExecutionRuntime(globals(), ci)
 
         is_server()
 
@@ -75,9 +76,10 @@ class PrimeServer(PrimeServerServicer):
 
 @click.command()
 @click.option('--port', default=50051, help='grpc port number')
-def run(port):
-    server = grpc.server(futures.ThreadPoolExecutor(max_workers=1))
-    add_PrimeServerServicer_to_server(PrimeServer(), server)
+@click.option('--ci', default=None, type=click.Choice(['mnist']), help='ci-test to be tested')
+def run(port, ci):
+    server = grpc.server(futures.ThreadPoolExecutor(max_workers=2))
+    add_PrimeServerServicer_to_server(PrimeServer(ci), server)
 
     # TODO: Add credential and open a secure port
     server.add_insecure_port(f'[::]:{port}')

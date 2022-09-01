@@ -5,6 +5,7 @@
 import os
 import subprocess
 import logging
+from typing import Optional
 
 IS_SERVER = False
 SERVER_PID = 0
@@ -51,13 +52,19 @@ def is_server():
     global IS_SERVER
     IS_SERVER = True
 
-def run_server():
+def run_server(port: Optional[int] = None, ci: Optional[str] = None):
     if IS_SERVER: return
 
     global SERVER_PID
     if SERVER_PID:
         raise Exception(f'server[{SERVER_PID}] already runnig')
-    SERVER_PID = subprocess.Popen(["python", "/home/jwhur/Research/Prime/prime/prime/server.py"]).pid
+
+    port = [ "--port", str(port) ] if port else []
+    ci = ["--ci", ci] if ci else []
+
+    SERVER_PID = subprocess.Popen(["python",
+                                   "/home/jwhur/Research/Prime/prime/prime/server.py"]
+                                  + port + ci).pid
     # TODO
     # os.system('python -m server')
 
