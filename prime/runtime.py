@@ -12,7 +12,7 @@ import shutil
 import builtins
 import importlib.util
 from typing import types, List, Dict, Any, Optional, Type, Tuple, Union, Callable
-from types import FunctionType, MethodType
+from types import FunctionType, MethodType, NoneType
 from collections.abc import Iterator
 from functools import partial
 
@@ -306,6 +306,20 @@ class ExecutionRuntime():
 
     def DeleteObj(self, name: str):
         self._del_from_ctx(name)
+
+    @catch_xcpt(False)
+    def AllocateObj(self, val: bytes) -> str:
+
+        # AllocateObj does not allow using reference
+        HasRef._set_export(False)
+        obj = self._deserialize(val)
+        HasRef._set_export(True)
+
+        # AllocateObj is only for invoking a instance function
+        assert callable(obj), 'cannot allocate non-callable object'
+
+        name = self._add_to_ctx(obj, SafeTag(hash(obj)))
+        return name
 
     @catch_xcpt(False)
     def InvokeMethod(self, obj: str, method: str,

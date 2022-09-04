@@ -52,6 +52,15 @@ class PrimeClient:
         self.stub.DeleteObj(arg)
 
     @retrieve_xcpt(False)
+    def AllocateObj(self, obj: Any) -> Ref:
+        val = dill.dumps(obj)
+        arg = AllocateObjArg(val=val)
+
+        ref = self.stub.AllocateObj(arg)
+
+        return ref
+
+    @retrieve_xcpt(False)
     def InvokeMethod(self, obj: str, method: str, args: List[Any]=[],
                      kwargs: Dict[str,Any]={}) -> Ref:
         arg = InvokeMethodArg()

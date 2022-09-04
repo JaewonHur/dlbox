@@ -38,6 +38,14 @@ class PrimeServer(PrimeServerServicer):
         from google.protobuf.empty_pb2 import Empty
         return Empty()
 
+    def AllocateObj(self, arg: AllocateObjArg, ctx: grpc.ServicerContext) -> Ref:
+
+        val = arg.val
+
+        ref = self._runtime.AllocateObj(val)
+
+        return ref
+
     def InvokeMethod(self, arg: InvokeMethodArg, ctx: grpc.ServicerContext) -> Ref:
 
         obj = arg.obj
