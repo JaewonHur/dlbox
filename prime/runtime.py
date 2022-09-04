@@ -315,12 +315,12 @@ class ExecutionRuntime():
     def AllocateObj(self, val: bytes) -> str:
 
         # AllocateObj does not allow using reference
-        obj = self._deserialize(val, False)
+        tag, obj = self._deserialize(val, False)
 
         # AllocateObj is only for invoking a instance function
-        assert callable(obj), 'cannot allocate non-callable object'
+        assert callable(obj), f'cannot allocate non-callable: {obj}'
 
-        name = self._add_to_ctx(obj, SafeTag(hash(obj)))
+        name = self._add_to_ctx(obj, tag)
         return name
 
     @catch_xcpt(False)
