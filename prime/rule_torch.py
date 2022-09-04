@@ -133,6 +133,7 @@ def _call(*a) -> Tag:
                    else (kwargs['axis'] if 'axis' in kwargs else None))
 
             arg_is_safe = ((arg is None) or
+                           (isinstance(arg, int) and arg == 0) or
                            ((type(arg) in (list, tuple)) and arg[0] == 0))
 
             tag = (SafeTag() if arg_is_safe and self_tag.is_safe()
