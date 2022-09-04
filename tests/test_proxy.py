@@ -23,8 +23,6 @@ def test_initServer():
     if not _client.check_server():
         raise Exception('Server  not running')
 
-    export_f_output(_client)
-
 
 @with_args
 def test_Proxy(samples_d, labels_d, samples, labels):

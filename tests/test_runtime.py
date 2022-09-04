@@ -55,8 +55,6 @@ def test_initServer():
     if not _client.check_server():
         raise Exception('Server not running')
 
-    export_f_output(_client)
-
 
 def test_ExportDef():
     name = 'foo'
@@ -69,7 +67,6 @@ def test_ExportDef():
 
 @with_args
 def test_InvokeMethod(samples_d, labels_d, samples, labels):
-    export_f_output(_client)
 
     assert torch.equal(read_val(_client, samples_d), samples)
     assert torch.equal(read_val(_client, labels_d), labels)
