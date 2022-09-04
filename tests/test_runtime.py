@@ -102,7 +102,7 @@ def test_PrimeError():
     # Invoke a method with an object whose prototype is not in DE should raise PrimeError
     not_in_de = NotInDE(1)
     with pytest.raises(PrimeError,
-                       match="type not trusted: <class 'tests.test_runtime.NotInDE'>"):
+                       match=re.compile("type not trusted:.*")):
         output = _client.InvokeMethod('', 'builtins.str', [not_in_de])
 
     # Invoke a method on not existing object should raise PrimeError
