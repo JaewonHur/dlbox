@@ -28,12 +28,12 @@ class FromRef:
 
 class HasRef(object):
     __ctx: Optional[NoneType, Dict] = None
-    __can_export: bool = True
+    __can_useref: bool = True
     __fromref: FromRef = None
 
     def __new__(cls: HasRef, ref: str):
         if cls.__ctx:
-            if cls.__can_export:
+            if cls.__can_useref:
                 cls.__fromref._add(ref)
                 return cls.__ctx[ref]
             else:
@@ -49,8 +49,8 @@ class HasRef(object):
         cls.__ctx = ctx
 
     @classmethod
-    def _set_export(cls, allow: bool):
-        cls.__can_export = allow
+    def _set_useref(cls, allow: bool):
+        cls.__can_useref = allow
 
     @classmethod
     def _set_fromref(cls, fromref: FromRef):

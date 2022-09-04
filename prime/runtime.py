@@ -196,12 +196,16 @@ class ExecutionRuntime():
 
     # TODO: Still need to check a class instance from trusted package does
     # not contain malicious method
-    def _deserialize(self, val: bytes) -> (Union[Tag, TagSack], Any):
+    def _deserialize(self, val: bytes, useref: bool=True) -> (Union[Tag, TagSack], Any):
 
         # TODO: is it thread-safe?
+
+        HasRef._set_useref(useref)
+
         fromref = FromRef()
         HasRef._set_fromref(fromref)
         obj = dill.loads(val)
+
         tpe = type(obj)
 
         obj_in_ctx = len(fromref) == 1 and self.__ctx[fromref[0]] is obj
@@ -311,9 +315,7 @@ class ExecutionRuntime():
     def AllocateObj(self, val: bytes) -> str:
 
         # AllocateObj does not allow using reference
-        HasRef._set_export(False)
-        obj = self._deserialize(val)
-        HasRef._set_export(True)
+        obj = self._deserialize(val, False)
 
         # AllocateObj is only for invoking a instance function
         assert callable(obj), 'cannot allocate non-callable object'
@@ -415,20 +417,16 @@ class ExecutionRuntime():
         import torch
         import pytorch_lightning as pl
 
-        HasRef._set_export(False)
-
-        trainer = self._deserialize(trainer)[1]
-        model   = self._deserialize(model)[1]
+        trainer = self._deserialize(trainer, False)[1]
+        model   = self._deserialize(model, False)[1]
 
         logger.debug(f'{model}')
 
-        d_args   = [ self._deserialize(i)[1] for i in d_args ]
-        d_kwargs = { k:self._deserialize(v)[1] for k, v in d_kwargs.items() }
+        d_args   = [ self._deserialize(i, False)[1] for i in d_args ]
+        d_kwargs = { k:self._deserialize(v, False)[1] for k, v in d_kwargs.items() }
 
-        args   = [ self._deserialize(i)[1] for i in args ]
-        kwargs = { k:self._deserialize(v)[1] for k, v in kwargs.items() }
-
-        HasRef._set_export(True)
+        args   = [ self._deserialize(i, False)[1] for i in args ]
+        kwargs = { k:self._deserialize(v, False)[1] for k, v in kwargs.items() }
 
         if self.is_learning:
             raise PrimeNotSupportedError('already learning')
