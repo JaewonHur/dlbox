@@ -140,7 +140,12 @@ class ExecutionRuntime():
         if self.ci is None:
             samples, labels = sample_init()
         elif self.ci == 'mnist':
-            raise NotImplementedError()
+            _trust('torchvision')
+            _trust('PIL')
+            _trust('numpy')
+
+            from ci_tests.mnist import mnist
+            samples, labels = mnist.sample_init()
         else:
             raise NotImplementedError(f'cannot test {ci}')
 
