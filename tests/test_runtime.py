@@ -65,6 +65,26 @@ def test_ExportDef():
 
     assert foo == 'foo'
 
+def test_AllocateObj():
+    # cannot allocate untrusted type
+    class bar(): pass
+    bar.__module__ = 'bar'
+
+    with pytest.raises(PrimeError,
+                       match=re.compile("type not trusted: .*")):
+        output = _client.AllocateObj(bar())
+
+    # cannot allocate non-callable type
+    with pytest.raises(PrimeError,
+                       match='cannot allocate non-callable: 3'):
+        output = _client.AllocateObj(3)
+
+    # TODO: can allocate callable, trusted instance
+    # import torchvision
+    # ref = Proxy(_client.AllocateObj(torchvision.transforms.ToTensor()))
+    # assert isinstance(read_val(_client, ref), torchvision.transforms.ToTensor)
+
+
 @with_args
 def test_InvokeMethod(samples_d, labels_d, samples, labels):
 
