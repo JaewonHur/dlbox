@@ -52,7 +52,8 @@ def is_server():
     global IS_SERVER
     IS_SERVER = True
 
-def run_server(port: Optional[int] = None, ci: Optional[str] = None):
+def run_server(port: Optional[int] = None, ci: Optional[str] = None,
+               ll: Optional[str] = None):
     if IS_SERVER: return
 
     global SERVER_PID
@@ -61,10 +62,11 @@ def run_server(port: Optional[int] = None, ci: Optional[str] = None):
 
     port = [ "--port", str(port) ] if port else []
     ci = ["--ci", ci] if ci else []
+    ll = ["--ll", ll] if ll else []
 
     SERVER_PID = subprocess.Popen(["python",
                                    "/home/jwhur/Research/Prime/prime/prime/server.py"]
-                                  + port + ci).pid
+                                  + port + ci + ll).pid
     # TODO
     # os.system('python -m server')
 

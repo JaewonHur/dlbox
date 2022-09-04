@@ -7,7 +7,7 @@ import click
 from concurrent import futures
 from typing import Optional
 
-from prime.utils import logger, is_server
+from prime.utils import is_server, set_log_level
 from prime.runtime import ExecutionRuntime
 
 from prime_pb2 import *
@@ -85,12 +85,17 @@ class PrimeServer(PrimeServerServicer):
 @click.command()
 @click.option('--port', default=50051, help='grpc port number')
 @click.option('--ci', default=None, type=click.Choice(['mnist']), help='ci-test to be tested')
-def run(port, ci):
+@click.option('--ll', default='DEBUG', type=click.Choice(['DEBUG', 'INFO',
+                                                           'ERROR', 'WARNING']),
+              help='log level (DEBUG | INFO | ERROR | WARNING)')
+def run(port, ci, ll):
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=2))
     add_PrimeServerServicer_to_server(PrimeServer(ci), server)
 
     # TODO: Add credential and open a secure port
     server.add_insecure_port(f'[::]:{port}')
+
+    set_log_level(ll)
 
     server.start()
     server.wait_for_termination()
