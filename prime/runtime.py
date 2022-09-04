@@ -218,7 +218,7 @@ class ExecutionRuntime():
         assert (not tpe in [NotImplemented, type, Callable] or obj_in_ctx), \
             f'invalid type: {obj}'
         assert (from_trusted(tpe) or self._from_ctx(tpe) or obj_in_ctx), \
-            f'type not trusted: {tpe}, {self.__ctx}'
+            f'type not trusted: {obj}({tpe})'
 
         if obj_in_ctx:
             ref = fromref[0]
@@ -325,6 +325,7 @@ class ExecutionRuntime():
         # AllocateObj is only for invoking a instance function
         assert callable(obj), f'cannot allocate non-callable: {obj}'
 
+        logger.debug(f'{hex(id(obj))}={str(obj)[0:10]}...')
         name = self._add_to_ctx(obj, tag)
         return name
 
@@ -410,6 +411,7 @@ class ExecutionRuntime():
         if out is NotImplemented:
             raise NotImplementedOutputError()
 
+        logger.debug(f'{hex(id(out))}={str(out)[0:10]}...')
         ret = (dill.dumps(out) if isinstance(tag, Tag) and tag.is_safe()
                else self._add_to_ctx(out, tag))
         return ret
