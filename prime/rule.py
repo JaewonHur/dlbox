@@ -21,7 +21,7 @@ def taint_default(method: Callable,
         raise TagError(f'{method} cannot receive TagSack(Iterator)')
 
     self_tag = [ self_tag ] if self_tag else []
-    kwtags = [ Tag(hash(k) ^ t.h, t.m) for k, v in kwtags.items() ]
+    kwtags = [ Tag(hash(k) ^ t.h, t.m) for k, t in kwtags.items() ]
 
     # TODO: set_danger used tags
 
