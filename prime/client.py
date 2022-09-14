@@ -5,7 +5,7 @@
 import grpc
 import dill
 
-from typing import types, Type, List, Dict, Any, Tuple
+from typing import types, Type, List, Dict, Any, Tuple, Callable, Union
 import pytorch_lightning as pl
 
 from prime.utils import logger
@@ -109,3 +109,22 @@ class PrimeClient:
 
         ref = self.stub.SupplyData(arg)
         return ref
+
+    def StreamData(self, samples: 'Proxy', labels: 'Proxy',
+                   transforms: List[Union[Callable, str]], args: List[Tuple], kwargs: List[Dict],
+                   max_epoch: int):
+
+        samples = dill.dumps(samples)
+        labels  = dill.dumps(labels)
+
+        transforms = [ dill.dumps(t) for t in transforms ]
+        args = [ dill.dumps(i) for i in args ]
+        kwargs = [ dill.dumps(i) for i in kwargs ]
+
+        max_epoch  = dill.dumps(max_epoch)
+
+        arg = StreamDataArg(samples=samples, labels=labels,
+                            transforms=transforms, args=args, kwargs=kwargs,
+                            max_epoch=max_epoch)
+
+        self.stub.StreamData(arg)

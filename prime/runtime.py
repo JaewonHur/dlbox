@@ -20,7 +20,7 @@ from prime.utils import logger
 from prime.exceptions import *
 from prime.hasref import FromRef, HasRef
 from prime.emul import emulate
-from prime.data import DataQueue, DataPair, Sample, Label, FairDataset, build_dataloader
+from prime.data import DataQueue, FairDataset, build_dataloader
 from prime.taint import *
 
 VAR_SFX = 'VAL'
@@ -459,10 +459,39 @@ class ExecutionRuntime():
         n = len(datapairs)
         logger.debug(f'{n}')
 
-        datapairs = [ DataPair(Sample(*self._deserialize(p[0])),
-                               Label(*self._deserialize(p[1])))
-                      for p in datapairs ]
+        pairs = [ (self._deserialize(p[0]), self._deserialize(p[1]))
+                  for p in datapairs ]
 
-        n = self.dqueue.put(datapairs)
+        n = self.dqueue.put(pairs)
 
         return dill.dumps(n)
+
+    @catch_xcpt(False)
+    def StreamData(self, samples: bytes, labels: bytes,
+                   transforms: List[bytes], args: List[bytes], kwargs: List[bytes],
+                   max_epoch: bytes):
+
+        s_ts, samples = self._deserialize(samples)
+        l_ts, labels = self._deserialize(labels)
+
+        assert isinstance(s_ts, TagSack) and s_ts.is_safe(), \
+            'cannot stream on unsafe samples'
+
+        assert isinstance(l_ts, TagSack) and l_ts.is_safe(), \
+            'cannot stream on unsafe labels'
+
+        transforms = [ (get_from(i)[1] if isinstance(i, str) else i)
+                       for i in [self._deserialize(t, False)[1]
+                                 for t in transforms] ]
+
+        args = [ self._deserialize(i, False)[1] for i in args ]
+        kwargs = [ self._deserialize(i, False)[1] for i in kwargs ]
+
+        assert all(isinstance(i, tuple) for i in args)
+        assert all(isinstance(i, dict) for i in kwargs)
+
+        _, max_epoch = self._deserialize(max_epoch, False)
+
+        self.dqueue.stream(s_ts, samples, l_ts, labels,
+                           transforms, args, kwargs,
+                           max_epoch)

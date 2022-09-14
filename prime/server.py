@@ -81,6 +81,22 @@ class PrimeServer(PrimeServerServicer):
 
         return ref
 
+    def StreamData(self, arg: StreamDataArg, ctx: grpc.ServicerContext):
+
+        samples = arg.samples
+        labels = arg.labels
+
+        transforms = arg.transforms
+        args = arg.args
+        kwargs = arg.kwargs
+
+        max_epoch = arg.max_epoch
+
+        self._runtime.StreamData(samples, labels, transforms, args, kwargs, max_epoch)
+
+        from google.protobuf.empty_pb2 import Empty
+        return Empty()
+
 
 @click.command()
 @click.option('--port', default=50051, help='grpc port number')

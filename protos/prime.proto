@@ -28,6 +28,8 @@ service PrimeServer {
   rpc FitModel (FitModelArg) returns (Model) {}
   // Supply data for FitModel
   rpc SupplyData (SupplyDataArg) returns (Ref) {}
+  // Stream data for FitModel
+  rpc StreamData (StreamDataArg) returns (google.protobuf.Empty) {}
 
 /*********************************************************/
 }
@@ -136,4 +138,24 @@ message Model {
 message DataPair {
   bytes sample = 1;
   bytes label  = 2;
+}
+
+/* Input message for StreamData
+   Args:
+     samples (bytes)             : reference to the samples Tensor
+     labels (bytes)              : reference to the labels Tensor
+     transforms (repeated bytes) : list of serialized transform functions or name
+     args (repeated bytes)       : list of serialized arg tuples
+                                   ellipsis for the place holder
+     kwargs (repeated bytes)     : list of serialized kwarg dicts
+                                   ellipsis for the place holer
+     max_epoch (bytes)           : serialized maximum number of epochs
+*/
+message StreamDataArg {
+  bytes          samples    = 1;
+  bytes          labels     = 2;
+  repeated bytes transforms = 3;
+  repeated bytes args       = 4;
+  repeated bytes kwargs     = 5;
+  bytes          max_epoch  = 6;
 }
