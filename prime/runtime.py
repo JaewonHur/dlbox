@@ -469,7 +469,7 @@ class ExecutionRuntime():
     @catch_xcpt(False)
     def StreamData(self, samples: bytes, labels: bytes,
                    transforms: List[bytes], args: List[bytes], kwargs: List[bytes],
-                   max_epoch: bytes):
+                   max_epoch: bytes) -> bytes:
 
         s_ts, samples = self._deserialize(samples)
         l_ts, labels = self._deserialize(labels)
@@ -490,8 +490,12 @@ class ExecutionRuntime():
         assert all(isinstance(i, tuple) for i in args)
         assert all(isinstance(i, dict) for i in kwargs)
 
+        logger.debug('\n  '.join([''] + [repr(t) for t in transforms]))
+
         _, max_epoch = self._deserialize(max_epoch, False)
 
         self.dqueue.stream(s_ts, samples, l_ts, labels,
                            transforms, args, kwargs,
                            max_epoch)
+
+        return dill.dumps(None)

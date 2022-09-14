@@ -110,6 +110,7 @@ class PrimeClient:
         ref = self.stub.SupplyData(arg)
         return ref
 
+    @retrieve_xcpt(False)
     def StreamData(self, samples: 'Proxy', labels: 'Proxy',
                    transforms: List[Union[Callable, str]], args: List[Tuple], kwargs: List[Dict],
                    max_epoch: int):
@@ -127,4 +128,5 @@ class PrimeClient:
                             transforms=transforms, args=args, kwargs=kwargs,
                             max_epoch=max_epoch)
 
-        self.stub.StreamData(arg)
+        none = self.stub.StreamData(arg)
+        return none

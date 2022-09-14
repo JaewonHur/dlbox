@@ -29,7 +29,7 @@ service PrimeServer {
   // Supply data for FitModel
   rpc SupplyData (SupplyDataArg) returns (Ref) {}
   // Stream data for FitModel
-  rpc StreamData (StreamDataArg) returns (google.protobuf.Empty) {}
+  rpc StreamData (StreamDataArg) returns (Ref) {}
 
 /*********************************************************/
 }

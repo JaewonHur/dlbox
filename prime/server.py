@@ -92,10 +92,8 @@ class PrimeServer(PrimeServerServicer):
 
         max_epoch = arg.max_epoch
 
-        self._runtime.StreamData(samples, labels, transforms, args, kwargs, max_epoch)
-
-        from google.protobuf.empty_pb2 import Empty
-        return Empty()
+        none = self._runtime.StreamData(samples, labels, transforms, args, kwargs, max_epoch)
+        return none
 
 
 @click.command()
