@@ -15,10 +15,27 @@ DataPair = namedtuple('DataPair', ['sample', 'label'])
 Sample   = namedtuple('Sample',   ['tag', 'val'])
 Label    = namedtuple('Label',    ['tag', 'val'])
 
+class DataQueue():
+    def __init__(self):
+        self.q = queue.Queue()
+
+    def empty(self) -> bool:
+        return self.q.empty()
+
+    def get(self) -> DataPair:
+        return self.q.get()
+
+    def put(self, pairs: List[DataPair]) -> int:
+        for p in pairs:
+            self.q.put(p)
+
+        return self.q.qsize()
+
+
 class FairDataset(Dataset):
     N: int = None
 
-    def __init__(self, dqueue: queue.Queue):
+    def __init__(self, dqueue: DataQueue):
         super().__init__()
 
         self.dqueue = dqueue

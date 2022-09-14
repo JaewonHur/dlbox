@@ -20,7 +20,7 @@ from prime.utils import logger
 from prime.exceptions import *
 from prime.hasref import FromRef, HasRef
 from prime.emul import emulate
-from prime.data import DataPair, Sample, Label, FairDataset, build_dataloader
+from prime.data import DataQueue, DataPair, Sample, Label, FairDataset, build_dataloader
 from prime.taint import *
 
 VAR_SFX = 'VAL'
@@ -132,7 +132,7 @@ class ExecutionRuntime():
 
         self.ci = ci
         self.init_samples()
-        self.dqueue = queue.Queue()
+        self.dqueue = DataQueue()
         self.is_learning = False
 
     def init_samples(self):
@@ -459,10 +459,10 @@ class ExecutionRuntime():
         n = len(datapairs)
         logger.debug(f'{n}')
 
-        for pair in datapairs:
-            p = DataPair(Sample(*self._deserialize(pair[0])),
-                         Label(*self._deserialize(pair[1])))
+        datapairs = [ DataPair(Sample(*self._deserialize(p[0])),
+                               Label(*self._deserialize(p[1])))
+                      for p in datapairs ]
 
-            self.dqueue.put(p)
+        n = self.dqueue.put(datapairs)
 
-        return dill.dumps(self.dqueue.qsize())
+        return dill.dumps(n)
