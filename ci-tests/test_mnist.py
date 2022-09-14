@@ -17,6 +17,7 @@ from prime.utils import run_server, kill_server
 
 from tests.common import *
 
+
 ################################################################################
 # Init server before starting tests                                            #
 ################################################################################
@@ -96,13 +97,15 @@ class LitClassifier(pytorch_lightning.LightningModule):
 
     model = LitClassifier()
 
-    trainer = pytorch_lightning.Trainer(max_epochs=2)
+    max_epoch = 2
+    trainer = pytorch_lightning.Trainer(max_epochs=max_epoch)
 
-    data_thread = Thread(target=supply_data,
-                         args=(samples_d, labels_d))
+    # data_thread = Thread(target=supply_data,
+    #                      args=(samples_d, labels_d))
 
-    data_thread.start()
+    # data_thread.start()
 
+    stream_data(samples_d, labels_d, max_epoch)
     res = _client.FitModel(trainer, model,
                            [], {'batch_size': 32}, [], {})
     if isinstance(res, Exception):
@@ -110,16 +113,16 @@ class LitClassifier(pytorch_lightning.LightningModule):
 
     global STOPPED
     STOPPED = True
-    data_thread.join()
+    # data_thread.join()
 
     test_data = TestDataset()
     trainer.test(res, dataloaders=DataLoader(test_data, batch_size=32))
 
 def supply_data(samples: torch.Tensor, labels: torch.Tensor):
 
-    N = len(samples_d)
-    DATA_MEAN = (samples_d / 255.0).mean(axis=(0, 1, 2))
-    DATA_STD = (samples_d / 255.0).std(axis=(0, 1, 2))
+    N = len(samples)
+    DATA_MEAN = (samples / 255.0).mean(axis=(0, 1, 2))
+    DATA_STD = (samples / 255.0).std(axis=(0, 1, 2))
 
     print(f'[mnist] DATA_MEAN: {DATA_MEAN}')
     print(f'[mnist] DATA_STD: {DATA_STD}')
@@ -146,6 +149,28 @@ def supply_data(samples: torch.Tensor, labels: torch.Tensor):
             buf.clear()
 
         i += 1
+
+def stream_data(samples: torch.Tensor, labels: torch.Tensor, max_epoch: int):
+
+    DATA_MEAN = (samples / 255.0).mean(axis=(0, 1, 2))
+    DATA_STD = (samples / 255.0).std(axis=(0, 1, 2))
+
+    print(f'[mnist] DATA_MEAN: {DATA_MEAN}')
+    print(f'[mnist] DATA_STD: {DATA_STD}')
+
+    transform = torchvision.transforms.Compose([
+        torchvision.transforms.ToTensor(),
+        torchvision.transforms.Normalize(DATA_MEAN, DATA_STD)
+    ])
+    toimg = 'PIL.Image.fromarray'
+    tonumpy = 'torch.Tensor.numpy'
+
+    transforms = [ tonumpy, toimg, transform ]
+    args = [ (...,), (...,), (...,) ]
+    kwargs = [ {}, {'mode': 'L'}, {} ]
+
+    _client.StreamData(samples, labels, transforms, args, kwargs, max_epoch)
+
 
 
 class TestDataset(Dataset):
