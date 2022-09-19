@@ -1,13 +1,14 @@
 #!/bin/bash
 
-if [[ -n $MERGE ]]; then
-    exit 0
-fi
-
 COMMIT_MSG_FILE=$1
 
 # Check subject rule
 subjectLine=$(head $COMMIT_MSG_FILE | grep -m 1 "^[^#]")
+echo $subjectLine
+if [ ${subjectLine%% *} = Merge ]; then
+    exit 0
+fi
+
 tpe=$(sed "s/^\[\([^]]*\)\].*/\1/g" <<< $subjectLine)
 sbj=$(sed "s/^[^ ]* //" <<< $subjectLine)
 
