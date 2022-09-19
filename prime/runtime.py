@@ -416,6 +416,73 @@ class ExecutionRuntime():
                else self._add_to_ctx(out, tag))
         return ret
 
+    @catch_xcpt(False)
+    def ExportModel(self, fullname: str, source: str) -> str:
+        # TODO: Sandbox codes
+        # Malicious codes can change states of global variables
+
+        if fullname.startswith('__main__'):
+            # NOTE: Do not support nested definition
+            assert len(fullname.split('.')) == 2
+            name = fullname.split('.')[1]
+            assert name not in globals()
+
+            try:
+                venv = {}
+                venv['__name__'] = '__main__'
+
+                for pkg, module in TRUSTED_PKGS.items():
+                    venv[pkg] = module
+
+                exec(source, venv)
+
+            except Exception as e:
+                raise UserError(e)
+
+            obj = venv[name]
+            globals()[name] = obj
+            # self.g_ctx[name] = obj
+
+        else:
+            module_path = fullname.split('.')[:-1]
+            name = fullname.split('.')[-1]
+
+            for i in range(len(module_path) -1):
+                p = f'/tmp/{"/".join(module_path[:i+1])}'
+                os.mkdir(f'{p}')
+
+                with open(p + '/__init__.py', 'w') as fd:
+                    fd.write(f'import {".".join(module_path[:i+2])}')
+
+            with open(f'/tmp/{"/".join(module_path)}.py', 'w') as fd:
+                fd.write(source)
+
+            root = module_path[0]
+            path = (f'/tmp/{root}.py' if len(module_path) == 1
+                    else f'/tmp/{root}/__init__.py')
+            spec = importlib.util.spec_from_file_location(root, path)
+            module = importlib.util.module_from_spec(spec)
+
+            try:
+                for pkg, m in TRUSTED_PKGS.items():
+                    setattr(module, pkg, m)
+
+                spec.loader.exec_module(module)
+            except Exception as e:
+                raise UserError(e)
+
+            sys.modules[root] = module
+
+            if len(module_path) == 1: os.remove(f'/tmp/{root}.py')
+            else: shutil.rmtree(f'/tmp/{root}')
+
+            obj = module
+            for n in fullname.split('.')[1:]:
+                obj = getattr(obj, n)
+
+        self._add_to_ctx(obj, SafeTag(hash(source)), fullname)
+        return name
+
     @catch_xcpt(True)
     def FitModel(self, trainer: bytes, model: bytes,
                  d_args: List[bytes], d_kwargs: Dict[str, bytes],

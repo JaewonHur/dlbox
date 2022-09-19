@@ -57,6 +57,15 @@ class PrimeServer(PrimeServerServicer):
 
         return ref
 
+    def ExportModel(self, arg: ExportModelArg, ctx: grpc.ServicerContext) -> Ref:
+
+        fullname = arg.fullname
+        source = arg.source
+
+        ref = self._runtime.ExportModel(fullname, source)
+
+        return ref
+
     def FitModel(self, arg: FitModelArg, ctx: grpc.ServicerContext) -> Model:
 
         trainer = arg.trainer

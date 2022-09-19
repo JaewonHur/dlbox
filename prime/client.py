@@ -78,6 +78,14 @@ class PrimeClient:
         ref = self.stub.InvokeMethod(arg)
         return ref
 
+    @retrieve_xcpt(False)
+    def ExportModel(self, fullname: str, source: str) -> Ref:
+        arg = ExportModelArg(fullname=fullname, source=source)
+
+        ref = self.stub.ExportModel(arg)
+
+        return ref
+
     @retrieve_xcpt(True)
     def FitModel(self, trainer: pl.Trainer, model: pl.LightningModule,
                  d_args: List[Any], d_kwargs: Dict[str, Any],

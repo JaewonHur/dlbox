@@ -24,6 +24,8 @@ service PrimeServer {
 
 /* RPCs for model training                               */
 
+  // Export model definition from FE to DE
+  rpc ExportModel (ExportModelArg) returns (Ref) {}
   // Fit model in DE
   rpc FitModel (FitModelArg) returns (Model) {}
   // Supply data for FitModel
@@ -79,6 +81,19 @@ message InvokeMethodArg {
   string             method = 2;
   repeated bytes     args   = 3;
   map<string,bytes>  kwargs = 4;
+}
+
+/* Input message for ExportModel
+   Args:
+     fullname (string)   : name of the model definition which is to be defined in DE.
+     source (string)     : relocatable source code of the definition,
+                           source must be self-confined
+                             (i.e., it must contain all referenced objects).
+                           name of definition in source must match `fullname`.
+*/
+message ExportModelArg {
+  string fullname = 1;
+  string source   = 2;
 }
 
 /* Input message for FitModel
