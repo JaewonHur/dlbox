@@ -92,7 +92,7 @@ class LitClassifier(pytorch_lightning.LightningModule):
         return torch.optim.Adam(self.parameters(), lr=self.hparams.learning_rate)
     """
 
-    ref = _client.ExportDef('test_mnist.LitClassifier', type, model_src)
+    ref = _client.ExportModel('test_mnist.LitClassifier', model_src)
     assert ref == 'LitClassifier'
 
     model = LitClassifier()
