@@ -95,14 +95,16 @@ class Tag:
     @staticmethod
     def merge(op_hash: int, tags: List[Tag], is_add: bool = False) -> Tag:
 
-        m = reduce(lambda x, y: x | y, [ t.m for t in tags ])
+        m = reduce(lambda x, y: x | y, [ t.m for t in tags ],
+                   M(Status.SAFE))
 
         # TODO: It only allow strict add
         if is_add and len(tags) == 2 and tags[0].h == tags[1].h:
             h = tags[0].h
 
         else:
-            h = reduce(lambda x, y: x ^ y, [ op_hash ] + [ t.h for t in tags ])
+            h = reduce(lambda x, y: x ^ y,
+                       [ op_hash ] + [ t.h for t in tags ], 0)
             m = M(Status.DANGER) if len(m) > 1 else m
 
         return Tag(h, m)
