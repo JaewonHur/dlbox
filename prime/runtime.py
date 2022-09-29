@@ -121,8 +121,7 @@ class ExecutionRuntime():
     __ctx = {}
     __taints: TaintTracker = None
 
-    def __init__(self, g_ctx: Dict[str, Any], ci: Optional[str]):
-        self.g_ctx = g_ctx
+    def __init__(self, ci: Optional[str]):
 
         if self.__initialized:
             raise Exception('There can exist only one ExecutionRuntime')
@@ -258,7 +257,7 @@ class ExecutionRuntime():
             assert name not in globals()
 
             try:
-                venv = {}
+                venv = {'__name__': '__main__'}
                 venv['__name__'] = '__main__'
 
                 for pkg, module in TRUSTED_PKGS.items():
@@ -271,7 +270,6 @@ class ExecutionRuntime():
 
             obj = venv[name]
             globals()[name] = obj
-            # self.g_ctx[name] = obj
 
         else:
             raise NotImplementedError()
@@ -429,8 +427,7 @@ class ExecutionRuntime():
             assert name not in globals()
 
             try:
-                venv = {}
-                venv['__name__'] = '__main__'
+                venv = {'__name__': '__main__'}
 
                 for pkg, module in TRUSTED_PKGS.items():
                     venv[pkg] = module
@@ -442,7 +439,6 @@ class ExecutionRuntime():
 
             obj = venv[name]
             globals()[name] = obj
-            # self.g_ctx[name] = obj
 
         else:
             # e.g., ci_tests.cifar_10.CIFARModule

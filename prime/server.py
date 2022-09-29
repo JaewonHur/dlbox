@@ -16,7 +16,7 @@ from prime_pb2_grpc import *
 
 class PrimeServer(PrimeServerServicer):
     def __init__(self, ci: Optional[str] = None):
-        self._runtime = ExecutionRuntime(globals(), ci)
+        self._runtime = ExecutionRuntime(ci)
 
         is_server()
 
@@ -107,7 +107,9 @@ class PrimeServer(PrimeServerServicer):
 
 @click.command()
 @click.option('--port', default=50051, help='grpc port number')
-@click.option('--ci', default=None, type=click.Choice(['mnist']), help='ci-test to be tested')
+@click.option('--ci', default=None,
+              type=click.Choice(['mnist']),
+              help='ci-test to be tested')
 @click.option('--ll', default='DEBUG', type=click.Choice(['DEBUG', 'INFO',
                                                            'ERROR', 'WARNING']),
               help='log level (DEBUG | INFO | ERROR | WARNING)')
