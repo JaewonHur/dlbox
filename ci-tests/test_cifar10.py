@@ -25,15 +25,17 @@ from prime.utils import run_server, kill_server
 from tests.common import *
 
 
+@pytest.fixture(scope='session')
+def model(pytestconfig):
+    return pytestconfig.getoption('model')
+
 ################################################################################
 # Init server before starting tests                                            #
 ################################################################################
 
-STOPPED = False
-
-def test_init_cifar10Server():
+def test_init_cifar10Server(model):
     kill_server()
-    run_server(port=None, ci='googlenet', ll='ERROR')
+    run_server(port=None, ci=model, ll='ERROR')
 
     time.sleep(1)
     if not _client.check_server():
@@ -42,18 +44,21 @@ def test_init_cifar10Server():
     export_f_output(_client)
 
 
-def test_cifar10():
+def test_cifar10(model):
+
+    print(f'test_cifar10({model})')
+    model_name = model
 
     device = initialize()
 
     samples_d = Proxy('_SAMPLES')
     labels_d  = Proxy('_LABELS')
 
-    model = build_model('googlenet')
+    model = build_model(model_name)
 
     max_epochs = 180
     trainer = pl.Trainer(
-        default_root_dir=os.path.join('/tmp', 'googlenet'),
+        default_root_dir=os.path.join('/tmp', model_name),
         gpus=1 if str(device) == 'cuda:0' else 0,
         max_epochs=max_epochs,
         # TODO
