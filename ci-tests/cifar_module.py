@@ -458,6 +458,7 @@ class CIFARModule(pytorch_lightning.LightningModule):
         super().__init__()
 
         self.save_hyperparameters()
+        self.model_name = model_name
         self.model = create_model(model_name, model_hparams)
         self.loss_module = torch.nn.CrossEntropyLoss()
 

@@ -4,6 +4,7 @@
 
 import pytest
 import time
+import pprint
 from typing import Any
 from threading import Thread
 
@@ -14,6 +15,7 @@ import torchvision
 import pytorch_lightning as pl
 from torch.utils.data import Dataset, DataLoader
 from torchvision import transforms
+from torchvision.datasets import CIFAR10
 
 from ci_tests.cifar_module import CIFARModule
 
@@ -67,12 +69,12 @@ def test_cifar10():
     # trainer.logger._default_hp_metric = True
 
     stream_data(samples_d, labels_d, max_epochs)
-    # time.sleep(5)
 
     res = _client.FitModel(trainer, model,
                            [],
                            {'batch_size': 128},
                            [], {})
+    # TODO: Support other arguments
     # res = _client.FitModel(trainer, model,
     #                        [],                                      # d_args
     #                        {'batch_size': 128, 'shuffle': True,     # d_kwargs
@@ -82,6 +84,8 @@ def test_cifar10():
     #                        )
     if isinstance(res, Exception):
         raise res
+
+    eval_model(trainer, res, samples_d, labels_d)
 
 
 def initialize() -> Any:
@@ -146,8 +150,8 @@ def build_model(model_name: str) -> pl.LightningModule:
 
 def stream_data(samples: torch.Tensor, labels: torch.Tensor, max_epoch: int):
 
-    DATA_MEANS = (samples).mean(axis=(0, 2, 3))
-    DATA_STD   = (samples).std(axis=(0, 2, 3))
+    DATA_MEAN = (samples).mean(axis=(0, 2, 3))
+    DATA_STD  = (samples).std(axis=(0, 2, 3))
 
     train_transform = transforms.Compose(
         [
@@ -155,7 +159,7 @@ def stream_data(samples: torch.Tensor, labels: torch.Tensor, max_epoch: int):
             transforms.RandomHorizontalFlip(),
             transforms.RandomResizedCrop((32, 32), scale=(0.8, 1.0), ratio=(0.9, 1.1)),
             transforms.ToTensor(),
-            transforms.Normalize(DATA_MEANS, DATA_STD)
+            transforms.Normalize(DATA_MEAN, DATA_STD)
         ]
     )
 
@@ -165,6 +169,28 @@ def stream_data(samples: torch.Tensor, labels: torch.Tensor, max_epoch: int):
 
     _client.StreamData(samples, labels, transforms_in_de, args, kwargs,
                        max_epoch)
+
+
+def eval_model(trainer: pl.Trainer, model: CIFARModule,
+               samples: torch.Tensor, labels: torch.Tensor):
+
+    pwd = os.environ['PWD']
+    DATASET_PATH = f'{pwd}/ci-tests/cifar_10'
+
+    DATA_MEAN = (samples).mean(axis=(0, 2, 3))
+    DATA_STD  = (samples).std(axis=(0, 2, 3))
+
+    test_transform = transforms.Compose([transforms.ToTensor(),
+                                         transforms.Normalize(DATA_MEAN, DATA_STD)])
+    test_set = CIFAR10(root=DATASET_PATH, train=False, transform=test_transform)
+    test_loader = DataLoader(test_set, batch_size=128, shuffle=False,
+                             drop_last=False,
+                             num_workers=4)
+
+    test_result = trainer.test(model, dataloaders=test_loader, verbose=False)
+
+    print(f'====[{model.model_name} Test Result]====\n')
+    pprint.pprint(test_result)
 
 
 ################################################################################
