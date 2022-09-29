@@ -116,9 +116,9 @@ class FairDataset(Dataset):
             self.h = s_tag.h
 
         if not s_tag.m.has_only(idx):
-            raise TagError(f'tag does not match idx\n[{idx}] tag: {tag}, idx: {idx}')
+            raise TagError(f'tag does not match idx\n[{idx}] tag: {s_tag}, idx: {idx}')
         elif not s_tag.h == self.h:
-            raise TagError(f'tag does not match has\n[{idx}] tag: {tag}, h: {hex(h)[0:5]}')
+            raise TagError(f'tag does not match has\n[{idx}] tag: {s_tag}, h: {hex(h)[0:5]}')
 
 
 def build_dataloader(dqueue: queue.Queue,
