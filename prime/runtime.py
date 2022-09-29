@@ -10,7 +10,7 @@ import dill
 import queue
 import shutil
 import builtins
-import importlib.util
+from importlib.util import spec_from_file_location, module_from_spec
 from typing import types, List, Dict, Any, Optional, Type, Tuple, Union, Callable
 from types import FunctionType, MethodType, NoneType
 from collections.abc import Iterator
@@ -147,7 +147,7 @@ class ExecutionRuntime():
             from ci_tests.mnist import mnist
             samples, labels = mnist.sample_init()
         else:
-            raise NotImplementedError(f'cannot test {ci}')
+            raise NotImplementedError(f'cannot test {self.ci}')
 
         assert len(samples) == len(labels), \
             'Number of samples and labels mismatch'
@@ -274,41 +274,42 @@ class ExecutionRuntime():
             # self.g_ctx[name] = obj
 
         else:
-            module_path = fullname.split('.')[:-1]
-            name = fullname.split('.')[-1]
+            raise NotImplementedError()
+            # module_path = fullname.split('.')[:-1]
+            # name = fullname.split('.')[-1]
 
-            for i in range(len(module_path) -1):
-                p = f'/tmp/{"/".join(module_path[:i+1])}'
-                os.mkdir(f'{p}')
+            # for i in range(len(module_path) -1):
+            #     p = f'/tmp/{"/".join(module_path[:i+1])}'
+            #     os.mkdir(f'{p}')
 
-                with open(p + '/__init__.py', 'w') as fd:
-                    fd.write(f'import {".".join(module_path[:i+2])}')
+            #     with open(p + '/__init__.py', 'w') as fd:
+            #         fd.write(f'import {".".join(module_path[:i+2])}')
 
-            with open(f'/tmp/{"/".join(module_path)}.py', 'w') as fd:
-                fd.write(source)
+            # with open(f'/tmp/{"/".join(module_path)}.py', 'w') as fd:
+            #     fd.write(source)
 
-            root = module_path[0]
-            path = (f'/tmp/{root}.py' if len(module_path) == 1
-                    else f'/tmp/{root}/__init__.py')
-            spec = importlib.util.spec_from_file_location(root, path)
-            module = importlib.util.module_from_spec(spec)
+            # root = module_path[0]
+            # path = (f'/tmp/{root}.py' if len(module_path) == 1
+            #         else f'/tmp/{root}/__init__.py')
+            # spec = spec_from_file_location(root, path)
+            # module = module_from_spec(spec)
 
-            try:
-                for pkg, m in TRUSTED_PKGS.items():
-                    setattr(module, pkg, m)
+            # try:
+            #     for pkg, m in TRUSTED_PKGS.items():
+            #         setattr(module, pkg, m)
 
-                spec.loader.exec_module(module)
-            except Exception as e:
-                raise UserError(e)
+            #     spec.loader.exec_module(module)
+            # except Exception as e:
+            #     raise UserError(e)
 
-            sys.modules[root] = module
+            # sys.modules[root] = module
 
-            if len(module_path) == 1: os.remove(f'/tmp/{root}.py')
-            else: shutil.rmtree(f'/tmp/{root}')
+            # if len(module_path) == 1: os.remove(f'/tmp/{root}.py')
+            # else: shutil.rmtree(f'/tmp/{root}')
 
-            obj = module
-            for n in fullname.split('.')[1:]:
-                obj = getattr(obj, n)
+            # obj = module
+            # for n in fullname.split('.')[1:]:
+            #     obj = getattr(obj, n)
 
         self._add_to_ctx(obj, SafeTag(hash(source)), fullname)
         return name
@@ -444,35 +445,41 @@ class ExecutionRuntime():
             # self.g_ctx[name] = obj
 
         else:
+            # e.g., ci_tests.cifar_10.CIFARModule
             module_path = fullname.split('.')[:-1]
             name = fullname.split('.')[-1]
 
+            # Build module directory structure, e.g., /tmp/ci_tests/cifar_10.py
             for i in range(len(module_path) -1):
-                p = f'/tmp/{"/".join(module_path[:i+1])}'
+                m_path, m = module_path[:i+1], module_path[i+1]
+
+                p = f'/tmp/{"/".join(m_path)}'
                 os.mkdir(f'{p}')
 
                 with open(p + '/__init__.py', 'w') as fd:
-                    fd.write(f'import {".".join(module_path[:i+2])}')
+                    fd.write(f'from {".".join(m_path)} import {m}')
 
+            # Write final module which contains real source code + imports
             with open(f'/tmp/{"/".join(module_path)}.py', 'w') as fd:
+                fd.writelines([f'import {pkg}\n'
+                               for pkg in TRUSTED_PKGS.keys()] + ['\n'])
                 fd.write(source)
 
+            # Import root module
             root = module_path[0]
             path = (f'/tmp/{root}.py' if len(module_path) == 1
                     else f'/tmp/{root}/__init__.py')
-            spec = importlib.util.spec_from_file_location(root, path)
-            module = importlib.util.module_from_spec(spec)
+            spec = spec_from_file_location(root, path)
+            module = module_from_spec(spec)
 
             try:
-                for pkg, m in TRUSTED_PKGS.items():
-                    setattr(module, pkg, m)
-
                 spec.loader.exec_module(module)
             except Exception as e:
                 raise UserError(e)
 
             sys.modules[root] = module
 
+            # Remove tmp files
             if len(module_path) == 1: os.remove(f'/tmp/{root}.py')
             else: shutil.rmtree(f'/tmp/{root}')
 
@@ -505,7 +512,8 @@ class ExecutionRuntime():
         if self.is_learning:
             raise PrimeNotSupportedError('already learning')
 
-        assert self.dqueue.empty(), 'dqueue is not empty'
+        # TODO: dqueue need to be empty?
+        # assert self.dqueue.empty(), 'dqueue is not empty'
 
         dataloader = build_dataloader(self.dqueue, d_args, d_kwargs)
 
