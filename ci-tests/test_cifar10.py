@@ -1,0 +1,179 @@
+#
+# Copyright (c) 2022
+#
+
+import pytest
+import time
+from typing import Any
+from threading import Thread
+
+import os
+import PIL
+import torch
+import torchvision
+import pytorch_lightning as pl
+from torch.utils.data import Dataset, DataLoader
+from torchvision import transforms
+
+from ci_tests.cifar_module import CIFARModule
+
+from prime.proxy import Proxy, _client
+from prime.utils import run_server, kill_server
+
+from tests.common import *
+
+
+################################################################################
+# Init server before starting tests                                            #
+################################################################################
+
+STOPPED = False
+
+def test_init_cifar10Server():
+    kill_server()
+    run_server(port=None, ci='googlenet', ll='ERROR')
+
+    time.sleep(1)
+    if not _client.check_server():
+        raise Exception('Server  not running')
+
+    export_f_output(_client)
+
+
+def test_cifar10():
+
+    device = initialize()
+
+    samples_d = Proxy('_SAMPLES')
+    labels_d  = Proxy('_LABELS')
+
+    model = build_model('googlenet')
+
+    max_epochs = 180
+    trainer = pl.Trainer(
+        default_root_dir=os.path.join('/tmp', 'googlenet'),
+        gpus=1 if str(device) == 'cuda:0' else 0,
+        max_epochs=max_epochs,
+        # TODO
+        # callbacks=[
+        #     ModelCheckpoint(
+        #         save_weights_only=True, model='max', monitor='val_acc'
+        #     ),
+        #     LearningRateMonitor('epoch'),
+        # ],
+        progress_bar_refresh_rate=1
+    )
+    # trainer.logger._log_graph = True
+    # trainer.logger._default_hp_metric = True
+
+    stream_data(samples_d, labels_d, max_epochs)
+    # time.sleep(5)
+
+    res = _client.FitModel(trainer, model,
+                           [],
+                           {'batch_size': 128},
+                           [], {})
+    # res = _client.FitModel(trainer, model,
+    #                        [],                                      # d_args
+    #                        {'batch_size': 128, 'shuffle': True,     # d_kwargs
+    #                         'drop_last': True, 'pin_memory': True,
+    #                         'num_workers': 4},
+    #                        [], {} # args, kwargs
+    #                        )
+    if isinstance(res, Exception):
+        raise res
+
+
+def initialize() -> Any:
+    R('pytorch_lightning.seed_everything')(42)
+
+    # TODO: setattr on trusted library is not permitted
+    # torch.backends.cudnn.deterministic = True
+    # torch.backends.cudnn.benchmark = False
+
+    device = (R('torch.device')('cuda:0') if R('torch.cuda.is_available')()
+              else R('torch.device')('cpu'))
+
+    return device
+
+def build_model(model_name: str) -> pl.LightningModule:
+    if model_name == 'googlenet':
+        kwargs = {
+            'model_hparams'    : {'num_classes': 10, 'act_fn_name': 'relu'},
+            'optimizer_name'   : 'Adam',
+            'optimizer_hparams': {'lr': 1e-3, 'weight_decay': 1e-4}
+        }
+
+    elif model_name == 'resnet':
+        kwargs = {
+            'model_hparams'    : {
+                'num_classes': 10,
+                'c_hidden'   : [16, 32, 64],
+                'num_blocks' : [3, 3, 3],
+                'act_fn_name': 'relu'},
+            'optimizer_name'   : 'SGD',
+            'optimizer_hparams': {'lr': 0.1, 'momentum': 0.9, 'weight_decay': 1e-4}
+        }
+
+    elif model_name == 'densenet':
+        kwargs = {
+            'model_hparams'    : {
+                'num_classes': 10,
+                'num_layers' : [6, 6, 6, 6],
+                'bn_size'    : 2,
+                'growth_rate': 16,
+                'act_fn_name': 'relu'},
+            'optimizer_name'   : 'Adam',
+            'optimizer_hparams': {'lr': 1e-3, 'weight_decay': 1e-4}
+
+        }
+
+    else:
+        raise Exception(f'unknown model name: {model_name}')
+
+    model = CIFARModule(model_name=model_name, **kwargs)
+
+    with open(f'{os.environ["PWD"]}/ci-tests/cifar_module.py', 'r') as fd:
+        CIFARModule_src = fd.readlines()
+
+    CIFARModule_src = ''.join(CIFARModule_src[4:])
+    res = _client.ExportModel('ci_tests.cifar_module.CIFARModule', CIFARModule_src)
+    if isinstance(res, Exception):
+        raise res
+
+    return model
+
+
+def stream_data(samples: torch.Tensor, labels: torch.Tensor, max_epoch: int):
+
+    DATA_MEANS = (samples).mean(axis=(0, 2, 3))
+    DATA_STD   = (samples).std(axis=(0, 2, 3))
+
+    train_transform = transforms.Compose(
+        [
+            transforms.ToPILImage(),
+            transforms.RandomHorizontalFlip(),
+            transforms.RandomResizedCrop((32, 32), scale=(0.8, 1.0), ratio=(0.9, 1.1)),
+            transforms.ToTensor(),
+            transforms.Normalize(DATA_MEANS, DATA_STD)
+        ]
+    )
+
+    transforms_in_de = [ train_transform ]
+    args             = [ (...,) ]
+    kwargs           = [ {} ]
+
+    _client.StreamData(samples, labels, transforms_in_de, args, kwargs,
+                       max_epoch)
+
+
+################################################################################
+# Kill server after all tests are completed                                    #
+################################################################################
+
+@pytest.fixture(scope="session", autouse=True)
+def cleanup(request):
+    def _kill_server():
+        try: kill_server()
+        except: pass
+    request.addfinalizer(_kill_server)

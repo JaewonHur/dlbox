@@ -145,6 +145,14 @@ class ExecutionRuntime():
 
             from ci_tests.mnist import mnist
             samples, labels = mnist.sample_init()
+        elif self.ci in ['googlenet', 'resnet', 'densenet']:
+            _trust('torchvision')
+            _trust('PIL')
+            _trust('numpy')
+            _trust('types')
+
+            from ci_tests.cifar_10 import cifar_10
+            samples, labels = cifar_10.sample_init()
         else:
             raise NotImplementedError(f'cannot test {self.ci}')
 

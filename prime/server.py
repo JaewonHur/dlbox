@@ -108,7 +108,7 @@ class PrimeServer(PrimeServerServicer):
 @click.command()
 @click.option('--port', default=50051, help='grpc port number')
 @click.option('--ci', default=None,
-              type=click.Choice(['mnist']),
+              type=click.Choice(['mnist', 'googlenet', 'resnet', 'densenet']),
               help='ci-test to be tested')
 @click.option('--ll', default='DEBUG', type=click.Choice(['DEBUG', 'INFO',
                                                            'ERROR', 'WARNING']),
