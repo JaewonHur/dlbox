@@ -6,7 +6,7 @@ from __future__ import annotations
 import re
 import sys
 from typing import List, Dict, Union, Any
-from types import NoneType, NotImplementedType, FunctionType
+from types import FunctionType
 from functools import partial
 
 import prime
@@ -85,7 +85,7 @@ def get_path(obj: Any) -> str:
     return f'{obj.__module__}.{obj.__name__}'
 
 def _prime_op(func):
-    def wrapper(self: Proxy, *args, **kwargs) -> Union[Proxy, NotImplementedType]:
+    def wrapper(self: Proxy, *args, **kwargs) -> Union[Proxy, Any]:
         res = self._client.InvokeMethod(self._ref, func.__name__,
                                         args, kwargs)
 
