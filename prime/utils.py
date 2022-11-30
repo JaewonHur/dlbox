@@ -64,8 +64,10 @@ def run_server(port: Optional[int] = None, ci: Optional[str] = None,
     ci = ["--ci", ci] if ci else []
     ll = ["--ll", ll] if ll else []
 
+    # TODO remove this
+    pwd = os.environ['PWD']
     SERVER_PID = subprocess.Popen(["python",
-                                   "/home/jwhur/Research/Prime/prime/prime/server.py"]
+                                   f"{pwd}/prime/server.py"]
                                   + port + ci + ll).pid
     # TODO
     # os.system('python -m server')
