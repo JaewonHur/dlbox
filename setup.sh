@@ -20,7 +20,7 @@ for dn in mnist cifar_10
 do
     wget http://147.46.174.102:37373/$dn.tar
     tar xvf $dn.tar
-    cp $dn/* ci-tests/$dn/
+    cp -r $dn/* ci-tests/$dn/
     rm -rf $dn
 done
 
