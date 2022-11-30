@@ -6,6 +6,7 @@ import pytest
 import time
 from threading import Thread
 
+import os
 import PIL
 import torch
 import torchvision
@@ -25,8 +26,11 @@ from tests.common import *
 STOPPED = False
 
 def test_init_mnistServer():
+
+    port = os.environ.get('PRIMEPORT', None)
+
     kill_server()
-    run_server(port=None, ci='mnist', ll='ERROR')
+    run_server(port=port, ci='mnist', ll='ERROR')
 
     time.sleep(1)
     if not _client.check_server():

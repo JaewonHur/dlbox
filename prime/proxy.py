@@ -3,6 +3,7 @@
 #
 from __future__ import annotations
 
+import os
 import re
 import sys
 from typing import List, Dict, Union, Any
@@ -20,8 +21,10 @@ from prime_pb2 import *
 from prime_pb2_grpc import *
 
 # Run PrimeServer and PrimeClient
-utils.run_server()
-_client = PrimeClient()
+port = os.environ.get('PRIMEPORT', None)
+
+utils.run_server(port)
+_client = PrimeClient(port)
 
 # TODO: HasRef of Prime client does not set ctx
 # delattr(HasRef, '_set_ctx')

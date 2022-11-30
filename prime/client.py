@@ -20,7 +20,9 @@ TIMEOUT_SEC = 10
 
 
 class PrimeClient:
-    def __init__(self, port=50051):
+    def __init__(self, port=None):
+        port = 50051 if not port else port
+
         # TODO: construct secure channel
         self.channel = grpc.insecure_channel(f'[::]:{port}')
         if not self.check_server():

@@ -71,8 +71,11 @@ def sample_init() -> (Tensor, Tensor):
     return samples, labels
 
 def reset_server():
+
+    port = os.environ.get('PRIMEPORT', None)
+
     prime.utils.kill_server()
-    prime.utils.run_server()
+    prime.utils.run_server(port)
 
     global samples, labels
     samples, labels = sample_init()
