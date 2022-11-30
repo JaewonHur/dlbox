@@ -68,7 +68,6 @@ def test_cifar10(model):
         #     ),
         #     LearningRateMonitor('epoch'),
         # ],
-        progress_bar_refresh_rate=1
     )
     # trainer.logger._log_graph = True
     # trainer.logger._default_hp_metric = True
