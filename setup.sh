@@ -10,6 +10,9 @@ fi
 echo "Install packages"
 pip3 install -r requirements.txt
 
+mkdir build
+python3 -m grpc_tools.protoc -I protos --python_out=build --grpc_python_out=build protos/prime.proto
+
 echo "[0] Run tests"
 python3 -m pytest tests
 
