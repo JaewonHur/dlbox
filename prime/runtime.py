@@ -12,7 +12,7 @@ import shutil
 import builtins
 import importlib.util
 from typing import types, List, Dict, Any, Optional, Type, Tuple, Union, Callable
-from types import FunctionType, MethodType, NoneType
+from types import FunctionType, MethodType
 from collections.abc import Iterator
 from functools import partial
 

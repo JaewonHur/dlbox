@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from typing import Optional, Dict
-from types import NoneType
 
 from prime.exceptions import PrimeNotAllowedError
 
@@ -27,7 +26,7 @@ class FromRef:
 
 
 class HasRef(object):
-    __ctx: Optional[NoneType, Dict] = None
+    __ctx: Dict = None
     __can_useref: bool = True
     __fromref: FromRef = None
 
