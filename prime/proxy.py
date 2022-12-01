@@ -25,9 +25,9 @@ in_vm = bool(os.environ.get('IN_VM', False))
 ipaddr = os.environ.get('PRIMEIPADDR', None)
 port = os.environ.get('PRIMEPORT', None)
 
-if in_vm:
+if not in_vm:
     utils.run_server(port)
-_client = PrimeClient(ipaddr, port) if utils.IS_SERVER else None
+_client = PrimeClient(ipaddr, port) if not utils.IS_SERVER else None
 
 # TODO: HasRef of Prime client does not set ctx
 # delattr(HasRef, '_set_ctx')
