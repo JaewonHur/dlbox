@@ -121,7 +121,7 @@ class ExecutionRuntime():
     __ctx = {}
     __taints: TaintTracker = None
 
-    def __init__(self, ci: Optional[str]):
+    def __init__(self, dn: Optional[str]):
 
         if self.__initialized:
             raise Exception('There can exist only one ExecutionRuntime')
@@ -129,30 +129,40 @@ class ExecutionRuntime():
 
         self.ctr = 0
 
-        self.ci = ci
+        self.dn = dn
         self.init_samples()
         self.dqueue = DataQueue()
         self.is_learning = False
 
     def init_samples(self):
 
-        if self.ci is None:
+        if self.dn is None:
             samples, labels = sample_init()
-        elif self.ci == 'mnist':
+        elif self.dn == 'mnist':
             _trust('torchvision')
             _trust('PIL')
             _trust('numpy')
 
             from ci_tests.mnist import mnist
             samples, labels = mnist.sample_init()
-        elif self.ci in ['googlenet', 'resnet', 'densenet']:
+        elif self.dn == 'cifar10':
             _trust('torchvision')
             _trust('PIL')
             _trust('numpy')
             _trust('types')
 
-            from ci_tests.cifar_10 import cifar_10
-            samples, labels = cifar_10.sample_init()
+            # from ci_tests.cifar_10 import cifar_10
+            # samples, labels = cifar_10.sample_init()
+
+            from eval_tests.datalib import cifar10
+            samples, labels = cifar10.sample_init()
+
+        elif self.dn == 'utkface':
+            raise NotImplementedError()
+
+        elif self.dn == 'chestxray':
+            raise NotImplementedError()
+
         else:
             raise NotImplementedError(f'cannot test {self.ci}')
 
