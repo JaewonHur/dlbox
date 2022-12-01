@@ -46,9 +46,13 @@ def test_init_Server(dataset):
     port = os.environ.get('PRIMEPORT', None)
 
     kill_server()
-    run_server(port=port, ci=dataset, ll='ERROR')
+    run_server(port=port, dn=dataset, ll='ERROR')
 
-    time.sleep(2)
+    for i in range(60):
+        time.sleep(1)
+        if _client.check_server():
+            break
+
     if not _client.check_server():
         raise Exception('Server not running')
 
@@ -67,7 +71,7 @@ def test_classification(dataset, model):
     train_transform, test_transform = build_transform(model_name, dataset,
                                                       samples_d, labels_d)
 
-    max_epochs = 1
+    max_epochs = 10
     trainer = pl.Trainer(
         default_root_dir=os.path.join('/tmp/{dataset}-{model_name}'),
         gpus=1 if str(device) == 'cuda:0' else 0,
@@ -80,11 +84,11 @@ def test_classification(dataset, model):
     res = _client.FitModel(trainer, model,
                            [],
                            {'batch_size': 128},
-                           [], {})
+                           [], {'max_epochs': max_epochs})
     if isinstance(res, Exception):
         raise res
 
-    eval_model(trainer, dataset, model, test_transform)
+    eval_model(trainer, dataset, res, test_transform)
 
 
 def eval_model(trainer, dataset, model, test_transform):
@@ -95,7 +99,9 @@ def eval_model(trainer, dataset, model, test_transform):
     dataset_path = f'{pwd}/eval-tests/datasets/{dataset}'
 
     data_set = (cifar10.get_dataset(dataset_path, test_transform) if dataset == 'cifar10'
-                else None)
+                else utkface.get_dataset(dataset_path, test_transform) if dataset == 'utkface'
+                else chestxray.get_dataset(dataset_path, test_transform))
+
     len_test = len(data_set) // 5
 
     _, test_set = random_split(data_set, [len(data_set) - len_test, len_test])
@@ -139,10 +145,37 @@ def build_transform(model_name, dataset,
         ])
 
     elif dataset == 'utkface':
-        raise NotImplementedError()
+        UTKFACE_MEAN = samples.mean(axis=(0, 2, 3))
+        UTKFACE_STD = samples.std(axis=(0, 2, 3))
+
+        train_transform = transforms.Compose([
+            transforms.ToPILImage(),
+            transforms.Resize((128, 128)),
+            transforms.ToTensor(),
+            transforms.Normalize(UTKFACE_MEAN,
+                                 UTKFACE_STD)
+        ])
+
+        test_transform = transforms.Compose([
+            transforms.ToPILImage(),
+            transforms.Resize((128, 128)),
+            transforms.ToTensor(),
+            transforms.Normalize(UTKFACE_MEAN,
+                                 UTKFACE_STD)
+        ])
 
     elif dataset == 'chestxray':
-        raise NotImplementedError()
+        train_transform = transforms.Compose([
+            transforms.RandomApply([
+                transforms.RandomRotation(10),
+                transforms.RandomHorizontalFlip()
+            ], 0.7),
+            transforms.ToTensor()
+        ])
+
+        test_transform = transforms.Compose([
+            transforms.ToTensor(),
+        ])
 
     else:
         raise NotImplementedError(f'{dataset} not supported')

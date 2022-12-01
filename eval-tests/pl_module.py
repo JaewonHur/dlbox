@@ -7,15 +7,15 @@ import torchvision
 
 
 class plModule(pytorch_lightning.LightningModule):
-    def __init__(self, model_name, hyperparams):
+    def __init__(self, model_name, hparams):
         super().__init__()
 
         self.model_name = model_name
         if model_name == 'simplefc':
-            self.model = FC(**hyperparams)
+            self.model = FC(**hparams)
 
         elif model_name == 'simplecnn':
-            self.model = CNN(**hyperparams)
+            self.model = CNN(**hparams)
 
         elif model_name == 'resnet':
             model = torchvision.models.resnet18(num_classes=hparams['num_classes'])
