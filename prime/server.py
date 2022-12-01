@@ -15,8 +15,8 @@ from prime_pb2_grpc import *
 
 
 class PrimeServer(PrimeServerServicer):
-    def __init__(self, ci: Optional[str] = None):
-        self._runtime = ExecutionRuntime(ci)
+    def __init__(self, dn: Optional[str] = None):
+        self._runtime = ExecutionRuntime(dn)
 
         is_server()
 
@@ -108,14 +108,20 @@ class PrimeServer(PrimeServerServicer):
 @click.command()
 @click.option('--port', default=50051, help='grpc port number')
 @click.option('--ci', default=None,
-              type=click.Choice(['mnist', 'googlenet', 'resnet', 'densenet']),
+              type=click.Choice(['mnist', 'cifar10']),
               help='ci-test to be tested')
+@click.option('--dn', default=None,
+              type=click.Choice(['cifar10']),
+              help='dataset name to train model')
 @click.option('--ll', default='DEBUG', type=click.Choice(['DEBUG', 'INFO',
                                                            'ERROR', 'WARNING']),
               help='log level (DEBUG | INFO | ERROR | WARNING)')
-def run(port, ci, ll):
+def run(port, ci, dn, ll):
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=2))
-    add_PrimeServerServicer_to_server(PrimeServer(ci), server)
+
+
+    dn = dn if dn else ci # TODO move ci to dn
+    add_PrimeServerServicer_to_server(PrimeServer(dn), server)
 
     # TODO: Add credential and open a secure port
     server.add_insecure_port(f'[::]:{port}')
