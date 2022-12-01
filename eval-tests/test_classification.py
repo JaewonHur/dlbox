@@ -30,6 +30,10 @@ def bprint(s):
     print ('\033[1m' + s + '\033[0m')
 
 @pytest.fixture
+def is_vm(pytestconfig):
+    return pytestconfig.getoption('--is_vm')
+
+@pytest.fixture
 def baseline(pytestconfig):
     return pytestconfig.getoption('--baseline')
 
@@ -67,15 +71,16 @@ class baseDataset(Dataset):
 # Init server before starting tests                                            #
 ################################################################################
 
-def test_init_Server(baseline, dataset):
+def test_init_Server(is_vm, baseline, dataset):
     port = os.environ.get('PRIMEPORT', None)
 
     if baseline:
         kill_server()
 
     else:
-        kill_server()
-        run_server(port=port, dn=dataset, ll='ERROR')
+        if not is_vm:
+            kill_server()
+            run_server(port=port, dn=dataset, ll='ERROR')
 
         for i in range(60):
             time.sleep(1)
@@ -86,7 +91,7 @@ def test_init_Server(baseline, dataset):
             raise Exception('Server not running')
 
 
-def test_classification(baseline, dataset, model, max_epochs):
+def test_classification(is_vm, baseline, dataset, model, max_epochs):
     start = time.time()
 
     bprint(f'<================================== Evaluating {model} on {dataset} ==================================>')
@@ -122,10 +127,15 @@ def test_classification(baseline, dataset, model, max_epochs):
     train_transform, test_transform = build_transform(model_name, dataset,
                                                       samples_d, labels_d)
 
+    trainer_kwargs = {
+        'default_root_dir': os.path.join('/tmp/{dataset}-{model_name}'),
+        'max_epochs': max_epochs,
+    }
+    if is_vm: 
+        trainer_args['gpus'] = (1 if torch.cuda.is_available() else 0)
+
     trainer = pl.Trainer(
-        default_root_dir=os.path.join('/tmp/{dataset}-{model_name}'),
-        gpus=1 if str(device) == 'cuda:0' else 0,
-        max_epochs=max_epochs
+        **trainer_kwargs
     )
 
     if baseline:
