@@ -79,7 +79,7 @@ def test_cifar10(model):
     res = _client.FitModel(trainer, model,
                            [],
                            {'batch_size': 128},
-                           [], {})
+                           [], {'max_epochs': max_epochs})
     # TODO: Support other arguments
     # res = _client.FitModel(trainer, model,
     #                        [],                                      # d_args
