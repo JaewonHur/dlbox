@@ -30,7 +30,7 @@ def test_init_mnistServer():
     port = os.environ.get('PRIMEPORT', None)
 
     kill_server()
-    run_server(port=port, ci='mnist', ll='ERROR')
+    run_server(port=port, dn='mnist', ll='ERROR')
 
     time.sleep(1)
     if not _client.check_server():
