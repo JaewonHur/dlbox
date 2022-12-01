@@ -24,7 +24,7 @@ from prime_pb2_grpc import *
 port = os.environ.get('PRIMEPORT', None)
 
 utils.run_server(port)
-_client = PrimeClient(port)
+_client = None if utils.IS_SERVER else PrimeClient(port, True)
 
 # TODO: HasRef of Prime client does not set ctx
 # delattr(HasRef, '_set_ctx')
