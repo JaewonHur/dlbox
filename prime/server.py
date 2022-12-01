@@ -109,24 +109,19 @@ class PrimeServer(PrimeServerServicer):
 
 @click.command()
 @click.option('--port', default=50051, help='grpc port number')
-@click.option('--ci', default=None,
-              type=click.Choice(['mnist', 'cifar10']),
-              help='ci-test to be tested')
 @click.option('--dn', default=None,
-              type=click.Choice(['cifar10']),
+              type=click.Choice(['mnist', 'cifar10', 'utkface', 'chestxray']),
               help='dataset name to train model')
 @click.option('--ll', default='DEBUG', type=click.Choice(['DEBUG', 'INFO',
                                                            'ERROR', 'WARNING']),
               help='log level (DEBUG | INFO | ERROR | WARNING)')
-def run(port, ci, dn, ll):
+def run(port, dn, ll):
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=2),
                          options=[
                              ('grpc.max_send_message_length', MAX_MESSAGE_LENGTH),
                              ('grpc.max_receive_message_length', MAX_MESSAGE_LENGTH)
                          ])
 
-
-    dn = dn if dn else ci # TODO move ci to dn
     add_PrimeServerServicer_to_server(PrimeServer(dn), server)
 
     # TODO: Add credential and open a secure port

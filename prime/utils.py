@@ -55,7 +55,7 @@ def is_server():
     global IS_SERVER
     IS_SERVER = True
 
-def run_server(port: Optional[int] = None, ci: Optional[str] = None,
+def run_server(port: Optional[int] = None, dn: Optional[str] = None,
                ll: Optional[str] = None):
     if IS_SERVER: return
 
@@ -64,14 +64,14 @@ def run_server(port: Optional[int] = None, ci: Optional[str] = None,
         raise Exception(f'server[{SERVER_PID}] already runnig')
 
     port = [ "--port", str(port) ] if port else []
-    ci = ["--ci", ci] if ci else []
+    dn = ["--dn", dn] if dn else []
     ll = ["--ll", ll] if ll else []
 
     # TODO remove this
     pwd = os.environ['PWD']
     SERVER_PID = subprocess.Popen(["python",
                                    f"{pwd}/prime/server.py"]
-                                  + port + ci + ll).pid
+                                  + port + dn + ll).pid
     # TODO
     # os.system('python -m server')
 
