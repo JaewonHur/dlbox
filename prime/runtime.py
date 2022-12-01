@@ -150,6 +150,7 @@ class ExecutionRuntime():
             _trust('PIL')
             _trust('numpy')
             _trust('types')
+            _trust('time')
 
             # from ci_tests.cifar_10 import cifar_10
             # samples, labels = cifar_10.sample_init()
@@ -160,6 +161,7 @@ class ExecutionRuntime():
         elif self.dn == 'utkface':
             _trust('torchvision')
             _trust('PIL')
+            _trust('time')
 
             from eval_tests.datalib import utkface
             samples, labels = utkface.sample_init()
@@ -167,6 +169,7 @@ class ExecutionRuntime():
         elif self.dn == 'chestxray':
             _trust('torchvision')
             _trust('PIL')
+            _trust('time')
 
             from eval_tests.datalib import chestxray
             samples, labels = chestxray.sample_init()

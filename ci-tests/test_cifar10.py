@@ -58,7 +58,7 @@ def test_cifar10(model):
 
     model = build_model(model_name)
 
-    max_epochs = 10
+    max_epochs = 2
     trainer = pl.Trainer(
         default_root_dir=os.path.join('/tmp', model_name),
         gpus=1 if str(device) == 'cuda:0' else 0,

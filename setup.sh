@@ -13,6 +13,8 @@ pip3 install -r requirements.txt
 mkdir build
 python3 -m grpc_tools.protoc -I protos --python_out=build --grpc_python_out=build protos/prime.proto
 
+export PYTHONPATH=$PYTHONPATH:$PWD:$PWD/build
+
 echo "[0] Run tests"
 python3 -m pytest tests
 
@@ -38,5 +40,5 @@ python3 -m pytest -s ci-tests/test_mnist.py
 echo "[1.2] test_cifar10 (googlenet)"
 python3 -m pytest -s ci-tests/test_cifar10.py --model googlenet
 
-echo "[1.3] test_cifar10 (resnet)"
-python3 -m pytest -s ci-tests/test_cifar10.py --model resnet
+# echo "[1.3] test_cifar10 (resnet)"
+# python3 -m pytest -s ci-tests/test_cifar10.py --model resnet

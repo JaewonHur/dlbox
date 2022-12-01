@@ -101,17 +101,18 @@ class LitClassifier(pytorch_lightning.LightningModule):
 
     model = LitClassifier()
 
-    max_epoch = 2
-    trainer = pytorch_lightning.Trainer(max_epochs=max_epoch)
+    max_epochs = 2
+    trainer = pytorch_lightning.Trainer(max_epochs=max_epochs)
 
     # data_thread = Thread(target=supply_data,
     #                      args=(samples_d, labels_d))
 
     # data_thread.start()
 
-    stream_data(samples_d, labels_d, max_epoch)
+    stream_data(samples_d, labels_d, max_epochs)
     res = _client.FitModel(trainer, model,
-                           [], {'batch_size': 32}, [], {})
+                           [], {'batch_size': 32}, [], 
+                           {'max_epochs': max_epochs})
     if isinstance(res, Exception):
         raise res
 
