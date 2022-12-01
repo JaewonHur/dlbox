@@ -21,10 +21,13 @@ from prime_pb2 import *
 from prime_pb2_grpc import *
 
 # Run PrimeServer and PrimeClient
+in_vm = bool(os.environ.get('IN_VM', False))
+ipaddr = os.environ.get('PRIMEIPADDR', None)
 port = os.environ.get('PRIMEPORT', None)
 
-utils.run_server(port)
-_client = None if utils.IS_SERVER else PrimeClient(port, True)
+if in_vm:
+    utils.run_server(port)
+_client = PrimeClient(ipaddr, port)
 
 # TODO: HasRef of Prime client does not set ctx
 # delattr(HasRef, '_set_ctx')
