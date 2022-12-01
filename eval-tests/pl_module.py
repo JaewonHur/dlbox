@@ -1,5 +1,6 @@
 import torch
 import pytorch_lightning
+import time
 
 import torchvision
 
@@ -39,6 +40,8 @@ class plModule(pytorch_lightning.LightningModule):
             raise NotImplementedError(f'{model_name} not supported')
 
         self.loss_fun = torch.nn.CrossEntropyLoss()
+        self.start = time.time()
+        self.epoch = 1
 
     def forward(self, imgs):
         return self.model(imgs)
@@ -80,6 +83,13 @@ class plModule(pytorch_lightning.LightningModule):
         acc = (labels == preds).float().mean()
 
         self.log('test_acc', acc)
+
+    def training_epoch_end(self, outputs):
+        loss = sum(outputs['loss'] for o in outputs) / len(outputs)
+        elapsed_time = int(time.time() - self.start)
+
+        print(f'[{elapsed_time}] Epoch {self.epoch} #### loss: {loss}')
+        self.epoch += 1
 
 
 class FC(torch.nn.Module):
