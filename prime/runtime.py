@@ -512,7 +512,8 @@ class ExecutionRuntime():
         import torch
         import pytorch_lightning as pl
 
-        trainer = self._deserialize(trainer, False)[1]
+        # TODO: Need to fix!!
+        # trainer = self._deserialize(trainer, False)[1]
         model   = self._deserialize(model, False)[1]
 
         logger.debug(f'{model}')
@@ -522,6 +523,14 @@ class ExecutionRuntime():
 
         args   = [ self._deserialize(i, False)[1] for i in args ]
         kwargs = { k:self._deserialize(v, False)[1] for k, v in kwargs.items() }
+
+        # TODO: Fix this!! Get arguments from grpc not trainer itself
+        trainer = pl.Trainer(
+            default_root_dir=os.path.join('/tmp/fitmodel'),
+            gpus=1 if str(torch.cuda.is_available()) else 0,
+            max_epochs=kwargs['max_epochs']
+        )
+        kwargs.pop('max_epochs')
 
         if self.is_learning:
             raise PrimeNotSupportedError('already learning')
