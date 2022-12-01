@@ -16,12 +16,16 @@ python3 -m grpc_tools.protoc -I protos --python_out=build --grpc_python_out=buil
 echo "[0] Run tests"
 python3 -m pytest tests
 
-for dn in mnist cifar_10
+wget http://147.46.174.102:37373/mnist.tar
+tar xvf mnist.tar
+cp -r mnist/* ci-tests/mnist/
+
+mkdir eval-tests/datasets
+for dn in cifar10 utkface chestxray
 do
     wget http://147.46.174.102:37373/$dn.tar
     tar xvf $dn.tar
-    cp -r $dn/* ci-tests/$dn/
-    rm -rf $dn
+    mv $dn eval-tests/datasets/
 done
 
 echo "Run ci-tests"

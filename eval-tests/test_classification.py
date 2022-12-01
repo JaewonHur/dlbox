@@ -58,6 +58,8 @@ def test_init_Server(dataset):
 
 
 def test_classification(dataset, model):
+    start = time.time()
+
     bprint(f'<================================== Evaluating {model} on {dataset} ==================================>')
     model_name = model
 
@@ -89,6 +91,23 @@ def test_classification(dataset, model):
         raise res
 
     eval_model(trainer, dataset, res, test_transform)
+
+    end = time.time()
+    elapsed_time = end - start
+
+    save_log(dataset, model_name, elapsed_time)
+
+
+def save_log(dataset, model_name, elapsed_time):
+    from datetime import datetime
+    now = datetime.now().strftime("%Y-%m-%d-%H%M")
+
+    pwd = os.getcwd()
+    os.makedirs(f'{pwd}/eval-logs', exist_ok=True)
+
+    pid = os.getpid()
+    with open(f'{pwd}/eval-logs/{dataset}-{model_name}-time.txt', 'a') as fd:
+        fd.write(f'[pid] {now}| {elapsed_time}\n')
 
 
 def eval_model(trainer, dataset, model, test_transform):
