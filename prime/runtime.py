@@ -158,10 +158,18 @@ class ExecutionRuntime():
             samples, labels = cifar10.sample_init()
 
         elif self.dn == 'utkface':
-            raise NotImplementedError()
+            _trust('torchvision')
+            _trust('PIL')
+
+            from eval_tests.datalib import utkface
+            samples, labels = utkface.sample_init()
 
         elif self.dn == 'chestxray':
-            raise NotImplementedError()
+            _trust('torchvision')
+            _trust('PIL')
+
+            from eval_tests.datalib import chestxray
+            samples, labels = chestxray.sample_init()
 
         else:
             raise NotImplementedError(f'cannot test {self.ci}')
