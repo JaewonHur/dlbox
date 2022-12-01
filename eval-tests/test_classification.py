@@ -131,8 +131,8 @@ def test_classification(is_vm, baseline, dataset, model, max_epochs):
         'default_root_dir': os.path.join('/tmp/{dataset}-{model_name}'),
         'max_epochs': max_epochs,
     }
-    if is_vm: 
-        trainer_args['gpus'] = (1 if torch.cuda.is_available() else 0)
+    if not is_vm: 
+        trainer_kwargs['gpus'] = (1 if torch.cuda.is_available() else 0)
 
     trainer = pl.Trainer(
         **trainer_kwargs
@@ -175,7 +175,7 @@ def save_log(dataset, model_name, elapsed_time):
 
     pid = os.getpid()
     with open(f'{pwd}/eval-logs/{dataset}-{model_name}-time.txt', 'a') as fd:
-        fd.write(f'[pid] {now}| {elapsed_time}\n')
+        fd.write(f'[{pid}] {now}| {elapsed_time}\n')
 
 
 def eval_model(trainer, dataset, model, test_transform):
