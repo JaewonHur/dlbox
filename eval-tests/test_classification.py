@@ -140,7 +140,7 @@ def test_classification(is_vm, baseline, dataset, model, max_epochs):
 
     if baseline:
         data_set = baseDataset(samples_d, labels_d, train_transform)
-        dataloader = DataLoader(data_set, batch_size=128)
+        dataloader = DataLoader(data_set, batch_size=64)
 
         trainer.fit(model, dataloader)
         fitted_model = model
@@ -151,7 +151,7 @@ def test_classification(is_vm, baseline, dataset, model, max_epochs):
 
         res = _client.FitModel(trainer, model,
                                [],
-                               {'batch_size': 128},
+                               {'batch_size': 64},
                                [], {'max_epochs': max_epochs})
         if isinstance(res, Exception):
             raise res
@@ -253,6 +253,7 @@ def build_transform(model_name, dataset,
 
     elif dataset == 'chestxray':
         train_transform = transforms.Compose([
+            transforms.ToPILImage(),
             transforms.RandomApply([
                 transforms.RandomRotation(10),
                 transforms.RandomHorizontalFlip()
@@ -261,7 +262,6 @@ def build_transform(model_name, dataset,
         ])
 
         test_transform = transforms.Compose([
-            transforms.ToTensor(),
         ])
 
     else:
