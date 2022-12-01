@@ -28,6 +28,7 @@ do
     wget http://147.46.174.102:37373/$dn.tar
     tar xvf $dn.tar
     mv $dn eval-tests/datasets/
+    rm $dn.tar
 done
 ln -s eval-tests eval_tests
 
