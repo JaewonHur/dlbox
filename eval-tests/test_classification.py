@@ -41,6 +41,10 @@ def dataset(pytestconfig):
 def model(pytestconfig):
     return pytestconfig.getoption('--model')
 
+@pytest.fixture
+def max_epochs(pytestconfig):
+    return pytestconfig.getoption('--max_epochs')
+
 
 #####
 class baseDataset(Dataset):
@@ -82,12 +86,12 @@ def test_init_Server(baseline, dataset):
             raise Exception('Server not running')
 
 
-def test_classification(baseline, dataset, model):
+def test_classification(baseline, dataset, model, max_epochs):
     start = time.time()
 
     bprint(f'<================================== Evaluating {model} on {dataset} ==================================>')
     model_name = model
-
+    max_epochs = int(max_epochs)
 
     if baseline:
         device = torch.device('cuda:0') if torch.cuda.is_available() else torch.device('cpu')
@@ -118,7 +122,6 @@ def test_classification(baseline, dataset, model):
     train_transform, test_transform = build_transform(model_name, dataset,
                                                       samples_d, labels_d)
 
-    max_epochs = 10
     trainer = pl.Trainer(
         default_root_dir=os.path.join('/tmp/{dataset}-{model_name}'),
         gpus=1 if str(device) == 'cuda:0' else 0,
