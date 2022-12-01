@@ -16,7 +16,7 @@ import torch
 import torch.nn as nn
 import pytorch_lightning as pl
 import torchvision.transforms as transforms
-from torch.utils.data import random_split
+from torch.utils.data import random_split, Dataset, DataLoader
 
 from eval_tests.pl_module import plModule
 from eval_tests.datalib import cifar10, utkface, chestxray
@@ -30,6 +30,10 @@ def bprint(s):
     print ('\033[1m' + s + '\033[0m')
 
 @pytest.fixture
+def baseline(pytestconfig):
+    return pytestconfig.getoption('--baseline')
+
+@pytest.fixture
 def dataset(pytestconfig):
     return pytestconfig.getoption('--dataset')
 
@@ -38,37 +42,78 @@ def model(pytestconfig):
     return pytestconfig.getoption('--model')
 
 
+#####
+class baseDataset(Dataset):
+    def __init__(self, samples, labels, transform):
+        self.samples = samples
+        self.labels = labels
+        self.transform = transform
+
+    def __len__(self):
+        return len(self.samples)
+
+    def __getitem__(self, idx):
+
+        sample, lbl = self.samples[idx], self.labels[idx]
+
+        return sample, lbl
+
+
 ################################################################################
 # Init server before starting tests                                            #
 ################################################################################
 
-def test_init_Server(dataset):
+def test_init_Server(baseline, dataset):
     port = os.environ.get('PRIMEPORT', None)
 
-    kill_server()
-    run_server(port=port, dn=dataset, ll='ERROR')
+    if baseline:
+        kill_server()
 
-    for i in range(60):
-        time.sleep(1)
-        if _client.check_server():
-            break
+    else:
+        kill_server()
+        run_server(port=port, dn=dataset, ll='ERROR')
 
-    if not _client.check_server():
-        raise Exception('Server not running')
+        for i in range(60):
+            time.sleep(1)
+            if _client.check_server():
+                break
+
+        if not _client.check_server():
+            raise Exception('Server not running')
 
 
-def test_classification(dataset, model):
+def test_classification(baseline, dataset, model):
     start = time.time()
 
     bprint(f'<================================== Evaluating {model} on {dataset} ==================================>')
     model_name = model
 
-    device = initialize()
 
-    samples_d = Proxy('_SAMPLES')
-    labels_d = Proxy('_LABELS')
+    if baseline:
+        device = torch.device('cuda:0') if torch.cuda.is_available() else torch.device('cpu')
+
+        dlib = (cifar10 if dataset == 'cifar10'
+                else utkface if dataset == 'utkface'
+                else chestxray if dataset == 'chestxray'
+                else None)
+        assert dlib
+
+        samples_d, labels_d = dlib.sample_init()
+
+    else:
+        device = initialize()
+        samples_d = Proxy('_SAMPLES')
+        labels_d = Proxy('_LABELS')
 
     model = build_model(model_name, dataset)
+
+    if not baseline:
+        plmodule_src = inspect.getsource(plModule)
+        res = _client.ExportModel('eval_tests.pl_module.plModule',
+                                  plmodule_src)
+
+        if isinstance(res, Exception):
+            raise res
 
     train_transform, test_transform = build_transform(model_name, dataset,
                                                       samples_d, labels_d)
@@ -80,17 +125,27 @@ def test_classification(dataset, model):
         max_epochs=max_epochs
     )
 
-    stream_data(samples_d, labels_d,
-                train_transform, max_epochs)
+    if baseline:
+        data_set = baseDataset(samples_d, labels_d, train_transform)
+        dataloader = DataLoader(data_set, batch_size=128)
 
-    res = _client.FitModel(trainer, model,
-                           [],
-                           {'batch_size': 128},
-                           [], {'max_epochs': max_epochs})
-    if isinstance(res, Exception):
-        raise res
+        trainer.fit(model, dataloader)
+        fitted_model = model
 
-    eval_model(trainer, dataset, res, test_transform)
+    else:
+        stream_data(samples_d, labels_d,
+                    train_transform, max_epochs)
+
+        res = _client.FitModel(trainer, model,
+                               [],
+                               {'batch_size': 128},
+                               [], {'max_epochs': max_epochs})
+        if isinstance(res, Exception):
+            raise res
+
+        fitted_model = res
+
+    eval_model(trainer, dataset, fitted_model, test_transform)
 
     end = time.time()
     elapsed_time = end - start
@@ -204,13 +259,6 @@ def build_transform(model_name, dataset,
 
 def build_model(model_name, dataset):
     hparams = hyperparams(dataset)
-
-    plmodule_src = inspect.getsource(plModule)
-    res = _client.ExportModel('eval_tests.pl_module.plModule',
-                              plmodule_src)
-
-    if isinstance(res, Exception):
-        raise res
 
     model = plModule(model_name, hparams)
     print(summary(model, input_size=(hparams['input_channels'],
