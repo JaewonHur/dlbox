@@ -85,7 +85,7 @@ class plModule(pytorch_lightning.LightningModule):
         self.log('test_acc', acc)
 
     def training_epoch_end(self, outputs):
-        loss = sum(outputs['loss'] for o in outputs) / len(outputs)
+        loss = sum(o['loss'] for o in outputs) / len(outputs)
         elapsed_time = int(time.time() - self.start)
 
         print(f'[{elapsed_time}] Epoch {self.epoch} #### loss: {loss}')
