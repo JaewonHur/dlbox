@@ -7,6 +7,7 @@ import time
 import pprint
 from typing import Any
 from threading import Thread
+from torchsummary import summary
 
 import os
 import inspect
@@ -47,7 +48,7 @@ def test_init_Server(dataset):
     kill_server()
     run_server(port=port, ci=dataset, ll='ERROR')
 
-    time.sleep(1)
+    time.sleep(2)
     if not _client.check_server():
         raise Exception('Server not running')
 
@@ -62,6 +63,7 @@ def test_classification(dataset, model):
     labels_d = Proxy('_LABELS')
 
     model = build_model(model_name, dataset)
+
     train_transform, test_transform = build_transform(model_name, dataset,
                                                       samples_d, labels_d)
 
@@ -159,6 +161,11 @@ def build_model(model_name, dataset):
         raise res
 
     model = plModule(model_name, hparams)
+    print(summary(model, input_size=(hparams['input_channels'],
+                                     hparams['input_size'],
+                                     hparams['input_size']),
+                  device='cpu'))
+
     return model
 
 
