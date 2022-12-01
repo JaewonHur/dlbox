@@ -7,7 +7,9 @@ import click
 from concurrent import futures
 from typing import Optional
 
-from prime.utils import is_server, set_log_level
+from prime.utils import (
+    is_server, set_log_level, MAX_MESSAGE_LENGTH
+)
 from prime.runtime import ExecutionRuntime
 
 from prime_pb2 import *
@@ -117,7 +119,11 @@ class PrimeServer(PrimeServerServicer):
                                                            'ERROR', 'WARNING']),
               help='log level (DEBUG | INFO | ERROR | WARNING)')
 def run(port, ci, dn, ll):
-    server = grpc.server(futures.ThreadPoolExecutor(max_workers=2))
+    server = grpc.server(futures.ThreadPoolExecutor(max_workers=2),
+                         options=[
+                             ('grpc.max_send_message_length', MAX_MESSAGE_LENGTH),
+                             ('grpc.max_receive_message_length', MAX_MESSAGE_LENGTH)
+                         ])
 
 
     dn = dn if dn else ci # TODO move ci to dn

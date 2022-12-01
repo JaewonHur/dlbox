@@ -8,7 +8,7 @@ import dill
 from typing import types, Type, List, Dict, Any, Tuple, Callable, Union
 import pytorch_lightning as pl
 
-from prime.utils import logger
+from prime.utils import logger, MAX_MESSAGE_LENGTH
 from prime.exceptions import retrieve_xcpt
 from prime.hasref import HasRef
 
@@ -24,7 +24,12 @@ class PrimeClient:
         port = 50051 if not port else port
 
         # TODO: construct secure channel
-        self.channel = grpc.insecure_channel(f'[::]:{port}')
+        self.channel = grpc.insecure_channel(f'[::]:{port}',
+                        options=[
+                            ('grpc.max_send_message_length', MAX_MESSAGE_LENGTH),
+                            ('grpc.max_receive_message_length', MAX_MESSAGE_LENGTH)
+                        ])
+
         if not self.check_server():
             raise RuntimeError('grpc server is not ready')
 

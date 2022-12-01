@@ -7,8 +7,11 @@ import subprocess
 import logging
 from typing import Optional
 
+
 IS_SERVER = False
 SERVER_PID = 0
+
+MAX_MESSAGE_LENGTH = 100 * 1024 * 1024
 
 logger = logging.getLogger()
 logger.setLevel(logging.DEBUG)
