@@ -27,6 +27,7 @@ do
     tar xvf $dn.tar
     mv $dn eval-tests/datasets/
 done
+ln -s eval-tests eval_tests
 
 echo "Run ci-tests"
 ln -s ci-tests ci_tests
