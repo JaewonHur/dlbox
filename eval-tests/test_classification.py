@@ -64,6 +64,9 @@ class baseDataset(Dataset):
 
         sample, lbl = self.samples[idx], self.labels[idx]
 
+        if self.transform:
+            sample = self.transform(sample)
+
         return sample, lbl
 
 
