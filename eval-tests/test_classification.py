@@ -7,6 +7,7 @@ import time
 import pprint
 from typing import Any
 from threading import Thread
+from queue import Queue
 from torchsummary import summary
 
 import os
@@ -68,6 +69,22 @@ class baseDataset(Dataset):
             sample = self.transform(sample)
 
         return sample, lbl
+
+
+class streamDataset(Dataset):
+    def __init__(self, q, N):
+        self.q = q
+        self.N = N
+
+    def __len__(self):
+        return self.N
+
+    def __getitem__(self, idx):
+        if idx >= self.N:
+            raise IndexError()
+
+        s, l = self.q.get()
+        return s, l
 
 
 ################################################################################
@@ -142,7 +159,13 @@ def test_classification(is_vm, baseline, dataset, model, max_epochs):
     )
 
     if baseline:
-        data_set = baseDataset(samples_d, labels_d, train_transform)
+        q = Queue()
+        stream_thread = Thread(target=stream_data_baseline,
+                               args=(q, samples_d, labels_d,
+                                     train_transform, max_epochs))
+
+        # data_set = baseDataset(samples_d, labels_d, train_transform)
+        data_set = streamDataset(q, len(samples_d))
         dataloader = DataLoader(data_set, batch_size=64)
 
         trainer.fit(model, dataloader)
@@ -203,6 +226,13 @@ def eval_model(trainer, dataset, model, test_transform):
     test_result = trainer.test(model, dataloaders=test_loader, verbose=False)
     print(f'====[{model.model_name} Test Result]====\n')
     pprint.pprint(test_result)
+
+
+def stream_data_baseline(q, samples, labels, transform, epochs):
+    for e in range(epochs):
+        for s, l in zip(samples, labels):
+            s = transform(s)
+            q.put((s, l))
 
 
 def stream_data(samples, labels, transform, max_epochs):
