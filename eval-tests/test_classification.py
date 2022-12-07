@@ -163,12 +163,15 @@ def test_classification(is_vm, baseline, dataset, model, max_epochs):
         stream_thread = Thread(target=stream_data_baseline,
                                args=(q, samples_d, labels_d,
                                      train_transform, max_epochs))
+        stream_thread.start()
 
         # data_set = baseDataset(samples_d, labels_d, train_transform)
         data_set = streamDataset(q, len(samples_d))
         dataloader = DataLoader(data_set, batch_size=64)
 
         trainer.fit(model, dataloader)
+        stream_thread.join()
+
         fitted_model = model
 
     else:
