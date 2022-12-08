@@ -148,7 +148,7 @@ def test_classification(is_vm, baseline, dataset, model, max_epochs):
                                                       samples_d, labels_d)
 
     trainer_kwargs = {
-        'default_root_dir': os.path.join('/tmp/{dataset}-{model_name}'),
+        'default_root_dir': os.path.join(f'/tmp/{dataset}-{model_name}'),
         'max_epochs': max_epochs,
     }
     if not is_vm: 
@@ -159,6 +159,8 @@ def test_classification(is_vm, baseline, dataset, model, max_epochs):
     )
 
     if baseline:
+        torch.set_num_threads(12)
+
         q = Queue()
         stream_thread = Thread(target=stream_data_baseline,
                                args=(q, samples_d, labels_d,
