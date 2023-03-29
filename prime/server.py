@@ -2,6 +2,7 @@
 # Copyright (c) 2022
 #
 
+import os
 import grpc
 import click
 from concurrent import futures
@@ -115,7 +116,11 @@ class PrimeServer(PrimeServerServicer):
 @click.option('--ll', default='DEBUG', type=click.Choice(['DEBUG', 'INFO',
                                                            'ERROR', 'WARNING']),
               help='log level (DEBUG | INFO | ERROR | WARNING)')
-def run(port, dn, ll):
+@click.option('--privkey', default=f'{os.getcwd()}/certs/privkey.pem', 
+              help='private key for grpc server')
+@click.option('--cert', default=f'{os.getcwd()}/certs/cert.pem', 
+              help='certificate for grpc server')
+def run(port, dn, ll, privkey, cert):
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=2),
                          options=[
                              ('grpc.max_send_message_length', MAX_MESSAGE_LENGTH),
@@ -124,8 +129,13 @@ def run(port, dn, ll):
 
     add_PrimeServerServicer_to_server(PrimeServer(dn), server)
 
-    # TODO: Add credential and open a secure port
-    server.add_insecure_port(f'[::]:{port}')
+    with open(privkey, 'rb') as fd:
+        privkey = fd.read()
+    with open(cert, 'rb') as fd:
+        cert = fd.read()
+
+    credentials = grpc.ssl_server_credentials(((privkey, cert),))
+    server.add_secure_port(f'[::]:{port}', credentials)
 
     set_log_level(ll)
 

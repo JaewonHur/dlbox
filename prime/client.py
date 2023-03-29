@@ -2,6 +2,7 @@
 # Copyright (c) 2022
 #
 
+import os
 import grpc
 import dill
 
@@ -20,12 +21,15 @@ TIMEOUT_SEC = 10
 
 
 class PrimeClient:
-    def __init__(self, ipaddr=None, port=None):
-        ipaddr = '127.0.0.1' if not ipaddr else ipaddr
-        port = 50051 if not port else port
+    def __init__(self, ipaddr=None, port=None, cert=None):
+        ipaddr = ipaddr or 'localhost'
+        port = port or 50051
+        cert = cert or f'{os.getcwd()}/certs/cert.pem'
 
-        # TODO: construct secure channel
-        self.channel = grpc.insecure_channel(f'{ipaddr}:{port}',
+        with open(cert, 'rb') as fd:
+            creds = grpc.ssl_channel_credentials(fd.read())
+
+        self.channel = grpc.secure_channel(f'{ipaddr}:{port}', creds, 
                         options=[
                             ('grpc.max_send_message_length', MAX_MESSAGE_LENGTH),
                             ('grpc.max_receive_message_length', MAX_MESSAGE_LENGTH)
