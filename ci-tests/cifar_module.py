@@ -481,6 +481,9 @@ class CIFARModule(pytorch_lightning.LightningModule):
 
         return [optimizer], [scheduler]
 
+    def lr_scheduler_step(self, scheduler, optimizer_idx, metric):
+        scheduler.step()
+
     def training_step(self, batch, batch_idx):
         imgs, labels = batch
         preds = self.model(imgs)

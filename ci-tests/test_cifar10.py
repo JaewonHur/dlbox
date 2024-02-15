@@ -16,6 +16,7 @@ import pytorch_lightning as pl
 from torch.utils.data import Dataset, DataLoader
 from torchvision import transforms
 from torchvision.datasets import CIFAR10
+from os.path import abspath, dirname
 
 from ci_tests.cifar_module import CIFARModule
 
@@ -180,8 +181,8 @@ def stream_data(samples: torch.Tensor, labels: torch.Tensor, max_epoch: int):
 def eval_model(trainer: pl.Trainer, model: CIFARModule,
                samples: torch.Tensor, labels: torch.Tensor):
 
-    pwd = os.environ['PWD']
-    DATASET_PATH = f'{pwd}/ci-tests/cifar_10'
+    pwd = dirname(abspath(__file__))
+    DATASET_PATH = f'{pwd}/cifar10'
 
     DATA_MEAN = (samples).mean(axis=(0, 2, 3))
     DATA_STD  = (samples).std(axis=(0, 2, 3))

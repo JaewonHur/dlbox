@@ -2,16 +2,19 @@
 
 set -e 
 
-if [ "$(python --version)" != "Python 3.8.4" ]; then
-    echo "Please use python3.8.4"
+if [ "$(python --version)" != "Python 3.11.2" ]; then
+    echo "Please use python3.11.2"
     exit 0
 fi
 
 echo "Install packages"
-pip3 install -r requirements.txt
+pip3 install -r requirements.txt --break-system-packages
 
 mkdir build
 python3 -m grpc_tools.protoc -I protos --python_out=build --grpc_python_out=build protos/prime.proto
+
+openssl req -newkey rsa:2048 -nodes -keyout certs/privkey.pem -config certs/ca.cnf -out certs/csr.pem
+openssl x509 -req -in certs/csr.pem -signkey certs/privkey.pem -out certs/cert.pem
 
 export PYTHONPATH=$PYTHONPATH:$PWD:$PWD/build
 
@@ -21,8 +24,14 @@ python3 -m pytest tests
 wget http://147.46.174.102:37373/mnist.tar
 tar xvf mnist.tar
 cp -r mnist/* ci-tests/mnist/
+rm mnist.tar
 
-mkdir eval-tests/datasets
+wget http://147.46.174.102:37373/cifar10.tar
+tar xvf cifar10.tar
+cp -r cifar10 ci-tests/cifar10/cifar-10-batches-py
+rm cifar10.tar
+
+# mkdir eval-tests/datasets
 for dn in cifar10 utkface chestxray
 do
     wget http://147.46.174.102:37373/$dn.tar

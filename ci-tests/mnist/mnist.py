@@ -5,6 +5,7 @@ import sys
 import codecs
 import torch
 import numpy as np
+from os.path import abspath, dirname
 
 
 def get_int(b: bytes) -> int:
@@ -56,17 +57,17 @@ def read_label_file(path: str) -> torch.Tensor:
     return x.long()
 
 def sample_init() -> (torch.Tensor, torch.Tensor):
-    pwd = os.environ['PWD']
+    pwd = dirname(abspath(__file__))
 
-    samples = read_image_file(f'{pwd}/ci-tests/mnist/train-images-idx3-ubyte')
-    labels = read_label_file(f'{pwd}/ci-tests/mnist/train-labels-idx1-ubyte')
+    samples = read_image_file(f'{pwd}/train-images-idx3-ubyte')
+    labels = read_label_file(f'{pwd}/train-labels-idx1-ubyte')
 
     return (samples, labels)
 
 def test_init() -> (torch.Tensor, torch.Tensor):
-    pwd = os.environ['PWD']
+    pwd = dirname(abspath(__file__))
 
-    samples = read_image_file(f'{pwd}/ci-tests/mnist/t10k-images-idx3-ubyte')
-    labels = read_label_file(f'{pwd}/ci-tests/mnist/t10k-labels-idx1-ubyte')
+    samples = read_image_file(f'{pwd}/t10k-images-idx3-ubyte')
+    labels = read_label_file(f'{pwd}/t10k-labels-idx1-ubyte')
 
     return (samples, labels)
