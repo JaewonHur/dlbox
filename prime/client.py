@@ -21,19 +21,26 @@ TIMEOUT_SEC = 10
 
 
 class PrimeClient:
-    def __init__(self, ipaddr=None, port=None, cert=None):
+    def __init__(self, ipaddr=None, port=None, cert=None, secure=False):
         ipaddr = ipaddr or 'localhost'
         port = port or 50051
-        cert = cert or f'{os.getcwd()}/certs/cert.pem'
 
-        with open(cert, 'rb') as fd:
-            creds = grpc.ssl_channel_credentials(fd.read())
+        options = [
+            ('grpc.max_send_message_length', MAX_MESSAGE_LENGTH),
+            ('grpc.max_receive_message_length', MAX_MESSAGE_LENGTH)
+        ]
 
-        self.channel = grpc.secure_channel(f'{ipaddr}:{port}', creds, 
-                        options=[
-                            ('grpc.max_send_message_length', MAX_MESSAGE_LENGTH),
-                            ('grpc.max_receive_message_length', MAX_MESSAGE_LENGTH)
-                        ])
+        if secure:
+            cert = cert or f'{os.getcwd()}/certs/cert.pem'
+    
+            with open(cert, 'rb') as fd:
+                creds = grpc.ssl_channel_credentials(fd.read())
+
+            self.channel = grpc.secure_channel(f'{ipaddr}:{port}', creds, 
+                            options=options)
+        else:
+            self.channel = grpc.insecure_channel(f'{ipaddr}:{port}',
+                            options=options)
 
         if not self.check_server():
             raise RuntimeError('grpc server is not ready')

@@ -110,6 +110,7 @@ class PrimeServer(PrimeServerServicer):
 
 @click.command()
 @click.option('--port', default=50051, help='grpc port number')
+@click.option('--secure', default=False, help='secure grpc channel')
 @click.option('--dn', default=None,
               type=click.Choice(['mnist', 'cifar10', 'utkface', 'chestxray']),
               help='dataset name to train model')
@@ -120,7 +121,7 @@ class PrimeServer(PrimeServerServicer):
               help='private key for grpc server')
 @click.option('--cert', default=f'{os.getcwd()}/certs/cert.pem', 
               help='certificate for grpc server')
-def run(port, dn, ll, privkey, cert):
+def run(port, secure, dn, ll, privkey, cert):
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=2),
                          options=[
                              ('grpc.max_send_message_length', MAX_MESSAGE_LENGTH),
@@ -129,13 +130,17 @@ def run(port, dn, ll, privkey, cert):
 
     add_PrimeServerServicer_to_server(PrimeServer(dn), server)
 
-    with open(privkey, 'rb') as fd:
-        privkey = fd.read()
-    with open(cert, 'rb') as fd:
-        cert = fd.read()
+    if secure:
 
-    credentials = grpc.ssl_server_credentials(((privkey, cert),))
-    server.add_secure_port(f'[::]:{port}', credentials)
+        with open(privkey, 'rb') as fd:
+            privkey = fd.read()
+        with open(cert, 'rb') as fd:
+            cert = fd.read()
+
+        credentials = grpc.ssl_server_credentials(((privkey, cert),))
+        server.add_secure_port(f'[::]:{port}', credentials)
+    else:
+        server.add_insecure_port(f'[::]:{port}')
 
     set_log_level(ll)
 

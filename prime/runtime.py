@@ -155,7 +155,7 @@ class ExecutionRuntime():
             # from ci_tests.cifar_10 import cifar_10
             # samples, labels = cifar_10.sample_init()
 
-            from eval_tests.datalib import cifar10
+            from ci_tests.cifar10 import cifar10
             samples, labels = cifar10.sample_init()
 
         elif self.dn == 'utkface':
