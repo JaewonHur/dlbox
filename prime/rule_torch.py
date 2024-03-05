@@ -3,13 +3,13 @@
 #
 from __future__ import annotations
 
-from typing import Any, Callable, Union, List, Optional
+from typing import Any, Callable, Union, List, Optional, Dict
 from types import FunctionType
 from copy import deepcopy
 from collections.abc import Iterator
 
 from prime.utils import logger
-from prime.taint import TagError, Tag, TagSack, TagSackIterator, DangerTag, SafeTag
+from prime.taint import TagError, Tag, TagSack, TagSackIterator, DangerTag, SafeTag, FrozenTag
 
 
 METHOD   = 0
@@ -42,7 +42,30 @@ def _default(*a) -> Optional[Tag]:
     # TODO: release this constraint
     elif not all(not isinstance(t, TagSack)
                  for t in tags + list(kwtags.values())):
-        raise TagError(f'{method} is not allowed on TagSack')
+
+        if any(not t.is_safe() for t in kwtags.values()):
+            raise TagError(f'{method} is not allowed on TagSack with such args')
+
+        if method in ('cat'):
+            tagsack = tags[0]
+
+            if not tagsack.is_safe():
+                raise TagError(f'{method} is not allowed on partial TagSack')
+
+            return tagsack
+
+        elif method in ('TensorDataset'):
+            s_tagsack = tags[0]
+            l_tagsack = tags[1]
+            
+            if not s_tagsack.is_safe() or not l_tagsack.is_safe():
+                raise TagError(f'{method} is not allowed on partial TagSack')
+
+            return FrozenTag()
+
+        else:
+            raise TagError(f'{method} is not allowed on TagSack')
+
 
     else: # All arguments are Tag
         self_tag = [self_tag] if self_tag else []
@@ -138,6 +161,9 @@ def _call(*a) -> Tag:
 
             tag = (SafeTag() if arg_is_safe and self_tag.is_safe()
                    else DangerTag())
+
+        elif method in ('to'):
+            return self_tag
 
         else:
             raise TagError(f'{method} is not allowed on TagSack')

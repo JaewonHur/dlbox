@@ -3,7 +3,7 @@
 #
 from __future__ import annotations
 
-from typing import Any, Set, List, Optional, Union, Callable
+from typing import Any, Set, List, Optional, Union, Callable, Dict
 from enum import Enum
 from functools import reduce
 
@@ -24,6 +24,7 @@ class Status(Enum):
     SAFE      = 0
     DANGER    = 1
     UNDEF     = 2
+    FROZEN    = 3
 
 
 class H(int):
@@ -118,6 +119,9 @@ class Tag:
     def is_danger(self) -> bool:
         return (self.m.status == Status.DANGER)
 
+    def is_frozen(self) -> bool:
+        return (self.m.status == Status.FROZEN)
+
     def set_danger(self):
         self.h = 0
         self.m = M(Status.DANGER)
@@ -131,6 +135,7 @@ class Tag:
 def SafeTag(i: int = 0) -> Tag:      return Tag(H(i), M(Status.SAFE))
 def DangerTag() -> Tag:              return Tag(H(0), M(Status.DANGER))
 def UndefTag(h: int, i: int) -> Tag: return Tag(H(h), M(Status.UNDEF, set([i])))
+def FrozenTag() -> Tag:              return Tag(H(0), M(Status.FROZEN))
 
 
 # NOTE: Support only 1-axis

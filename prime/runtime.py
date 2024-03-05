@@ -145,6 +145,7 @@ class ExecutionRuntime():
 
             from ci_tests.mnist import mnist
             samples, labels = mnist.sample_init()
+
         elif self.dn == 'cifar10':
             _trust('torchvision')
             _trust('PIL')
@@ -253,9 +254,17 @@ class ExecutionRuntime():
             tag = self.__taints[ref]
 
         elif fromref:
-            # TODO
-            raise PrimeNotAllowedError(
-                f'exporting variable containing references is not allowed')
+            if tpe is list:
+                tags = [self.__taints[r] for r in fromref]
+                tag = TagSack(tags)
+
+                for r in fromref:
+                    self.__taints[r] = DangerTag()
+
+            else:
+                # TODO
+                raise PrimeNotAllowedError(
+                    f'exporting variable containing references is not allowed')
 
             # for ref in fromref:
             #     self.__taints[ref] = DangerTag()
@@ -405,7 +414,6 @@ class ExecutionRuntime():
             else:
                 module, method = get_from(method)
 
-        logger.debug(f'{method}')
         t_args = [ self._deserialize(i) for i in args ]
         t_kwargs = { k:self._deserialize(v) for k, v in kwargs.items() }
 
@@ -415,6 +423,7 @@ class ExecutionRuntime():
         tags = [ i[0] for i in t_args ]
         kwtags = { k:v[0] for k,v in t_kwargs.items() }
 
+        logger.debug(f'{method}')
         try:
             out = emulate(method, obj)(*args, **kwargs)
         except Exception as e:
