@@ -30,10 +30,6 @@ service PrimeServer {
   rpc ExportModel (ExportModelArg) returns (Ref) {}
   // Fit model in DE
   rpc FitModel (FitModelArg) returns (Model) {}
-  // Supply data for FitModel
-  rpc SupplyData (SupplyDataArg) returns (Ref) {}
-  // Stream data for FitModel
-  rpc StreamData (StreamDataArg) returns (Ref) {}
 
 /*********************************************************/
 }
@@ -113,30 +109,16 @@ message ExportModelArg {
 
 /* Input message for FitModel
    Args:
-     trainer (bytes)               : serialized trainer instance in FE to train the model
-     model (bytes)                 : serialized ML model from FE (i.e., PytorchLightningModule).
-                                     class definition of the model must be already defined in DE.
-     d_args (repeated bytes)       : list of serialized arguments to construct DataLoader
-     d_kwargs (map<string,bytes>)  : map of key and serialized arguments to construct DataLoader
-     args (repeated bytes)         : list of serialized arguments to Fit.
-     kwargs (map<string,bytes>)    : map of key and serialized arguments to be used as keyword
-                                     arguments.
+     trainer (str)                 : trainer
+     model   (str)                 : model
+     args    (repeated bytes)      : args
+     kwargs  (map<string,bytes>)   : kwargs
 */
 message FitModelArg {
-  bytes              trainer    = 1;
-  bytes              model      = 2;
-  repeated bytes     d_args     = 4;
-  map<string,bytes>  d_kwargs   = 5;
-  repeated bytes     args       = 6;
-  map<string,bytes>  kwargs     = 7;
-}
-
-/* Input message for SupplyData
-   Args:
-     datapairs (repeated DataPair) : list of DataPairs containing samples and labels.
-*/
-message SupplyDataArg {
-  repeated DataPair  datapairs = 1;
+  string            trainer     = 1;
+  string            model       = 2;
+  repeated bytes    args        = 3;
+  map<string,bytes> kwargs      = 4;
 }
 
 /* Reference to the object in DE
@@ -166,34 +148,4 @@ message Refs {
 message Model {
   optional bytes val   = 1;
   optional bytes error = 2;
-}
-
-/* Message of sample & label pair
-   Args:
-     sample (bytes) : serialized bytes of sample
-     label  (bytes) : serialized bytes of label
-*/
-message DataPair {
-  bytes sample = 1;
-  bytes label  = 2;
-}
-
-/* Input message for StreamData
-   Args:
-     samples (bytes)             : reference to the samples Tensor
-     labels (bytes)              : reference to the labels Tensor
-     transforms (repeated bytes) : list of serialized transform functions or name
-     args (repeated bytes)       : list of serialized arg tuples
-                                   ellipsis for the place holder
-     kwargs (repeated bytes)     : list of serialized kwarg dicts
-                                   ellipsis for the place holer
-     max_epoch (bytes)           : serialized maximum number of epochs
-*/
-message StreamDataArg {
-  bytes          samples    = 1;
-  bytes          labels     = 2;
-  repeated bytes transforms = 3;
-  repeated bytes args       = 4;
-  repeated bytes kwargs     = 5;
-  bytes          max_epoch  = 6;
 }

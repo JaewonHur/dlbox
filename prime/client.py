@@ -137,54 +137,20 @@ class PrimeClient:
         return ref
 
     @retrieve_xcpt(True)
-    def FitModel(self, trainer: pl.Trainer, model: pl.LightningModule,
-                 d_args: List[Any], d_kwargs: Dict[str, Any],
+    def FitModel(self, trainer: str, model: str, 
                  args: List[Any], kwargs: Dict[str, Any]) -> Model:
 
-        trainer = dill.dumps(trainer)
-        model   = dill.dumps(model)
-
-        d_args   = [ dill.dumps(i) for i in d_args ]
-        d_kwargs = { k:dill.dumps(v) for k, v in d_kwargs.items() }
-
-        args   = [ dill.dumps(i) for i in args ]
+        arg = FitModelArg()
+        arg.trainer = trainer
+        arg.model = model
+        
+        args = [ dill.dumps(i) for i in args ]
         kwargs = { k:dill.dumps(v) for k, v in kwargs.items() }
 
-        arg = FitModelArg(trainer=trainer, model=model,
-                          d_args=d_args, d_kwargs=d_kwargs,
-                          args=args, kwargs=kwargs)
-
-        model = self.stub.FitModel(arg)
-        return model
-
-    @retrieve_xcpt(False)
-    def SupplyData(self, datapairs: List[Tuple['Proxy']]) -> Ref:
-
-        datapairs = [ DataPair(sample=dill.dumps(p[0]), label=dill.dumps(p[1]))
-                      for p in datapairs ]
-
-        arg = SupplyDataArg(datapairs=datapairs)
-
-        ref = self.stub.SupplyData(arg)
+        arg.args.extend(args)
+        
+        for k, v in kwargs.items():
+            arg.kwargs[k] = v
+            
+        ref = self.stub.FitModel(arg)
         return ref
-
-    @retrieve_xcpt(False)
-    def StreamData(self, samples: 'Proxy', labels: 'Proxy',
-                   transforms: List[Union[Callable, str]], args: List[Tuple], kwargs: List[Dict],
-                   max_epoch: int):
-
-        samples = dill.dumps(samples)
-        labels  = dill.dumps(labels)
-
-        transforms = [ dill.dumps(t) for t in transforms ]
-        args = [ dill.dumps(i) for i in args ]
-        kwargs = [ dill.dumps(i) for i in kwargs ]
-
-        max_epoch  = dill.dumps(max_epoch)
-
-        arg = StreamDataArg(samples=samples, labels=labels,
-                            transforms=transforms, args=args, kwargs=kwargs,
-                            max_epoch=max_epoch)
-
-        none = self.stub.StreamData(arg)
-        return none

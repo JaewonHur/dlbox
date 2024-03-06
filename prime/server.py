@@ -89,43 +89,15 @@ class PrimeServer(PrimeServerServicer):
         return ref
 
     def FitModel(self, arg: FitModelArg, ctx: grpc.ServicerContext) -> Model:
-
         trainer = arg.trainer
         model = arg.model
-
-        d_args = arg.d_args
-        d_kwargs = arg.d_kwargs
-
+        
         args = arg.args
         kwargs = arg.kwargs
 
-        model = self._runtime.FitModel(trainer, model,
-                                       d_args, d_kwargs, args, kwargs)
-
+        model = self._runtime.FitModel(trainer, model, args, kwargs)
         return model
-
-    def SupplyData(self, arg: SupplyDataArg, ctx: grpc.ServicerContext) -> Ref:
-
-        datapairs = [ (p.sample, p.label) for p in arg.datapairs ]
-
-        ref = self._runtime.SupplyData(datapairs)
-
-        return ref
-
-    def StreamData(self, arg: StreamDataArg, ctx: grpc.ServicerContext):
-
-        samples = arg.samples
-        labels = arg.labels
-
-        transforms = arg.transforms
-        args = arg.args
-        kwargs = arg.kwargs
-
-        max_epoch = arg.max_epoch
-
-        none = self._runtime.StreamData(samples, labels, transforms, args, kwargs, max_epoch)
-        return none
-
+    
 
 @click.command()
 @click.option('--port', default=50051, help='grpc port number')

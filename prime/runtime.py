@@ -145,8 +145,6 @@ class ExecutionRuntime():
 
             from ci_tests.mnist import mnist
             samples, labels = mnist.sample_init()
-            samples = samples[:10]
-            labels = labels[:10]
 
         elif self.dn == 'cifar10':
             _trust('torchvision')
@@ -361,8 +359,8 @@ class ExecutionRuntime():
         # AllocateObj does not allow using reference
         tag, obj = self._deserialize(val, False)
 
-        # AllocateObj is only for invoking a instance function
-        assert callable(obj), f'cannot allocate non-callable: {obj}'
+        # TODO: AllocateObj is only for invoking a instance function
+        # assert callable(obj), f'cannot allocate non-callable: {obj}'
 
         logger.debug(f'{hex(id(obj))}={str(obj)[0:10]}...')
         name = self._add_to_ctx(obj, tag)
@@ -528,95 +526,39 @@ class ExecutionRuntime():
         return name
 
     @catch_xcpt(True)
-    def FitModel(self, trainer: bytes, model: bytes,
-                 d_args: List[bytes], d_kwargs: Dict[str, bytes],
-                 args: List[bytes], kwargs: Dict[str, bytes]) -> bytes:
+    def FitModel(self, trainer: str, model: str,
+                 args: List[bytes], kwargs: Dict[str, bytes]) -> Union[str, bytes]:
 
-        import torch
         import pytorch_lightning as pl
 
-        # TODO: Need to fix!!
-        # trainer = self._deserialize(trainer, False)[1]
-        model   = self._deserialize(model, False)[1]
+        trainer_tag = self.__taints[trainer]
+        trainer: pl.Trainer = self.__ctx[trainer]
+        
+        model_tag = self.__taints[model]
+        model: pl.LightningModule = self.__ctx[model]
+        
+        if not trainer_tag.is_safe() or not model_tag.is_safe():
+            raise PrimeNotAllowedError('cannot fit model with unsafe trainer & model')
 
-        logger.debug(f'{model}')
+        try:
+            dataloader = kwargs.pop('train_dataloaders')
+        except KeyError:
+            dataloader = args.pop(0)
+        except:
+            raise PrimeNotAllowedError('train_dataloader is not provided')
+        
+        tag, dataloader = self._deserialize(dataloader, True)
 
-        d_args   = [ self._deserialize(i, False)[1] for i in d_args ]
-        d_kwargs = { k:self._deserialize(v, False)[1] for k, v in d_kwargs.items() }
+        if not tag.is_frozen():
+            raise PrimeNotAllowedError('cannot fit model with un-sanitized dataloader')
 
-        args   = [ self._deserialize(i, False)[1] for i in args ]
-        kwargs = { k:self._deserialize(v, False)[1] for k, v in kwargs.items() }
+        args = [ self._deserialize(i, False)[1] for i in args ]
+        kwargs = {k:self._deserialize(v, False)[1] for k, v in kwargs.items() }
 
-        # TODO: Fix this!! Get arguments from grpc not trainer itself
-        trainer = pl.Trainer(
-            default_root_dir=os.path.join('/tmp/fitmodel'),
-            gpus=1 if str(torch.cuda.is_available()) else 0,
-            max_epochs=kwargs['max_epochs']
-        )
-        kwargs.pop('max_epochs')
-
-        if self.is_learning:
-            raise PrimeNotSupportedError('already learning')
-
-        # TODO: dqueue need to be empty?
-        # assert self.dqueue.empty(), 'dqueue is not empty'
-
-        dataloader = build_dataloader(self.dqueue, d_args, d_kwargs)
-
-        self.is_learning = True
         try:
             trainer.fit(model, dataloader, *args, **kwargs)
         except Exception as e:
             raise UserError(e)
-        finally:
-            self.is_learning = False
 
         model = dill.dumps(model)
         return model
-
-    @catch_xcpt(False)
-    def SupplyData(self, datapairs: List[Tuple[bytes]]) -> bytes:
-
-        n = len(datapairs)
-        logger.debug(f'{n}')
-
-        pairs = [ (self._deserialize(p[0]), self._deserialize(p[1]))
-                  for p in datapairs ]
-
-        n = self.dqueue.put(pairs)
-
-        return dill.dumps(n)
-
-    @catch_xcpt(False)
-    def StreamData(self, samples: bytes, labels: bytes,
-                   transforms: List[bytes], args: List[bytes], kwargs: List[bytes],
-                   max_epoch: bytes) -> bytes:
-
-        s_ts, samples = self._deserialize(samples)
-        l_ts, labels = self._deserialize(labels)
-
-        assert isinstance(s_ts, TagSack) and s_ts.is_safe(), \
-            'cannot stream on unsafe samples'
-
-        assert isinstance(l_ts, TagSack) and l_ts.is_safe(), \
-            'cannot stream on unsafe labels'
-
-        transforms = [ (get_from(i)[1] if isinstance(i, str) else i)
-                       for i in [self._deserialize(t, False)[1]
-                                 for t in transforms] ]
-
-        args = [ self._deserialize(i, False)[1] for i in args ]
-        kwargs = [ self._deserialize(i, False)[1] for i in kwargs ]
-
-        assert all(isinstance(i, tuple) for i in args)
-        assert all(isinstance(i, dict) for i in kwargs)
-
-        logger.debug('\n  '.join([''] + [repr(t) for t in transforms]))
-
-        _, max_epoch = self._deserialize(max_epoch, False)
-
-        self.dqueue.stream(s_ts, samples, l_ts, labels,
-                           transforms, args, kwargs,
-                           max_epoch)
-
-        return dill.dumps(None)

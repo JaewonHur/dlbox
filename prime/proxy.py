@@ -317,7 +317,7 @@ class Proxy(HasRef):
             raise AttributeError
 
         if has_lineage(self):
-            raise PrimeNotSupportedError(f"Cannot perform __getattr__ on {self}")
+            self._eval()
 
         attr_d = self._client.InvokeMethod('', get_path(getattr),
                                            [self, name])
