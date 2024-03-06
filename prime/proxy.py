@@ -43,7 +43,7 @@ Lineage type is used to remember the arguments for the InvokeMethod
 @dataclass
 class Lineage:
     ref: str = field(default=0, init=False)
-    obj: str
+    obj: Union[Proxy, str]
     method: str
     args: List[Any]
     kwargs: Dict[str, Any]
@@ -107,11 +107,37 @@ Supported types of referenced variable:
     Static method object
     Class method object
 """
-def has_lineage(proxy: Proxy) -> bool:
-    return bool(proxy._lineage)
+def has_lineage(proxy: Any) -> bool:
+    return isinstance(proxy, Proxy) and bool(proxy._lineage)
+
+
+# TODO: obj can be container
+def find_proxy_with_lineage(obj: Any) -> List[Proxy]:
+    if isinstance(obj, list):
+        ret = [i for i in obj if has_lineage(i)]
+
+    elif isinstance(obj, dict):
+        ret = [i for i in obj.values() if has_lineage(i)]
+
+    elif has_lineage(obj):
+        ret = [obj]
+    else:
+        ret = []
+
+    return ret
+
 
 def get_path(obj: Any) -> str:
     return f'{obj.__module__}.{obj.__name__}'
+
+
+def _prime_op_lazy(func):
+    def wrapper(self: Proxy, *args, **kwargs) -> Proxy:
+        lineage = Lineage(self, func.__name__, args, kwargs)
+        
+        return Proxy(None, lineage)
+    return wrapper
+
 
 def _prime_op(func):
     def wrapper(self: Proxy, *args, **kwargs) -> Union[Proxy, Any]:
@@ -236,19 +262,19 @@ class Proxy(HasRef):
 
         return object.__getattribute__(self, name)
 
-
     # Return dependencies of Proxies 
     def _graph(self) -> List[Proxy]:
         l = self._lineage
         obj, args, kwargs = l.obj, l.args, l.kwargs
 
-        assert not obj.startswith(LNG), "Lineage.obj must already be evaluated"
+        # assert not obj.startswith(LNG), "Lineage.obj must already be evaluated"
  
         graph = [self]
-        to_be_traversed = [a for a in args
-                           if (isinstance(a, Proxy) and has_lineage(a))]
-        to_be_traversed += [v for _,v in kwargs.items()
-                            if (isinstance(v, Proxy) and has_lineage(v))]
+        to_be_traversed = sum([find_proxy_with_lineage(a) for a in args], [])
+        to_be_traversed += sum([find_proxy_with_lineage(v) for _, v in kwargs.items()], [])
+
+        if has_lineage(obj):
+            to_be_traversed += [obj]
 
         # TODO: There can be circular dependency?
         for p in to_be_traversed:
@@ -277,7 +303,8 @@ class Proxy(HasRef):
                 to_be_eval.append(p)
 
         lineages = [ p._lineage for p in to_be_eval ]
-        tot_args = { l.ref:(l.obj, l.method, l.args, l.kwargs)
+        tot_args = { l.ref:((l.obj if isinstance(l.obj, str) else l.obj._ref), 
+                            l.method, l.args, l.kwargs)
                      for l in lineages }
 
         results = self._client.InvokeMethods(tot_args)
@@ -328,6 +355,9 @@ class Proxy(HasRef):
     #     raise NotImplementedError()
 
     def __del__(self):
+        if not 'has_lineage' in locals():
+            return
+
         if has_lineage(self):
             return
 
@@ -463,7 +493,7 @@ class Proxy(HasRef):
     def __length_hint__(self):
         return NotImplemented
 
-    @_prime_op
+    @_prime_op_lazy
     def __getitem__(self, res: Union[Exception, str], key) -> Proxy:
         if isinstance(res, Exception):
             raise res
