@@ -19,6 +19,8 @@ service PrimeServer {
   rpc AllocateObj (AllocateObjArg) returns (Ref) {}
   // Invoke method in DE
   rpc InvokeMethod (InvokeMethodArg) returns (Ref) {}
+  // Invoke batched method
+  rpc InvokeMethods (InvokeMethodsArg) returns (Refs) {}
 
 /*********************************************************/
 
@@ -83,6 +85,19 @@ message InvokeMethodArg {
   map<string,bytes>  kwargs = 4;
 }
 
+/* Input message for InvokeMethods
+   Args:
+     lineages (map<string,InvokeMethodArg>) : map of ref and argumetns for InvokeMethod.
+*/
+message RefInvokeMethodArg {
+  string             ref    = 1;
+  InvokeMethodArg    arg    = 2;
+}
+
+message InvokeMethodsArg {
+  repeated RefInvokeMethodArg lineages = 1;
+}
+
 /* Input message for ExportModel
    Args:
      fullname (string)   : name of the model definition which is to be defined in DE.
@@ -133,6 +148,14 @@ message Ref {
   optional string name  = 1;
   optional bytes  obj   = 2;
   optional bytes  error = 3;
+}
+
+/* References to the object in DE
+   Args:
+     refs (repated Ref) : list of Ref
+*/
+message Refs {
+  repeated Ref    refs  = 1;
 }
 
 /* Message containing optimized ML model

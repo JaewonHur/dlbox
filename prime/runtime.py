@@ -23,7 +23,7 @@ from prime.emul import emulate
 from prime.data import DataQueue, FairDataset, build_dataloader
 from prime.taint import *
 
-VAR_SFX = 'VAL'
+VAR = 'VAR'
 
 ################################################################################
 # Trusted Libraries                                                            #
@@ -145,6 +145,8 @@ class ExecutionRuntime():
 
             from ci_tests.mnist import mnist
             samples, labels = mnist.sample_init()
+            samples = samples[:10]
+            labels = labels[:10]
 
         elif self.dn == 'cifar10':
             _trust('torchvision')
@@ -203,7 +205,7 @@ class ExecutionRuntime():
     def _add_to_ctx(self, obj: Any, tag: Union[Tag, TagSack],
                     name: str = None) -> str:
         if not name:
-            name = f'{self.ctr}{VAR_SFX}'
+            name = f'{VAR}{self.ctr}'
             self.ctr += 1
 
         self.__ctx[name] = obj
@@ -368,7 +370,8 @@ class ExecutionRuntime():
 
     @catch_xcpt(False)
     def InvokeMethod(self, obj: str, method: str,
-                     args: List[bytes], kwargs: Dict[str,bytes]) -> Union[str,bytes]:
+                     args: List[bytes], kwargs: Dict[str,bytes],
+                     ref: Optional[str]=None) -> Union[str,bytes]:
 
         # FIXME: This is only for test purpose ##############################
         # Remove this before release! #######################################
@@ -450,7 +453,7 @@ class ExecutionRuntime():
 
         logger.debug(f'{hex(id(out))}={str(out)[0:10]}...')
         ret = (dill.dumps(out) if isinstance(tag, Tag) and tag.is_safe()
-               else self._add_to_ctx(out, tag))
+               else self._add_to_ctx(out, tag, ref))
         return ret
 
     @catch_xcpt(False)

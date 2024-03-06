@@ -10,7 +10,7 @@ from typing import types, Type, List, Dict, Any, Tuple, Callable, Union
 import pytorch_lightning as pl
 
 from prime.utils import logger, MAX_MESSAGE_LENGTH
-from prime.exceptions import retrieve_xcpt
+from prime.exceptions import retrieve_xcpt, retrieve_xcpts
 from prime.hasref import HasRef
 
 from prime_pb2 import *
@@ -96,6 +96,37 @@ class PrimeClient:
 
         ref = self.stub.InvokeMethod(arg)
         return ref
+
+    @retrieve_xcpts()
+    def InvokeMethods(self,             #  obj  method args       kwargs 
+                      lineages: Dict[str, 
+                                     Tuple[str, str,   List[Any], Dict[str, Any]]]) -> Ref:
+
+        tot_args = InvokeMethodsArg()
+
+        for ref, lineage in lineages.items():
+            ref_arg = RefInvokeMethodArg()
+            arg = InvokeMethodArg()
+
+            obj, method, args, kwargs = lineage
+
+            args = [ dill.dumps(i) for i in args ]
+            kwargs = { k:dill.dumps(v) for k, v in kwargs.items() }
+
+            ref_arg.ref = ref
+            arg.obj = obj
+            arg.method = method
+            arg.args.extend(args)
+
+            for k, v in kwargs.items():
+                arg.kwargs[k] = v
+
+            ref_arg.arg.CopyFrom(arg)
+
+            tot_args.lineages.extend([ref_arg])
+
+        refs = self.stub.InvokeMethods(tot_args)
+        return refs
 
     @retrieve_xcpt(False)
     def ExportModel(self, fullname: str, source: str) -> Ref:

@@ -60,6 +60,25 @@ class PrimeServer(PrimeServerServicer):
 
         return ref
 
+    def InvokeMethods(self, tot_args: InvokeMethodsArg, ctx: grpc.ServicerContext) -> Refs:
+
+        refs = Refs()
+        for l in tot_args.lineages:
+            arg = l.arg
+
+            obj = arg.obj
+            method = arg.method
+            args = arg.args
+            kwargs = arg.kwargs
+
+            ref = self._runtime.InvokeMethod(obj, method, args, kwargs, l.ref)
+            refs.refs.extend([ref])
+
+            if ref.error:
+                break
+
+        return refs
+
     def ExportModel(self, arg: ExportModelArg, ctx: grpc.ServicerContext) -> Ref:
 
         fullname = arg.fullname
