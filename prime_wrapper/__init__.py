@@ -4,6 +4,8 @@ from importlib import util, import_module
 from typing import Any
 from types import ModuleType
 
+from prime.proxy import Proxy, Lineage, _client
+
 PACKAGE = __package__
 REAL_PACKAGE = PACKAGE.removeprefix('prime_')
 
@@ -35,7 +37,7 @@ class ModuleWrapper:
             elif name.startswith('__') and name.endswith('__'):
                 return obj
             else:
-                return ObjectWrapper(obj)
+                return ObjectWrapper(obj, False, f'{self.fullpath}.{name}')
 
         else:
             if self.is_package: 
@@ -48,32 +50,72 @@ class ModuleWrapper:
 class ObjectWrapper:
     __obj_wrapper__ = True
 
+    @classmethod
+    def is_proxy(cls, obj: Any) -> bool:
+        if isinstance(obj, list):
+            ret = any(isinstance(i, Proxy) for i in obj)
+        elif isinstance(obj, Proxy):
+            ret = True
+        else:
+            ret = False
+            
+        return ret
+
     # Only handle list and itself now
     @classmethod
-    def unveil(cls, obj: Any):
+    def unveil(cls, obj: Any) -> Any:
         if isinstance(obj, list):
-            ret = [i.obj if hasattr(i, '__obj_wrapper__') else i 
-                   for i in obj]
-        elif hasattr(obj, '__obj_wrapper__'):
-            ret = obj.obj
+            ret = []
+            for i in obj:
+                o = (i if (isinstance(i, Proxy) or not hasattr(i, '__obj_wrapper__')) 
+                     else i.obj)
+                ret.append(o)
+
+        elif isinstance(obj, Proxy) or not hasattr(obj, '__obj_wrapper__'):
+            ret = obj
+
         else:
             ret = obj
             
         return ret
                 
 
-    def __init__(self, obj: object):
+    # is_dynamic indicates whether the wrapped object was dynamically instantiated
+    def __init__(self, obj: object, is_dynamic: bool, path: str):
+        self._proxy = None
+
         self.obj = obj
+        self.is_dynamic = is_dynamic
+        self.path = path
 
     def __call__(self, *args, **kwargs):
+
+        proxy_in_args = any(ObjectWrapper.is_proxy(a) for a in args)
+        proxy_in_kwargs = any(ObjectWrapper.is_proxy(v) for v in kwargs.values())
 
         new_args = [ObjectWrapper.unveil(a) for a in args]
         new_kwargs = {k:ObjectWrapper.unveil(v) for k, v in kwargs.items()}
 
-        # This assumes functional
-        obj = self.obj(*new_args, **new_kwargs)
+        if proxy_in_args or proxy_in_kwargs:
+            if self.is_dynamic:
+                if self._proxy is None:
+                    self._proxy = Proxy(_client.AllocateObj(self.obj))
 
-        return ObjectWrapper(obj)
+                # Assume class is not dynamically defined
+                # ref = _client.InvokeMethod(self._ref, '__call__', new_args, new_kwargs)
+
+                lineage = Lineage(self._proxy, '__call__', new_args, new_kwargs)
+
+            else:
+                # ref = _client.InvokeMethod('', self.path, new_args, new_kwargs)
+                lineage = Lineage('', self.path, new_args, new_kwargs)
+
+            return Proxy(None, lineage)
+
+        else:
+            # This assumes functional
+            obj = self.obj(*new_args, **new_kwargs)
+            return ObjectWrapper(obj, True, f'{self.path}._obj')
 
     def __getattr__(self, name: str):
         obj = getattr(self.obj, name)
@@ -81,7 +123,7 @@ class ObjectWrapper:
         if name.startswith('__') and name.endswith('__'):
             return obj
         else:
-            return ObjectWrapper(obj)
+            return ObjectWrapper(obj, self.is_dynamic, f'{self.path}.{name}')
 
     def __getitem__(self, key):
         return self.obj[key]
@@ -104,7 +146,7 @@ def __getattr__(name):
         elif name.startswith('__') and name.endswith('__'):
             return obj
         else:
-            return ObjectWrapper(obj)
+            return ObjectWrapper(obj, False, f'{REAL_PACKAGE}.{name}')
 
     else:
         raise ModuleNotFoundError(f"No module named '{REAL_PACKAGE}.{name}")
