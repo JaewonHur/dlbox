@@ -11,8 +11,8 @@ import queue
 import shutil
 import builtins
 from importlib.util import spec_from_file_location, module_from_spec
-from typing import types, List, Dict, Any, Optional, Type, Tuple, Union, Callable
-from types import FunctionType, MethodType
+from typing import types, List, Dict, Any, Optional, Union, Callable
+from types import FunctionType
 from collections.abc import Iterator
 from functools import partial
 
@@ -20,7 +20,6 @@ from prime.utils import logger
 from prime.exceptions import *
 from prime.hasref import FromRef, HasRef
 from prime.emul import emulate
-from prime.data import DataQueue, FairDataset, build_dataloader
 from prime.taint import *
 
 VAR = 'VAR'
@@ -131,8 +130,6 @@ class ExecutionRuntime():
 
         self.dn = dn
         self.init_samples()
-        self.dqueue = DataQueue()
-        self.is_learning = False
 
     def init_samples(self):
 
@@ -181,7 +178,6 @@ class ExecutionRuntime():
         assert len(samples) == len(labels), \
             'Number of samples and labels mismatch'
 
-        FairDataset.set_n(len(samples))
         self.__taints.init(len(samples))
 
         s_tags = [ UndefTag(0, i) for i in range(len(samples)) ]
