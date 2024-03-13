@@ -1,4 +1,5 @@
 import pytest
 
+
 def pytest_addoption(parser):
-    parser.addoption('--model', action='store', default='googlenet')
+    parser.addoption('--baseline', action='store_true', default=False)
