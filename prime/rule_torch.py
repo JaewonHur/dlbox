@@ -54,7 +54,7 @@ def _default(*a) -> Optional[Tag]:
 
             return tagsack
 
-        elif method in ('TensorDataset'):
+        elif method in ('PrimeDataset'):
             s_tagsack = tags[0]
             l_tagsack = tags[1]
             

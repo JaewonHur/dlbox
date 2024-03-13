@@ -22,6 +22,10 @@ from prime.hasref import FromRef, HasRef
 from prime.emul import emulate
 from prime.taint import *
 from prime.static import check_violations
+from prime.data import PrimeDataset
+
+import torch
+torch.utils.data.PrimeDataset = PrimeDataset
 
 VAR = 'VAR'
 
@@ -454,10 +458,6 @@ class ExecutionRuntime():
     def ExportModel(self, fullname: str, source: str) -> str:
         # TODO: Sandbox codes
         # Malicious codes can change states of global variables
-
-        print('===================================')
-        print(source)
-        print('===================================')
         violations = check_violations(source)
 
         if violations:

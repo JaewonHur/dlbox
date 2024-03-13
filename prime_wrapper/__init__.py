@@ -7,15 +7,19 @@ from types import ModuleType
 
 from prime.proxy import has_lineage, Proxy, Lineage, _client
 
+PYTORCH           = 'torch'
 PYTORCH_LIGHTNING = 'pytorch_lightning'
 LIGHTNING_MODULE  = 'LightningModule'
 TRAINER           = 'Trainer'
 
 PACKAGE = __package__
-REAL_PACKAGE = PACKAGE.removeprefix('prime_')
+# Remove prefix 'prime_'
+REAL_PACKAGE = PACKAGE[6:]
 
 ROOT_MODULE = import_module(REAL_PACKAGE)
 
+""" Special care for torch.utils.data.PrimeDataset """
+PrimeDatasetWrapper    = None
 """ Special care for pytorch_lightning.LightningModule """
 TrainerWrapper         = None
 
@@ -89,6 +93,12 @@ class ModuleWrapper:
 
             else:
                 return ObjectWrapper(obj, False, f'{self.fullpath}.{name}')
+
+        elif (REAL_PACKAGE == PYTORCH and
+              self.fullpath == 'torch.utils.data' and
+              name == 'PrimeDataset'):
+               
+            return PrimeDatasetWrapper()
 
         else:
             if self.is_package: 
@@ -203,6 +213,19 @@ def __getattr__(name):
 
     else:
         raise ModuleNotFoundError(f"No module named '{REAL_PACKAGE}.{name}")
+
+if REAL_PACKAGE == PYTORCH:
+    import torch
+
+    class PrimeDatasetWrapper():
+        def __call__(self, *tensors: torch.Tensor, transforms: ObjectWrapper=None):
+            transforms = (transforms._proxy or transforms.obj) if transforms else None
+
+            _proxy = Proxy(_client.InvokeMethod('', 'torch.utils.data.PrimeDataset', 
+                                                tensors, {'transforms': transforms}))
+
+            return _proxy
+
 
 class ImportHook:
     def find_spec(self, fullname: str, path: str, target=None):
