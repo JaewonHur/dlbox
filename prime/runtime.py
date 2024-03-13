@@ -21,6 +21,7 @@ from prime.exceptions import *
 from prime.hasref import FromRef, HasRef
 from prime.emul import emulate
 from prime.taint import *
+from prime.static import check_violations
 
 VAR = 'VAR'
 
@@ -132,7 +133,6 @@ class ExecutionRuntime():
         self.init_samples()
 
     def init_samples(self):
-
         if self.dn is None:
             samples, labels = sample_init()
         elif self.dn == 'mnist':
@@ -454,6 +454,18 @@ class ExecutionRuntime():
     def ExportModel(self, fullname: str, source: str) -> str:
         # TODO: Sandbox codes
         # Malicious codes can change states of global variables
+
+        print('===================================')
+        print(source)
+        print('===================================')
+        violations = check_violations(source)
+
+        if violations:
+            msg = ('Violation detected in model definition\n' + 
+                   '\n'.join(f'[{i}] {v}'
+                             for i, v in enumerate(violations)))
+
+            raise PrimeNotAllowedError(msg)
 
         if fullname.startswith('__main__'):
             # NOTE: Do not support nested definition
