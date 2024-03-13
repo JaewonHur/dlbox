@@ -2,8 +2,8 @@
 
 set -e 
 
-if [ "$(python --version)" != "Python 3.11.2" ]; then
-    echo "Please use python3.11.2"
+if [ "$(python --version)" != "Python 3.8.4" ]; then
+    echo "Please use python3.8.4"
     exit 0
 fi
 

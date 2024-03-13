@@ -6,6 +6,7 @@ dill==0.3.6
 pillow==9.3.0
 torch==2.0.1
 torchsummary==1.5.1
+torchmetrics==0.11.1
 pytorch-lightning==1.8.3
 torchvision==0.15.2
 grpcio==1.51.1
