@@ -453,7 +453,7 @@ def create_model(model_name, model_hparams):
     else:
         assert False, f'Unknown model name "{model_name}"'
 
-class CIFARModule(pytorch_lightning.LightningModule):
+class CifarModule(pytorch_lightning.LightningModule):
     def __init__(self, model_name, model_hparams, optimizer_name, optimizer_hparams):
         super().__init__()
 

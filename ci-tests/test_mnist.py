@@ -98,7 +98,7 @@ def eval_model(model, transforms):
     
 def test_mnist(baseline: bool):
 
-    from litclassifier import LitClassifier
+    from ci_tests.litclassifier import LitClassifier
 
     import_libs(baseline)
     samples, labels = sample_init(baseline)

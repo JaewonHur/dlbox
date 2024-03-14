@@ -38,7 +38,7 @@ if REAL_PACKAGE == PYTORCH_LIGHTNING:
             super().__init__(*args, **kwargs)
             
         def fit(self, model: pl.LightningModule, *args, **kwargs):
-            model_src = inspect.getsource(model.__class__)
+            model_src = inspect.getsource(sys.modules[model.__class__.__module__])
             ref = _client.ExportModel(f'{model.__class__.__module__}.{model.__class__.__name__}', 
                                       model_src)
             if isinstance(ref, Exception):
