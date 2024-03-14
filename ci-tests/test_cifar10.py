@@ -35,13 +35,14 @@ def test_init_server(baseline: bool):
 ################################################################################
 
 def import_libs(baseline: bool):
-    global PIL, torch, torchvision, pytorch_lightning
-    global PrimeDataset, DataLoader
+    global PIL, torch, torchvision
+    global PrimeDataset, DataLoader, Trainer
     
     if baseline:
         import PIL, torch, torchvision, pytorch_lightning
         
         from torch.utils.data import TensorDataset, DataLoader
+        from pytorch_lightning import Trainer
         
         class PrimeDataset(TensorDataset):
             def __init__(self, *tensors, transforms):
@@ -60,9 +61,9 @@ def import_libs(baseline: bool):
         import prime_PIL as PIL
         import prime_torch as torch
         import prime_torchvision as torchvision
-        import prime_pytorch_lightning as pytorch_lightning
         
         from prime_torch.utils.data import PrimeDataset, DataLoader
+        from prime_pytorch_lightning import Trainer
 
 
 def sample_init(baseline: bool) -> tuple:
@@ -168,7 +169,7 @@ def test_cifar10(baseline: bool, model: str):
     dataset = PrimeDataset(samples, labels, transforms=train_transforms)
     loader = DataLoader(dataset, batch_size=128, shuffle=True)
     
-    trainer = pytorch_lightning.Trainer(gpus=1, max_epochs=2)
+    trainer = Trainer(gpus=1, max_epochs=2)
     model = build_model(model_name)
 
     trainer.fit(model, train_dataloaders=loader)
