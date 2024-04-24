@@ -127,10 +127,11 @@ message FitModelArg {
      error (bytes) : serialized error if an error occurs while handling the request.
 */
 message Ref {
-  optional string name  = 1;
-  optional bytes  obj   = 2;
-  optional bytes  error = 3;
-}
+  optional string            name    = 1;
+  optional bytes             obj     = 2;
+  optional bytes             error   = 3;
+  map<string,bytes> profile = 4;
+} 
 
 /* References to the object in DE
    Args:
@@ -146,6 +147,7 @@ message Refs {
      error (bytes) : serialized error if an error occurs while handling the request.
 */
 message Model {
-  optional bytes val   = 1;
-  optional bytes error = 2;
+  optional bytes val                 = 1;
+  optional bytes error               = 2;
+  map<string,bytes> profile = 3;
 }

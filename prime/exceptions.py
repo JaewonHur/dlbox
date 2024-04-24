@@ -5,10 +5,12 @@
 # TODO: import prime
 
 import dill
+import time
 import traceback
 
 from typing import Union
 
+from prime.profiler import Profile, profiles
 from prime.utils import logger
 
 from prime_pb2 import *
@@ -53,9 +55,14 @@ def catch_xcpt(fitmodel: bool):
     def decorator(func):
         def wrapper(*args, **kwargs) -> Union[Ref, Model]:
             try:
-                res = func(*args, **kwargs)
+                res, pf = func(*args, **kwargs)
                 res = (Model(val=res) if fitmodel else
                        (Ref(name=res) if isinstance(res, str) else Ref(obj=res)))
+                
+                if pf:
+                    res.profile['serialize'] = dill.dumps(pf.serialize)
+                    res.profile['taint'] = dill.dumps(pf.taint)
+                    res.profile['op'] = dill.dumps(pf.op)
 
             except NotImplementedOutputError as e:
                 ne = dill.dumps(e)
@@ -84,7 +91,10 @@ def catch_xcpt(fitmodel: bool):
 def retrieve_xcpt(fitmodel: bool):
     def decorator(func):
         def wrapper(*args, **kwargs) -> Union[str, bytes, Exception]:
+            now = time.time()
             res = func(*args, **kwargs)
+
+            tot = time.time() - now
 
             if res.error:
                 err = dill.loads(res.error)
@@ -96,6 +106,19 @@ def retrieve_xcpt(fitmodel: bool):
                 else:
                     raise err
             else:
+                if res.profile:
+                    profiles['count'] += 1
+
+                    serialize = dill.loads(res.profile['serialize'])
+                    taint = dill.loads(res.profile['taint'])
+                    op = dill.loads(res.profile['op'])
+                    rpc = tot - serialize - taint - op
+
+                    profiles['rpc'] += rpc
+                    profiles['serialize'] += serialize
+                    profiles['op'] += op
+                    profiles['taint'] += taint
+
                 ret = (dill.loads(res.val) if fitmodel else
                        res.name if res.name else dill.loads(res.obj))
                 return ret

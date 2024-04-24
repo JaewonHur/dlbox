@@ -7,6 +7,7 @@ from __future__ import annotations
 import os
 import sys
 import dill
+import time
 import queue
 import shutil
 import builtins
@@ -23,6 +24,8 @@ from prime.emul import emulate
 from prime.taint import *
 from prime.static import check_violations
 from prime.data import PrimeDataset
+
+from prime.profiler import Profile
 
 import torch
 torch.utils.data.PrimeDataset = PrimeDataset
@@ -278,7 +281,7 @@ class ExecutionRuntime():
 
 
     @catch_xcpt(False)
-    def ExportDef(self, fullname: str, tpe: bytes, source: str) -> str:
+    def ExportDef(self, fullname: str, tpe: bytes, source: str, profile=False) -> str:
         tpe = dill.loads(tpe)
 
         assert tpe in (type, types.FunctionType), f'not supported type: {tpe}'
@@ -348,13 +351,13 @@ class ExecutionRuntime():
             #     obj = getattr(obj, n)
 
         self._add_to_ctx(obj, SafeTag(hash(source)), fullname)
-        return name
+        return name, None
 
     def DeleteObj(self, name: str):
         self._del_from_ctx(name)
 
     @catch_xcpt(False)
-    def AllocateObj(self, val: bytes) -> str:
+    def AllocateObj(self, val: bytes, profile=False) -> str:
 
         # AllocateObj does not allow using reference
         tag, obj = self._deserialize(val, False)
@@ -364,12 +367,16 @@ class ExecutionRuntime():
 
         logger.debug(f'{hex(id(obj))}={str(obj)[0:10]}...')
         name = self._add_to_ctx(obj, tag)
-        return name
+        return name, None
 
     @catch_xcpt(False)
     def InvokeMethod(self, obj: str, method: str,
                      args: List[bytes], kwargs: Dict[str,bytes],
-                     ref: Optional[str]=None) -> Union[str,bytes]:
+                     ref: Optional[str]=None, 
+                     profile=False) -> Union[str,bytes]:
+
+        pf = Profile()
+        now = time.time()
 
         # FIXME: This is only for test purpose ##############################
         # Remove this before release! #######################################
@@ -378,7 +385,7 @@ class ExecutionRuntime():
             with open('/tmp/x.txt', 'w') as fd:
                 fd.write(str(tag))
 
-            return dill.dumps(None)
+            return dill.dumps(None), None
 
         ####################################################################
 
@@ -424,11 +431,19 @@ class ExecutionRuntime():
         tags = [ i[0] for i in t_args ]
         kwtags = { k:v[0] for k,v in t_kwargs.items() }
 
+        cur = time.time()
+        pf.serialize += cur - now
+        now = cur
+
         logger.debug(f'{method}')
         try:
             out = emulate(method, obj)(*args, **kwargs)
         except Exception as e:
             raise UserError(e)
+
+        cur = time.time()
+        pf.op += cur - now
+        now = cur
 
         try:
             # FIXME: This is only for test purpose ##############################
@@ -449,13 +464,23 @@ class ExecutionRuntime():
         if out is NotImplemented:
             raise NotImplementedOutputError()
 
+        cur = time.time()
+        pf.taint += cur - now
+        now = cur
+
         logger.debug(f'{hex(id(out))}={str(out)[0:10]}...')
         ret = (dill.dumps(out) if isinstance(tag, Tag) and tag.is_safe()
                else self._add_to_ctx(out, tag, ref))
-        return ret
+
+        cur = time.time()
+        pf.serialize += cur - now
+        now = cur
+
+        return ret, pf
 
     @catch_xcpt(False)
-    def ExportModel(self, fullname: str, source: str) -> str:
+    def ExportModel(self, fullname: str, source: str, 
+                    profile=False) -> str:
         # TODO: Sandbox codes
         # Malicious codes can change states of global variables
         violations = check_violations(source)
@@ -531,11 +556,12 @@ class ExecutionRuntime():
                 obj = getattr(obj, n)
 
         self._add_to_ctx(obj, SafeTag(hash(source)), fullname)
-        return name
+        return name, None
 
     @catch_xcpt(True)
     def FitModel(self, trainer: str, model: str,
-                 args: List[bytes], kwargs: Dict[str, bytes]) -> Union[str, bytes]:
+                 args: List[bytes], kwargs: Dict[str, bytes],
+                 profile=False) -> Union[str, bytes]:
 
         import pytorch_lightning as pl
 
@@ -569,4 +595,4 @@ class ExecutionRuntime():
             raise UserError(e)
 
         model = dill.dumps(model)
-        return model
+        return model, None
