@@ -9,17 +9,16 @@ from numpy import transpose
 from torchvision.transforms import ToTensor, Resize
 from torch.utils.data import Dataset
 
-def get_dataset(data_path, transform=None):
+def get_dataset(transforms=None):
+    pwd = os.environ['PWD']
 
-    dataset = ChestXrayDataset(data_path, transform)
+    data_path  = f'{pwd}/eval-tests/datasets/chestxray'
+    dataset = ChestXrayDataset(data_path, transforms)
     return dataset
 
 
 def sample_init() -> (torch.Tensor, torch.Tensor):
-    pwd = os.environ['PWD']
-
-    data_path  = f'{pwd}/eval-tests/datasets/chestxray'
-    dataset = get_dataset(data_path)
+    dataset = get_dataset()
 
     samples, lbls = [], []
     for img, lbl in dataset:

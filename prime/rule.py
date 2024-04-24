@@ -3,7 +3,7 @@
 #
 from __future__ import annotations
 
-from typing import Any, Callable, Union, List, Optional
+from typing import Any, Callable, Union, List, Optional, Dict
 from types import FunctionType
 
 from prime.taint import *
@@ -25,7 +25,7 @@ def taint_default(method: Callable,
 
     # TODO: set_danger used tags
 
-    return Tag.merge(hash(method), self_tag + tags + kwtags)
+    return Tag.merge(hash(str(method)), self_tag + tags + kwtags)
 
 
 ####################### Taint Rules ############################################

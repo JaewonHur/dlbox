@@ -1,4 +1,5 @@
 import torch
+import torchvision
 import pytorch_lightning
 import time
 
@@ -7,7 +8,7 @@ import torchvision
 ############################## Model Definitions ###############################
 
 
-class plModule(pytorch_lightning.LightningModule):
+class ClassificationModule(pytorch_lightning.LightningModule):
     def __init__(self, model_name, hparams):
         super().__init__()
 
@@ -40,8 +41,11 @@ class plModule(pytorch_lightning.LightningModule):
             raise NotImplementedError(f'{model_name} not supported')
 
         self.loss_fun = torch.nn.CrossEntropyLoss()
+
         self.start = time.time()
         self.epoch = 1
+
+        self.model_name = model_name
 
     def forward(self, imgs):
         return self.model(imgs)
@@ -58,6 +62,7 @@ class plModule(pytorch_lightning.LightningModule):
         return [optimizer], []
 
     def training_step(self, batch, batch_idx):
+
         imgs, labels = batch
         preds = self.model(imgs)
         loss = self.loss_fun(preds, labels)
@@ -137,4 +142,17 @@ class CNN(torch.nn.Module):
         x = self.features(x)
         x = torch.flatten(x, 1)
         x = self.classifier(x)
+        return x
+
+
+class Downsample(torch.nn.Module):
+    def __init__(self, size, mode):
+        super(Downsample, self).__init__()
+        self.module = torch.nn.functional.interpolate
+        self.size = size
+        self.mode = mode
+
+    def forward(self, x):
+
+        x = self.module(x, size=self.size, mode='bilinear')
         return x

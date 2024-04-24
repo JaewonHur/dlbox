@@ -4,35 +4,11 @@
 
 import pytest
 import time
-import pprint
-from typing import Any
-from threading import Thread
-from queue import Queue
+
 from torchsummary import summary
-
-import os
-import inspect
-
-import torch
-import torch.nn as nn
-import pytorch_lightning as pl
-import torchvision.transforms as transforms
-from torch.utils.data import random_split, Dataset, DataLoader
-
-from eval_tests.pl_module import plModule
-from eval_tests.datalib import cifar10, utkface, chestxray
 
 from prime.proxy import Proxy, _client
 from prime.utils import run_server, kill_server
-
-from tests.common import *
-
-def bprint(s):
-    print ('\033[1m' + s + '\033[0m')
-
-@pytest.fixture
-def is_vm(pytestconfig):
-    return pytestconfig.getoption('--is_vm')
 
 @pytest.fixture
 def baseline(pytestconfig):
@@ -51,75 +27,60 @@ def max_epochs(pytestconfig):
     return pytestconfig.getoption('--max_epochs')
 
 
-#####
-class baseDataset(Dataset):
-    def __init__(self, samples, labels, transform):
-        self.samples = samples
-        self.labels = labels
-        self.transform = transform
-
-    def __len__(self):
-        return len(self.samples)
-
-    def __getitem__(self, idx):
-
-        sample, lbl = self.samples[idx], self.labels[idx]
-
-        if self.transform:
-            sample = self.transform(sample)
-
-        return sample, lbl
-
-
-class streamDataset(Dataset):
-    def __init__(self, q, N):
-        self.q = q
-        self.N = N
-
-    def __len__(self):
-        return self.N
-
-    def __getitem__(self, idx):
-        if idx >= self.N:
-            raise IndexError()
-
-        s, l = self.q.get()
-        return s, l
-
-
 ################################################################################
 # Init server before starting tests                                            #
 ################################################################################
 
-def test_init_Server(is_vm, baseline, dataset):
-    port = os.environ.get('PRIMEPORT', None)
-
+def test_init_server(baseline: bool, dataset: str):
     if baseline:
         kill_server()
-
+    
     else:
-        if not is_vm:
-            kill_server()
-            run_server(port=port, dn=dataset, ll='ERROR')
-
-        for i in range(60):
-            time.sleep(1)
-            if _client.check_server():
-                break
-
+        kill_server()
+        run_server(dn=dataset, ll='ERROR')
+        
+        time.sleep(1)
         if not _client.check_server():
             raise Exception('Server not running')
 
+################################################################################
 
-def test_classification(is_vm, baseline, dataset, model, max_epochs):
-    start = time.time()
+def import_libs(baseline: bool):
+    global PIL, torch, torchvision
+    global PrimeDataset, DataLoader, Trainer
+    
+    if baseline:
+        import PIL, torch, torchvision, pytorch_lightning
+        
+        from torch.utils.data import TensorDataset, DataLoader
+        from pytorch_lightning import Trainer
+        
+        class PrimeDataset(TensorDataset):
+            def __init__(self, *tensors, transforms):
+                super().__init__(*tensors)
+                self.transforms = transforms
+                self.n = len(tensors)
+                
+            def __getitem__(self, index):
+                tensors = tuple((self.transforms(t[index])
+                                 if i < self.n - 1 else t[index])
+                                for i, t in enumerate(self.tensors))
 
-    bprint(f'<================================== Evaluating {model} on {dataset} ==================================>')
-    model_name = model
-    max_epochs = int(max_epochs)
+                return tensors
+            
+    else:
+        import prime_PIL as PIL
+        import prime_torch as torch
+        import prime_torchvision as torchvision
+        
+        from prime_torch.utils.data import PrimeDataset, DataLoader
+        from prime_pytorch_lightning import Trainer
+
+
+def sample_init(baseline: bool, dataset: str) -> tuple:
 
     if baseline:
-        device = torch.device('cuda:0') if torch.cuda.is_available() else torch.device('cpu')
+        from eval_tests.datalib import cifar10, utkface, chestxray
 
         dlib = (cifar10 if dataset == 'cifar10'
                 else utkface if dataset == 'utkface'
@@ -127,179 +88,64 @@ def test_classification(is_vm, baseline, dataset, model, max_epochs):
                 else None)
         assert dlib
 
-        samples_d, labels_d = dlib.sample_init()
+        samples, labels = dlib.sample_init()
 
     else:
-        device = initialize()
-        samples_d = Proxy('_SAMPLES')
-        labels_d = Proxy('_LABELS')
+        samples, labels = Proxy('_SAMPLES'), Proxy('_LABELS')
 
-    model = build_model(model_name, dataset)
-
-    if not baseline:
-        plmodule_src = inspect.getsource(plModule)
-        res = _client.ExportModel('eval_tests.pl_module.plModule',
-                                  plmodule_src)
-
-        if isinstance(res, Exception):
-            raise res
-
-    train_transform, test_transform = build_transform(model_name, dataset,
-                                                      samples_d, labels_d)
-
-    trainer_kwargs = {
-        'default_root_dir': os.path.join(f'/tmp/{dataset}-{model_name}'),
-        'max_epochs': max_epochs,
-    }
-    if not is_vm: 
-        trainer_kwargs['gpus'] = (1 if torch.cuda.is_available() else 0)
-
-    trainer = pl.Trainer(
-        **trainer_kwargs
-    )
-
-    if baseline:
-        torch.set_num_threads(12)
-
-        q = Queue()
-        stream_thread = Thread(target=stream_data_baseline,
-                               args=(q, samples_d, labels_d,
-                                     train_transform, max_epochs))
-        stream_thread.start()
-
-        # data_set = baseDataset(samples_d, labels_d, train_transform)
-        data_set = streamDataset(q, len(samples_d))
-        dataloader = DataLoader(data_set, batch_size=64)
-
-        trainer.fit(model, dataloader)
-        stream_thread.join()
-
-        fitted_model = model
-
-    else:
-        stream_data(samples_d, labels_d,
-                    train_transform, max_epochs)
-
-        res = _client.FitModel(trainer, model,
-                               [],
-                               {'batch_size': 64},
-                               [], {'max_epochs': max_epochs})
-        if isinstance(res, Exception):
-            raise res
-
-        fitted_model = res
-
-    eval_model(trainer, dataset, fitted_model, test_transform)
-
-    end = time.time()
-    elapsed_time = end - start
-
-    save_log(dataset, model_name, elapsed_time)
+    return samples, labels
 
 
-def save_log(dataset, model_name, elapsed_time):
-    from datetime import datetime
-    now = datetime.now().strftime("%Y-%m-%d-%H%M")
-
-    pwd = os.getcwd()
-    os.makedirs(f'{pwd}/eval-logs', exist_ok=True)
-
-    pid = os.getpid()
-    with open(f'{pwd}/eval-logs/{dataset}-{model_name}-time.txt', 'a') as fd:
-        fd.write(f'[{pid}] {now}| {elapsed_time}\n')
-
-
-def eval_model(trainer, dataset, model, test_transform):
-
-    from torch.utils.data import DataLoader
-
-    pwd = os.environ['PWD']
-    dataset_path = f'{pwd}/eval-tests/datasets/{dataset}'
-
-    data_set = (cifar10.get_dataset(dataset_path, test_transform) if dataset == 'cifar10'
-                else utkface.get_dataset(dataset_path, test_transform) if dataset == 'utkface'
-                else chestxray.get_dataset(dataset_path, test_transform))
-
-    len_test = len(data_set) // 5
-
-    _, test_set = random_split(data_set, [len(data_set) - len_test, len_test])
-
-    test_loader = DataLoader(test_set, batch_size=128,
-                             shuffle=False, drop_last=False,
-                             num_workers=4)
-
-    test_result = trainer.test(model, dataloaders=test_loader, verbose=False)
-    print(f'====[{model.model_name} Test Result]====\n')
-    pprint.pprint(test_result)
-
-
-def stream_data_baseline(q, samples, labels, transform, epochs):
-    for e in range(epochs):
-        for s, l in zip(samples, labels):
-            s = transform(s)
-            q.put((s, l))
-
-
-def stream_data(samples, labels, transform, max_epochs):
-    transform_in_de = [ transform ]
-    args            = [ (...,) ]
-    kwargs          = [ {} ]
-
-    _client.StreamData(samples, labels, transform_in_de, args, kwargs,
-                       max_epochs)
-
-
-def build_transform(model_name, dataset,
-                    samples, labels):
+def build_transforms(dataset: str, model_name: str, samples, labels):
     if dataset == 'cifar10':
         CIFAR10_MEAN = samples.mean(axis=(0, 2, 3))
         CIFAR10_STD = samples.std(axis=(0, 2, 3))
 
-        train_transform = transforms.Compose([
-            transforms.ToPILImage(),
-            transforms.RandomApply([
-                transforms.RandomRotation(10),
-                transforms.RandomHorizontalFlip(),
+        train_transform = torchvision.transforms.Compose([
+            torchvision.transforms.ToPILImage(),
+            torchvision.transforms.RandomApply([
+                torchvision.transforms.RandomRotation(10),
+                torchvision.transforms.RandomHorizontalFlip(),
             ], 0.7),
-            transforms.ToTensor(),
-            transforms.Normalize(CIFAR10_MEAN, CIFAR10_STD)
+            torchvision.transforms.ToTensor(),
+            torchvision.transforms.Normalize(CIFAR10_MEAN, CIFAR10_STD)
         ])
 
-        test_transform = transforms.Compose([
-            transforms.Normalize(CIFAR10_MEAN, CIFAR10_STD)
+        test_transform = torchvision.transforms.Compose([
+            torchvision.transforms.Normalize(CIFAR10_MEAN, CIFAR10_STD)
         ])
 
     elif dataset == 'utkface':
         UTKFACE_MEAN = samples.mean(axis=(0, 2, 3))
         UTKFACE_STD = samples.std(axis=(0, 2, 3))
 
-        train_transform = transforms.Compose([
-            transforms.ToPILImage(),
-            transforms.Resize((128, 128)),
-            transforms.ToTensor(),
-            transforms.Normalize(UTKFACE_MEAN,
+        train_transform = torchvision.transforms.Compose([
+            torchvision.transforms.ToPILImage(),
+            torchvision.transforms.Resize((128, 128)),
+            torchvision.transforms.ToTensor(),
+            torchvision.transforms.Normalize(UTKFACE_MEAN,
                                  UTKFACE_STD)
         ])
 
-        test_transform = transforms.Compose([
-            transforms.ToPILImage(),
-            transforms.Resize((128, 128)),
-            transforms.ToTensor(),
-            transforms.Normalize(UTKFACE_MEAN,
+        test_transform = torchvision.transforms.Compose([
+            torchvision.transforms.ToPILImage(),
+            torchvision.transforms.Resize((128, 128)),
+            torchvision.transforms.ToTensor(),
+            torchvision.transforms.Normalize(UTKFACE_MEAN,
                                  UTKFACE_STD)
         ])
 
     elif dataset == 'chestxray':
-        train_transform = transforms.Compose([
-            transforms.ToPILImage(),
-            transforms.RandomApply([
-                transforms.RandomRotation(10),
-                transforms.RandomHorizontalFlip()
+        train_transform = torchvision.transforms.Compose([
+            torchvision.transforms.ToPILImage(),
+            torchvision.transforms.RandomApply([
+                torchvision.transforms.RandomRotation(10),
+                torchvision.transforms.RandomHorizontalFlip()
             ], 0.7),
-            transforms.ToTensor()
+            torchvision.transforms.ToTensor()
         ])
 
-        test_transform = transforms.Compose([
+        test_transform = torchvision.transforms.Compose([
         ])
 
     else:
@@ -308,19 +154,7 @@ def build_transform(model_name, dataset,
     return train_transform, test_transform
 
 
-def build_model(model_name, dataset):
-    hparams = hyperparams(dataset)
-
-    model = plModule(model_name, hparams)
-    print(summary(model, input_size=(hparams['input_channels'],
-                                     hparams['input_size'],
-                                     hparams['input_size']),
-                  device='cpu'))
-
-    return model
-
-
-def hyperparams(dataset):
+def hyperparams(dataset: str):
 
     if dataset == 'cifar10':
         input_size, input_channels, num_classes = 32, 3, 10
@@ -328,6 +162,8 @@ def hyperparams(dataset):
         input_size, input_channels, num_classes = 128, 3, 4
     elif dataset == 'chestxray':
         input_size, input_channels, num_classes = 256, 3, 2
+    elif dataset == 'spinalcordmri':
+        input_size, input_channels, num_classes = 192, 1, 1
     else:
         raise NotImplementedError(f'{dataset} is not supported')
 
@@ -336,17 +172,78 @@ def hyperparams(dataset):
             'num_classes': num_classes}
 
 
-def initialize() -> Any:
-    R('pytorch_lightning.seed_everything')(42)
+def build_model(dataset: str, model_name: str):
 
-    # TODO: setattr on trusted library is not permitted
-    # torch.backends.cudnn.deterministic = True
-    # torch.backends.cudnn.benchmark = False
+    from eval_tests.clsmodule import ClassificationModule
 
-    device = (R('torch.device')('cuda:0') if R('torch.cuda.is_available')()
-              else R('torch.device')('cpu'))
+    hparams = hyperparams(dataset)
 
-    return device
+    model = ClassificationModule(model_name, hparams)
+    print(summary(model, input_size=(hparams['input_channels'],
+                                     hparams['input_size'],
+                                     hparams['input_size']),
+                  device='cpu'))
+
+    return model
+
+    
+def eval_model(dataset, model, transforms):
+    import torch
+    from torch.utils.data import random_split, DataLoader
+    from pytorch_lightning import Trainer
+
+    from eval_tests.datalib import cifar10, utkface, chestxray
+
+    dlib = (cifar10 if dataset == 'cifar10'
+            else utkface if dataset == 'utkface'
+            else chestxray if dataset == 'chestxray'
+            else None)
+    assert dlib
+
+    data_set = dlib.get_dataset(transforms)
+    ntest = len(data_set) // 10
+
+    _, test_set = random_split(data_set, [len(data_set) - ntest, ntest])
+
+    loader = DataLoader(test_set, batch_size=128, shuffle=False, drop_last=False)
+    trainer = Trainer()
+    
+    trainer.test(model, dataloaders=loader, verbose=True)
+
+
+
+def test_classification(baseline: bool, dataset: str, model: str, max_epochs: str):
+    dataset_name = dataset
+    model_name = model
+    max_epochs = int(max_epochs)
+
+    import_libs(baseline)
+    samples, labels = sample_init(baseline, dataset)
+    
+    print(f'\n[{dataset_name},{model_name}] start running...')
+    start = time.time()
+
+    print(f'\n[{dataset_name},{model_name}] build transforms...')
+    train_transforms, test_transforms = build_transforms(dataset_name, model_name,
+                                                         samples, labels)
+
+    print(f'\n[{dataset_name},{model_name}] fit model...')
+
+    dataset = PrimeDataset(samples, labels, transforms=train_transforms)
+    loader = DataLoader(dataset, batch_size=64, shuffle=True)
+    
+    trainer = Trainer(gpus=1, max_epochs=max_epochs)
+    model = build_model(dataset_name, model_name)
+
+    trainer.fit(model, train_dataloaders=loader)
+    
+    end = time.time()
+    print(f'[{dataset_name},{model_name}] done, elapsed: {end-start:.2f}')
+
+    if not baseline:
+        test_transforms = test_transforms.obj
+        
+    eval_model(dataset_name, model, test_transforms)
 
 
 ################################################################################

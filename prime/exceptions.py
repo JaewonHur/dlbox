@@ -102,3 +102,31 @@ def retrieve_xcpt(fitmodel: bool):
 
         return wrapper
     return decorator
+
+
+def retrieve_xcpts():
+    def decorator(func):
+        def wrapper(*args, **kwargs) -> Union[str, bytes, Exception]:
+            res = func(*args, **kwargs)
+            
+            refs = res.refs
+            ret = []
+            
+            for r in refs:
+                if r.error:
+                    err = dill.loads(r.error)
+                    
+                    if isinstance(err, UserError):
+                        ret.append(err.e)
+                    elif isinstance(err, NotImplementedOutputError):
+                        ret.append(NotImplemented)
+                    else:
+                        raise err
+                else:
+                    ret.append(r.name if r.name else dill.loads(r.obj))
+                    
+            return ret
+
+        return wrapper
+    return decorator
+                    

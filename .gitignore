@@ -131,3 +131,18 @@ dmypy.json
 
 # templates
 .github/templates/*
+
+ci-tests/mnist/*ubyte
+ci-tests/cifar10/cifar-10-batches-py
+ci_tests
+eval-tests/datasets
+eval_tests
+
+lightning_logs
+prime_*
+!prime_wrapper
+
+certs
+
+.envrc
+.vscode

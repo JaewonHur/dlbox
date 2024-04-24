@@ -9,17 +9,16 @@ from numpy import transpose, reshape
 from torch.utils.data import Dataset
 from torchvision.transforms import ToTensor
 
-def get_dataset(data_path, transform=None):
+def get_dataset(transforms=None):
+    pwd = os.environ['PWD']
 
-    dataset = Cifar10Dataset(data_path, transform)
+    data_path  = f'{pwd}/eval-tests/datasets/cifar10'
+    dataset = Cifar10Dataset(data_path, transforms)
     return dataset
 
 
 def sample_init() -> (torch.Tensor, torch.Tensor):
-    pwd = os.environ['PWD']
-
-    data_path  = f'{pwd}/eval-tests/datasets/cifar10'
-    dataset = get_dataset(data_path)
+    dataset = get_dataset()
 
     samples, lbls = [], []
     for img, lbl in dataset:

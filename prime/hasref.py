@@ -30,7 +30,7 @@ class HasRef(object):
     __can_useref: bool = True
     __fromref: FromRef = None
 
-    def __new__(cls: HasRef, ref: str):
+    def __new__(cls: HasRef, ref: str, *args):
         if cls.__ctx:
             if cls.__can_useref:
                 cls.__fromref._add(ref)

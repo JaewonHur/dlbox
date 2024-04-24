@@ -2,6 +2,7 @@
 # Copyright (c) 2022
 #
 
+import os
 import grpc
 import dill
 
@@ -9,7 +10,7 @@ from typing import types, Type, List, Dict, Any, Tuple, Callable, Union
 import pytorch_lightning as pl
 
 from prime.utils import logger, MAX_MESSAGE_LENGTH
-from prime.exceptions import retrieve_xcpt
+from prime.exceptions import retrieve_xcpt, retrieve_xcpts
 from prime.hasref import HasRef
 
 from prime_pb2 import *
@@ -20,16 +21,26 @@ TIMEOUT_SEC = 10
 
 
 class PrimeClient:
-    def __init__(self, ipaddr=None, port=None):
-        ipaddr = '127.0.0.1' if not ipaddr else ipaddr
-        port = 50051 if not port else port
+    def __init__(self, ipaddr=None, port=None, cert=None, secure=False):
+        ipaddr = ipaddr or 'localhost'
+        port = port or 50051
 
-        # TODO: construct secure channel
-        self.channel = grpc.insecure_channel(f'{ipaddr}:{port}',
-                        options=[
-                            ('grpc.max_send_message_length', MAX_MESSAGE_LENGTH),
-                            ('grpc.max_receive_message_length', MAX_MESSAGE_LENGTH)
-                        ])
+        options = [
+            ('grpc.max_send_message_length', MAX_MESSAGE_LENGTH),
+            ('grpc.max_receive_message_length', MAX_MESSAGE_LENGTH)
+        ]
+
+        if secure:
+            cert = cert or f'{os.getcwd()}/certs/cert.pem'
+    
+            with open(cert, 'rb') as fd:
+                creds = grpc.ssl_channel_credentials(fd.read())
+
+            self.channel = grpc.secure_channel(f'{ipaddr}:{port}', creds, 
+                            options=options)
+        else:
+            self.channel = grpc.insecure_channel(f'{ipaddr}:{port}',
+                            options=options)
 
         if not self.check_server():
             raise RuntimeError('grpc server is not ready')
@@ -86,6 +97,37 @@ class PrimeClient:
         ref = self.stub.InvokeMethod(arg)
         return ref
 
+    @retrieve_xcpts()
+    def InvokeMethods(self,             #  obj  method args       kwargs 
+                      lineages: Dict[str, 
+                                     Tuple[str, str,   List[Any], Dict[str, Any]]]) -> Ref:
+
+        tot_args = InvokeMethodsArg()
+
+        for ref, lineage in lineages.items():
+            ref_arg = RefInvokeMethodArg()
+            arg = InvokeMethodArg()
+
+            obj, method, args, kwargs = lineage
+
+            args = [ dill.dumps(i) for i in args ]
+            kwargs = { k:dill.dumps(v) for k, v in kwargs.items() }
+
+            ref_arg.ref = ref
+            arg.obj = obj
+            arg.method = method
+            arg.args.extend(args)
+
+            for k, v in kwargs.items():
+                arg.kwargs[k] = v
+
+            ref_arg.arg.CopyFrom(arg)
+
+            tot_args.lineages.extend([ref_arg])
+
+        refs = self.stub.InvokeMethods(tot_args)
+        return refs
+
     @retrieve_xcpt(False)
     def ExportModel(self, fullname: str, source: str) -> Ref:
         arg = ExportModelArg(fullname=fullname, source=source)
@@ -95,54 +137,20 @@ class PrimeClient:
         return ref
 
     @retrieve_xcpt(True)
-    def FitModel(self, trainer: pl.Trainer, model: pl.LightningModule,
-                 d_args: List[Any], d_kwargs: Dict[str, Any],
+    def FitModel(self, trainer: str, model: str, 
                  args: List[Any], kwargs: Dict[str, Any]) -> Model:
 
-        trainer = dill.dumps(trainer)
-        model   = dill.dumps(model)
-
-        d_args   = [ dill.dumps(i) for i in d_args ]
-        d_kwargs = { k:dill.dumps(v) for k, v in d_kwargs.items() }
-
-        args   = [ dill.dumps(i) for i in args ]
+        arg = FitModelArg()
+        arg.trainer = trainer
+        arg.model = model
+        
+        args = [ dill.dumps(i) for i in args ]
         kwargs = { k:dill.dumps(v) for k, v in kwargs.items() }
 
-        arg = FitModelArg(trainer=trainer, model=model,
-                          d_args=d_args, d_kwargs=d_kwargs,
-                          args=args, kwargs=kwargs)
-
-        model = self.stub.FitModel(arg)
-        return model
-
-    @retrieve_xcpt(False)
-    def SupplyData(self, datapairs: List[Tuple['Proxy']]) -> Ref:
-
-        datapairs = [ DataPair(sample=dill.dumps(p[0]), label=dill.dumps(p[1]))
-                      for p in datapairs ]
-
-        arg = SupplyDataArg(datapairs=datapairs)
-
-        ref = self.stub.SupplyData(arg)
+        arg.args.extend(args)
+        
+        for k, v in kwargs.items():
+            arg.kwargs[k] = v
+            
+        ref = self.stub.FitModel(arg)
         return ref
-
-    @retrieve_xcpt(False)
-    def StreamData(self, samples: 'Proxy', labels: 'Proxy',
-                   transforms: List[Union[Callable, str]], args: List[Tuple], kwargs: List[Dict],
-                   max_epoch: int):
-
-        samples = dill.dumps(samples)
-        labels  = dill.dumps(labels)
-
-        transforms = [ dill.dumps(t) for t in transforms ]
-        args = [ dill.dumps(i) for i in args ]
-        kwargs = [ dill.dumps(i) for i in kwargs ]
-
-        max_epoch  = dill.dumps(max_epoch)
-
-        arg = StreamDataArg(samples=samples, labels=labels,
-                            transforms=transforms, args=args, kwargs=kwargs,
-                            max_epoch=max_epoch)
-
-        none = self.stub.StreamData(arg)
-        return none

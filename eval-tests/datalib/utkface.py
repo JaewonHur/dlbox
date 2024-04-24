@@ -7,17 +7,17 @@ from torchvision.transforms import ToTensor
 from PIL import Image
 
 
-def get_dataset(data_path, transform=None):
+def get_dataset(transforms=None):
+    pwd = os.environ['PWD']
 
-    dataset = UTKFaceDataset(data_path, transform)
+    data_path  = f'{pwd}/eval-tests/datasets/utkface'
+    dataset = UTKFaceDataset(data_path, transforms)
     return dataset
 
 
 def sample_init() -> (torch.Tensor, torch.Tensor):
-    pwd = os.environ['PWD']
 
-    data_path  = f'{pwd}/eval-tests/datasets/utkface'
-    dataset = get_dataset(data_path)
+    dataset = get_dataset()
 
     samples, lbls = [], []
     for img, lbl in dataset:

@@ -2,111 +2,84 @@
 # Copyright (c) 2022
 #
 
-import pytest
 import time
-import pprint
-from typing import Any
-from threading import Thread
-
-import os
-import PIL
-import torch
-import torchvision
-import pytorch_lightning as pl
-from torch.utils.data import Dataset, DataLoader
-from torchvision import transforms
-from torchvision.datasets import CIFAR10
-
-from ci_tests.cifar_module import CIFARModule
+import pytest
 
 from prime.proxy import Proxy, _client
 from prime.utils import run_server, kill_server
 
-from tests.common import *
+@pytest.fixture
+def baseline(pytestconfig):
+    return pytestconfig.getoption('--baseline')
 
-
-@pytest.fixture(scope='session')
+@pytest.fixture
 def model(pytestconfig):
-    return pytestconfig.getoption('model')
+    return pytestconfig.getoption('--model')
 
 ################################################################################
 # Init server before starting tests                                            #
 ################################################################################
 
-def test_init_cifar10Server(model):
-    port = os.environ.get('PRIMEPORT', None)
+def test_init_server(baseline: bool):
+    if baseline:
+        kill_server()
+    
+    else:
+        kill_server()
+        run_server(dn='cifar10', ll='ERROR')
+        
+        time.sleep(1)
+        if not _client.check_server():
+            raise Exception('Server not running')
 
-    kill_server()
-    run_server(port=port, dn='cifar10', ll='ERROR')
+################################################################################
 
-    time.sleep(1)
-    if not _client.check_server():
-        raise Exception('Server  not running')
+def import_libs(baseline: bool):
+    global PIL, torch, torchvision
+    global PrimeDataset, DataLoader, Trainer
+    
+    if baseline:
+        import PIL, torch, torchvision, pytorch_lightning
+        
+        from torch.utils.data import TensorDataset, DataLoader
+        from pytorch_lightning import Trainer
+        
+        class PrimeDataset(TensorDataset):
+            def __init__(self, *tensors, transforms):
+                super().__init__(*tensors)
+                self.transforms = transforms
+                self.n = len(tensors)
+                
+            def __getitem__(self, index):
+                tensors = tuple((self.transforms(t[index])
+                                 if i < self.n - 1 else t[index])
+                                for i, t in enumerate(self.tensors))
 
-    export_f_output(_client)
-
-
-def test_cifar10(model):
-
-    print(f'test_cifar10({model})')
-    model_name = model
-
-    device = initialize()
-
-    samples_d = Proxy('_SAMPLES')
-    labels_d  = Proxy('_LABELS')
-
-    model = build_model(model_name)
-
-    max_epochs = 2
-    trainer = pl.Trainer(
-        default_root_dir=os.path.join('/tmp', model_name),
-        gpus=1 if str(device) == 'cuda:0' else 0,
-        max_epochs=max_epochs,
-        # TODO
-        # callbacks=[
-        #     ModelCheckpoint(
-        #         save_weights_only=True, model='max', monitor='val_acc'
-        #     ),
-        #     LearningRateMonitor('epoch'),
-        # ],
-    )
-    # trainer.logger._log_graph = True
-    # trainer.logger._default_hp_metric = True
-
-    stream_data(samples_d, labels_d, max_epochs)
-
-    res = _client.FitModel(trainer, model,
-                           [],
-                           {'batch_size': 128},
-                           [], {'max_epochs': max_epochs})
-    # TODO: Support other arguments
-    # res = _client.FitModel(trainer, model,
-    #                        [],                                      # d_args
-    #                        {'batch_size': 128, 'shuffle': True,     # d_kwargs
-    #                         'drop_last': True, 'pin_memory': True,
-    #                         'num_workers': 4},
-    #                        [], {} # args, kwargs
-    #                        )
-    if isinstance(res, Exception):
-        raise res
-
-    eval_model(trainer, res, samples_d, labels_d)
+                return tensors
+            
+    else:
+        import prime_PIL as PIL
+        import prime_torch as torch
+        import prime_torchvision as torchvision
+        
+        from prime_torch.utils.data import PrimeDataset, DataLoader
+        from prime_pytorch_lightning import Trainer
 
 
-def initialize() -> Any:
-    R('pytorch_lightning.seed_everything')(42)
+def sample_init(baseline: bool) -> tuple:
+    
+    if baseline:
+        from ci_tests.cifar10 import cifar10
+        samples, labels = cifar10.sample_init()
+        
+    else:
+        samples, labels = Proxy('_SAMPLES'), Proxy('_LABELS')
+        
+    return samples, labels
 
-    # TODO: setattr on trusted library is not permitted
-    # torch.backends.cudnn.deterministic = True
-    # torch.backends.cudnn.benchmark = False
+def build_model(model_name: str):
+    from ci_tests.cifarmodule import CifarModule
 
-    device = (R('torch.device')('cuda:0') if R('torch.cuda.is_available')()
-              else R('torch.device')('cpu'))
-
-    return device
-
-def build_model(model_name: str) -> pl.LightningModule:
     if model_name == 'googlenet':
         kwargs = {
             'model_hparams'    : {'num_classes': 10, 'act_fn_name': 'relu'},
@@ -141,62 +114,77 @@ def build_model(model_name: str) -> pl.LightningModule:
     else:
         raise Exception(f'unknown model name: {model_name}')
 
-    model = CIFARModule(model_name=model_name, **kwargs)
-
-    with open(f'{os.environ["PWD"]}/ci-tests/cifar_module.py', 'r') as fd:
-        CIFARModule_src = fd.readlines()
-
-    CIFARModule_src = ''.join(CIFARModule_src[4:])
-    res = _client.ExportModel('ci_tests.cifar_module.CIFARModule', CIFARModule_src)
-    if isinstance(res, Exception):
-        raise res
-
+    model = CifarModule(model_name=model_name, **kwargs)
     return model
 
+    
+def eval_model(model, transforms):
+    import torch
+    from torch.utils.data import TensorDataset, DataLoader
+    from pytorch_lightning import Trainer
+    
+    from ci_tests.cifar10 import cifar10
+    
+    samples, labels = cifar10.sample_init()
 
-def stream_data(samples: torch.Tensor, labels: torch.Tensor, max_epoch: int):
+    nsamples = len(samples)
+    samples = samples[::nsamples//10]
+    labels = labels[::nsamples//10]
+    
+    samples = torch.stack([transforms(s) for s in samples])
+    
+    loader = DataLoader(TensorDataset(samples, labels))
+    trainer = Trainer()
+    
+    trainer.test(model, dataloaders=loader, verbose=True)
 
-    DATA_MEAN = (samples).mean(axis=(0, 2, 3))
-    DATA_STD  = (samples).std(axis=(0, 2, 3))
 
-    train_transform = transforms.Compose(
+def test_cifar10(baseline: bool, model: str):
+
+    model_name = model
+    
+    import_libs(baseline)
+    samples, labels = sample_init(baseline)
+    
+    print(f'\n[cifar10,{model_name}] start running..')
+    start = time.time()
+
+    DATA_MEAN = samples.mean(axis=(0, 2, 3))
+    DATA_STD  = samples.std(axis=(0, 2, 3))
+    
+    print(f'[cifar10,{model_name}] data_mean: {DATA_MEAN}, data_std: {DATA_STD}')
+
+    train_transforms = torchvision.transforms.Compose(
         [
-            transforms.ToPILImage(),
-            transforms.RandomHorizontalFlip(),
-            transforms.RandomResizedCrop((32, 32), scale=(0.8, 1.0), ratio=(0.9, 1.1)),
-            transforms.ToTensor(),
-            transforms.Normalize(DATA_MEAN, DATA_STD)
+            torchvision.transforms.ToPILImage(),
+            torchvision.transforms.RandomHorizontalFlip(),
+            torchvision.transforms.RandomResizedCrop((32, 32), scale=(0.8, 1.0), ratio=(0.9, 1.1)),
+            torchvision.transforms.ToTensor(),
+            torchvision.transforms.Normalize(DATA_MEAN, DATA_STD)
         ]
     )
 
-    transforms_in_de = [ train_transform ]
-    args             = [ (...,) ]
-    kwargs           = [ {} ]
+    print(f'[cifar10,{model_name}] fit model...')
 
-    _client.StreamData(samples, labels, transforms_in_de, args, kwargs,
-                       max_epoch)
+    dataset = PrimeDataset(samples, labels, transforms=train_transforms)
+    loader = DataLoader(dataset, batch_size=128, shuffle=True)
+    
+    trainer = Trainer(gpus=1, max_epochs=2)
+    model = build_model(model_name)
 
+    trainer.fit(model, train_dataloaders=loader)
 
-def eval_model(trainer: pl.Trainer, model: CIFARModule,
-               samples: torch.Tensor, labels: torch.Tensor):
+    end = time.time()
+    print(f'[cifar10,{model_name}] done, elapsed: {end-start:.2f}')
 
-    pwd = os.environ['PWD']
-    DATASET_PATH = f'{pwd}/ci-tests/cifar_10'
+    test_transforms = torchvision.transforms.Compose([
+        torchvision.transforms.Normalize(DATA_MEAN, DATA_STD)
+    ])
 
-    DATA_MEAN = (samples).mean(axis=(0, 2, 3))
-    DATA_STD  = (samples).std(axis=(0, 2, 3))
+    if not baseline:
+        test_transforms = test_transforms.obj
 
-    test_transform = transforms.Compose([transforms.ToTensor(),
-                                         transforms.Normalize(DATA_MEAN, DATA_STD)])
-    test_set = CIFAR10(root=DATASET_PATH, train=False, transform=test_transform)
-    test_loader = DataLoader(test_set, batch_size=128, shuffle=False,
-                             drop_last=False,
-                             num_workers=4)
-
-    test_result = trainer.test(model, dataloaders=test_loader, verbose=False)
-
-    print(f'====[{model.model_name} Test Result]====\n')
-    pprint.pprint(test_result)
+    eval_model(model, test_transforms)
 
 
 ################################################################################

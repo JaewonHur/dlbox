@@ -6,9 +6,10 @@ from __future__ import annotations
 import os
 import re
 import sys
-from typing import List, Dict, Union, Any
+from typing import List, Dict, Union, Any, Optional
 from types import FunctionType
 from functools import partial
+from dataclasses import dataclass, field
 
 import prime
 from prime import utils
@@ -32,6 +33,26 @@ _client = PrimeClient(ipaddr, port) if not utils.IS_SERVER else None
 # TODO: HasRef of Prime client does not set ctx
 # delattr(HasRef, '_set_ctx')
 # delattr(HasRef, '_set_export')
+
+LNG = "LNG"
+lng_cnt = 0
+
+"""
+Lineage type is used to remember the arguments for the InvokeMethod
+"""
+@dataclass
+class Lineage:
+    ref: str = field(default=0, init=False)
+    obj: Union[Proxy, str]
+    method: str
+    args: List[Any]
+    kwargs: Dict[str, Any]
+
+    def __post_init__(self):
+        global lng_cnt
+
+        self.ref = f'{LNG}{lng_cnt}'
+        lng_cnt += 1
 
 """
 Proxy type is used to wrap the referenced variable allocated in DE.
@@ -86,12 +107,43 @@ Supported types of referenced variable:
     Static method object
     Class method object
 """
+def has_lineage(proxy: Any) -> bool:
+    return isinstance(proxy, Proxy) and bool(proxy._lineage)
+
+
+# TODO: obj can be container
+def find_proxy_with_lineage(obj: Any) -> List[Proxy]:
+    if isinstance(obj, list):
+        ret = [i for i in obj if has_lineage(i)]
+
+    elif isinstance(obj, dict):
+        ret = [i for i in obj.values() if has_lineage(i)]
+
+    elif has_lineage(obj):
+        ret = [obj]
+    else:
+        ret = []
+
+    return ret
+
 
 def get_path(obj: Any) -> str:
     return f'{obj.__module__}.{obj.__name__}'
 
+
+def _prime_op_lazy(func):
+    def wrapper(self: Proxy, *args, **kwargs) -> Proxy:
+        lineage = Lineage(self, func.__name__, args, kwargs)
+        
+        return Proxy(None, lineage)
+    return wrapper
+
+
 def _prime_op(func):
     def wrapper(self: Proxy, *args, **kwargs) -> Union[Proxy, Any]:
+        if has_lineage(self):
+            raise PrimeNotSupportedError(f"Cannot perform {func.__name__} on {self}")
+
         res = self._client.InvokeMethod(self._ref, func.__name__,
                                         args, kwargs)
 
@@ -111,12 +163,15 @@ class Proxy(HasRef):
 
     _client: PrimeClient = _client
 
-    def __init__(self, ref: str):
+    def __init__(self, ref: Optional[str], lineage: Optional[Lineage]=None):
+
         # TODO: Need to check referenced variable is not class definition
-        super().__init__(ref)
+        super().__init__(ref or lineage.ref)
+        self._lineage = lineage
 
         # TODO: Need lock?
-        self.__refcnt[ref] = self.__refcnt.get(ref, 0) + 1
+        if ref:
+            self.__refcnt[ref] = self.__refcnt.get(ref, 0) + 1
 
     def __getattribute__(self, name: str) -> Any:
         __methods = (
@@ -207,9 +262,62 @@ class Proxy(HasRef):
 
         return object.__getattribute__(self, name)
 
+    # Return dependencies of Proxies 
+    def _graph(self) -> List[Proxy]:
+        l = self._lineage
+        obj, args, kwargs = l.obj, l.args, l.kwargs
+
+        # assert not obj.startswith(LNG), "Lineage.obj must already be evaluated"
+ 
+        graph = [self]
+        to_be_traversed = sum([find_proxy_with_lineage(a) for a in args], [])
+        to_be_traversed += sum([find_proxy_with_lineage(v) for _, v in kwargs.items()], [])
+
+        if has_lineage(obj):
+            to_be_traversed += [obj]
+
+        # TODO: There can be circular dependency?
+        for p in to_be_traversed:
+            graph += p._graph()
+
+        return graph
+
+    def _resolve_lineage(self, res: Union[Exception, str]):
+        if isinstance(res, Exception):
+            raise res
+        
+        super().__init__(res)
+        self.__refcnt[res] = self.__refcnt.get(res, 0) + 1
+        self._lineage = None
+
+    def _eval(self):
+        if not self._lineage:
+            raise PrimeNotSupportedError(f'{self} does not have _lineage')
+
+        graph = self._graph()
+        included: Dict[str, bool] = {}
+        to_be_eval: List[Proxy] = []
+        for p in reversed(graph):
+            if not included.get(p._ref, False):
+                included[p._ref] = True
+                to_be_eval.append(p)
+
+        lineages = [ p._lineage for p in to_be_eval ]
+        tot_args = { l.ref:((l.obj if isinstance(l.obj, str) else l.obj._ref), 
+                            l.method, l.args, l.kwargs)
+                     for l in lineages }
+
+        results = self._client.InvokeMethods(tot_args)
+        for p, res in zip(to_be_eval, results):
+            p._resolve_lineage(res)
+
+
     def __getattr__(self, name: str) -> Proxy:
         if name == 'mro':
             raise AttributeError
+
+        if has_lineage(self):
+            self._eval()
 
         attr_d = self._client.InvokeMethod('', get_path(getattr),
                                            [self, name])
@@ -220,9 +328,13 @@ class Proxy(HasRef):
         return Proxy(attr_d)
 
     def __setattr__(self, name: str, attr: Any):
-        if name == '_ref':
+        if name in ('_ref', '_lineage'):
             object.__setattr__(self, name, attr)
         else:
+
+            if has_lineage(self):
+                raise PrimeNotSupportedError(f"Cannot perform __setattr__ on {self}")
+
             null_d = self._client.InvokeMethod('', get_path(setattr),
                                                [self, name, attr])
 
@@ -243,7 +355,14 @@ class Proxy(HasRef):
     #     raise NotImplementedError()
 
     def __del__(self):
+        if not 'has_lineage' in locals():
+            return
+
+        if has_lineage(self):
+            return
+
         assert self.__refcnt[self._ref] > 0
+
         self.__refcnt[self._ref] -= 1
 
         if self.__refcnt[self._ref] == 0:
@@ -253,10 +372,16 @@ class Proxy(HasRef):
                 pass
 
     def __repr__(self) -> str:
-        return f"'Proxy({self._ref})'"
+        s = (f"'Proxy({self._ref})'" if self._ref
+             else f"'Proxy({self._ref}) with lineage...'")
+
+        return s
 
     def __str__(self) -> str:
-        return f'Proxy@{self._ref}'
+        s = (f'Proxy@{self._ref}' if self._ref
+             else f'Proxy@{self._ref} with lineage...')
+
+        return s
 
     def __bytes__(self):
         raise PrimeNotSupportedError("'Proxy' does not support bytes() conversion")
@@ -368,7 +493,7 @@ class Proxy(HasRef):
     def __length_hint__(self):
         return NotImplemented
 
-    @_prime_op
+    @_prime_op_lazy
     def __getitem__(self, res: Union[Exception, str], key) -> Proxy:
         if isinstance(res, Exception):
             raise res

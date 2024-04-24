@@ -453,7 +453,7 @@ def create_model(model_name, model_hparams):
     else:
         assert False, f'Unknown model name "{model_name}"'
 
-class CIFARModule(pytorch_lightning.LightningModule):
+class CifarModule(pytorch_lightning.LightningModule):
     def __init__(self, model_name, model_hparams, optimizer_name, optimizer_hparams):
         super().__init__()
 
@@ -480,6 +480,9 @@ class CIFARModule(pytorch_lightning.LightningModule):
                                                          gamma=0.1)
 
         return [optimizer], [scheduler]
+
+    def lr_scheduler_step(self, scheduler, optimizer_idx, metric):
+        scheduler.step()
 
     def training_step(self, batch, batch_idx):
         imgs, labels = batch

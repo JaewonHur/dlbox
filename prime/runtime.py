@@ -11,8 +11,8 @@ import queue
 import shutil
 import builtins
 from importlib.util import spec_from_file_location, module_from_spec
-from typing import types, List, Dict, Any, Optional, Type, Tuple, Union, Callable
-from types import FunctionType, MethodType
+from typing import types, List, Dict, Any, Optional, Union, Callable
+from types import FunctionType
 from collections.abc import Iterator
 from functools import partial
 
@@ -20,10 +20,14 @@ from prime.utils import logger
 from prime.exceptions import *
 from prime.hasref import FromRef, HasRef
 from prime.emul import emulate
-from prime.data import DataQueue, FairDataset, build_dataloader
 from prime.taint import *
+from prime.static import check_violations
+from prime.data import PrimeDataset
 
-VAR_SFX = 'VAL'
+import torch
+torch.utils.data.PrimeDataset = PrimeDataset
+
+VAR = 'VAR'
 
 ################################################################################
 # Trusted Libraries                                                            #
@@ -131,11 +135,8 @@ class ExecutionRuntime():
 
         self.dn = dn
         self.init_samples()
-        self.dqueue = DataQueue()
-        self.is_learning = False
 
     def init_samples(self):
-
         if self.dn is None:
             samples, labels = sample_init()
         elif self.dn == 'mnist':
@@ -145,6 +146,7 @@ class ExecutionRuntime():
 
             from ci_tests.mnist import mnist
             samples, labels = mnist.sample_init()
+
         elif self.dn == 'cifar10':
             _trust('torchvision')
             _trust('PIL')
@@ -155,7 +157,7 @@ class ExecutionRuntime():
             # from ci_tests.cifar_10 import cifar_10
             # samples, labels = cifar_10.sample_init()
 
-            from eval_tests.datalib import cifar10
+            from ci_tests.cifar10 import cifar10
             samples, labels = cifar10.sample_init()
 
         elif self.dn == 'utkface':
@@ -180,7 +182,6 @@ class ExecutionRuntime():
         assert len(samples) == len(labels), \
             'Number of samples and labels mismatch'
 
-        FairDataset.set_n(len(samples))
         self.__taints.init(len(samples))
 
         s_tags = [ UndefTag(0, i) for i in range(len(samples)) ]
@@ -202,7 +203,7 @@ class ExecutionRuntime():
     def _add_to_ctx(self, obj: Any, tag: Union[Tag, TagSack],
                     name: str = None) -> str:
         if not name:
-            name = f'{self.ctr}{VAR_SFX}'
+            name = f'{VAR}{self.ctr}'
             self.ctr += 1
 
         self.__ctx[name] = obj
@@ -253,9 +254,17 @@ class ExecutionRuntime():
             tag = self.__taints[ref]
 
         elif fromref:
-            # TODO
-            raise PrimeNotAllowedError(
-                f'exporting variable containing references is not allowed')
+            if tpe is list:
+                tags = [self.__taints[r] for r in fromref]
+                tag = TagSack(tags)
+
+                for r in fromref:
+                    self.__taints[r] = DangerTag()
+
+            else:
+                # TODO
+                raise PrimeNotAllowedError(
+                    f'exporting variable containing references is not allowed')
 
             # for ref in fromref:
             #     self.__taints[ref] = DangerTag()
@@ -350,8 +359,8 @@ class ExecutionRuntime():
         # AllocateObj does not allow using reference
         tag, obj = self._deserialize(val, False)
 
-        # AllocateObj is only for invoking a instance function
-        assert callable(obj), f'cannot allocate non-callable: {obj}'
+        # TODO: AllocateObj is only for invoking a instance function
+        # assert callable(obj), f'cannot allocate non-callable: {obj}'
 
         logger.debug(f'{hex(id(obj))}={str(obj)[0:10]}...')
         name = self._add_to_ctx(obj, tag)
@@ -359,7 +368,8 @@ class ExecutionRuntime():
 
     @catch_xcpt(False)
     def InvokeMethod(self, obj: str, method: str,
-                     args: List[bytes], kwargs: Dict[str,bytes]) -> Union[str,bytes]:
+                     args: List[bytes], kwargs: Dict[str,bytes],
+                     ref: Optional[str]=None) -> Union[str,bytes]:
 
         # FIXME: This is only for test purpose ##############################
         # Remove this before release! #######################################
@@ -405,7 +415,6 @@ class ExecutionRuntime():
             else:
                 module, method = get_from(method)
 
-        logger.debug(f'{method}')
         t_args = [ self._deserialize(i) for i in args ]
         t_kwargs = { k:self._deserialize(v) for k, v in kwargs.items() }
 
@@ -415,6 +424,7 @@ class ExecutionRuntime():
         tags = [ i[0] for i in t_args ]
         kwtags = { k:v[0] for k,v in t_kwargs.items() }
 
+        logger.debug(f'{method}')
         try:
             out = emulate(method, obj)(*args, **kwargs)
         except Exception as e:
@@ -441,13 +451,21 @@ class ExecutionRuntime():
 
         logger.debug(f'{hex(id(out))}={str(out)[0:10]}...')
         ret = (dill.dumps(out) if isinstance(tag, Tag) and tag.is_safe()
-               else self._add_to_ctx(out, tag))
+               else self._add_to_ctx(out, tag, ref))
         return ret
 
     @catch_xcpt(False)
     def ExportModel(self, fullname: str, source: str) -> str:
         # TODO: Sandbox codes
         # Malicious codes can change states of global variables
+        violations = check_violations(source)
+
+        if violations:
+            msg = ('Violation detected in model definition\n' + 
+                   '\n'.join(f'[{i}] {v}'
+                             for i, v in enumerate(violations)))
+
+            raise PrimeNotAllowedError(msg)
 
         if fullname.startswith('__main__'):
             # NOTE: Do not support nested definition
@@ -516,95 +534,39 @@ class ExecutionRuntime():
         return name
 
     @catch_xcpt(True)
-    def FitModel(self, trainer: bytes, model: bytes,
-                 d_args: List[bytes], d_kwargs: Dict[str, bytes],
-                 args: List[bytes], kwargs: Dict[str, bytes]) -> bytes:
+    def FitModel(self, trainer: str, model: str,
+                 args: List[bytes], kwargs: Dict[str, bytes]) -> Union[str, bytes]:
 
-        import torch
         import pytorch_lightning as pl
 
-        # TODO: Need to fix!!
-        # trainer = self._deserialize(trainer, False)[1]
-        model   = self._deserialize(model, False)[1]
+        trainer_tag = self.__taints[trainer]
+        trainer: pl.Trainer = self.__ctx[trainer]
+        
+        model_tag = self.__taints[model]
+        model: pl.LightningModule = self.__ctx[model]
+        
+        if not trainer_tag.is_safe() or not model_tag.is_safe():
+            raise PrimeNotAllowedError('cannot fit model with unsafe trainer & model')
 
-        logger.debug(f'{model}')
+        try:
+            dataloader = kwargs.pop('train_dataloaders')
+        except KeyError:
+            dataloader = args.pop(0)
+        except:
+            raise PrimeNotAllowedError('train_dataloader is not provided')
+        
+        tag, dataloader = self._deserialize(dataloader, True)
 
-        d_args   = [ self._deserialize(i, False)[1] for i in d_args ]
-        d_kwargs = { k:self._deserialize(v, False)[1] for k, v in d_kwargs.items() }
+        if not tag.is_frozen():
+            raise PrimeNotAllowedError('cannot fit model with un-sanitized dataloader')
 
-        args   = [ self._deserialize(i, False)[1] for i in args ]
-        kwargs = { k:self._deserialize(v, False)[1] for k, v in kwargs.items() }
+        args = [ self._deserialize(i, False)[1] for i in args ]
+        kwargs = {k:self._deserialize(v, False)[1] for k, v in kwargs.items() }
 
-        # TODO: Fix this!! Get arguments from grpc not trainer itself
-        trainer = pl.Trainer(
-            default_root_dir=os.path.join('/tmp/fitmodel'),
-            gpus=1 if str(torch.cuda.is_available()) else 0,
-            max_epochs=kwargs['max_epochs']
-        )
-        kwargs.pop('max_epochs')
-
-        if self.is_learning:
-            raise PrimeNotSupportedError('already learning')
-
-        # TODO: dqueue need to be empty?
-        # assert self.dqueue.empty(), 'dqueue is not empty'
-
-        dataloader = build_dataloader(self.dqueue, d_args, d_kwargs)
-
-        self.is_learning = True
         try:
             trainer.fit(model, dataloader, *args, **kwargs)
         except Exception as e:
             raise UserError(e)
-        finally:
-            self.is_learning = False
 
         model = dill.dumps(model)
         return model
-
-    @catch_xcpt(False)
-    def SupplyData(self, datapairs: List[Tuple[bytes]]) -> bytes:
-
-        n = len(datapairs)
-        logger.debug(f'{n}')
-
-        pairs = [ (self._deserialize(p[0]), self._deserialize(p[1]))
-                  for p in datapairs ]
-
-        n = self.dqueue.put(pairs)
-
-        return dill.dumps(n)
-
-    @catch_xcpt(False)
-    def StreamData(self, samples: bytes, labels: bytes,
-                   transforms: List[bytes], args: List[bytes], kwargs: List[bytes],
-                   max_epoch: bytes) -> bytes:
-
-        s_ts, samples = self._deserialize(samples)
-        l_ts, labels = self._deserialize(labels)
-
-        assert isinstance(s_ts, TagSack) and s_ts.is_safe(), \
-            'cannot stream on unsafe samples'
-
-        assert isinstance(l_ts, TagSack) and l_ts.is_safe(), \
-            'cannot stream on unsafe labels'
-
-        transforms = [ (get_from(i)[1] if isinstance(i, str) else i)
-                       for i in [self._deserialize(t, False)[1]
-                                 for t in transforms] ]
-
-        args = [ self._deserialize(i, False)[1] for i in args ]
-        kwargs = [ self._deserialize(i, False)[1] for i in kwargs ]
-
-        assert all(isinstance(i, tuple) for i in args)
-        assert all(isinstance(i, dict) for i in kwargs)
-
-        logger.debug('\n  '.join([''] + [repr(t) for t in transforms]))
-
-        _, max_epoch = self._deserialize(max_epoch, False)
-
-        self.dqueue.stream(s_ts, samples, l_ts, labels,
-                           transforms, args, kwargs,
-                           max_epoch)
-
-        return dill.dumps(None)
