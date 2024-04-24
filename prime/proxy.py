@@ -493,7 +493,7 @@ class Proxy(HasRef):
     def __length_hint__(self):
         return NotImplemented
 
-    @_prime_op_lazy
+    @_prime_op
     def __getitem__(self, res: Union[Exception, str], key) -> Proxy:
         if isinstance(res, Exception):
             raise res
