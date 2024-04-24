@@ -591,6 +591,8 @@ class ExecutionRuntime():
         args = [ self._deserialize(i, False)[1] for i in args ]
         kwargs = {k:self._deserialize(v, False)[1] for k, v in kwargs.items() }
 
+        torch.set_num_threads(1)
+
         try:
             trainer.fit(model, dataloader, *args, **kwargs)
         except Exception as e:

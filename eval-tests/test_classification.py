@@ -243,6 +243,9 @@ def test_classification(baseline: bool, dataset: str, model: str, max_epochs: st
     trainer = Trainer(gpus=1, max_epochs=max_epochs)
     model = build_model(dataset_name, model_name)
 
+    if baseline:
+        torch.set_num_threads(1)
+
     trainer.fit(model, train_dataloaders=loader)
     
     end = time.time()
