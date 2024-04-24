@@ -596,5 +596,11 @@ class ExecutionRuntime():
         except Exception as e:
             raise UserError(e)
 
-        model = dill.dumps(model)
+        from io import BytesIO
+        buffer = BytesIO()
+        torch.save(model.state_dict(), buffer)
+        model = buffer.getvalue()
+        buffer.close()
+
+        # model = dill.dumps(model)
         return model, None

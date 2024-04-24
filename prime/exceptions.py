@@ -118,9 +118,12 @@ def retrieve_xcpt(fitmodel: bool):
                     profiles['serialize'] += serialize
                     profiles['op'] += op
                     profiles['taint'] += taint
+                
+                if fitmodel:
+                    ret = res.val
+                else:
+                    ret = res.name or dill.loads(res.obj)
 
-                ret = (dill.loads(res.val) if fitmodel else
-                       res.name if res.name else dill.loads(res.obj))
                 return ret
 
         return wrapper

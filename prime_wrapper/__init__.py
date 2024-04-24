@@ -64,7 +64,13 @@ if REAL_PACKAGE == PYTORCH_LIGHTNING:
             if isinstance(ref, Exception):
                 raise ref
 
-            model.load_state_dict(ref.state_dict())
+            import torch
+            from io import BytesIO
+            buffer = BytesIO(ref)
+            state_dict = torch.load(buffer)
+            buffer.close()
+
+            model.load_state_dict(state_dict)
             
     
 """ ModuleWrapper serves as package/module """
