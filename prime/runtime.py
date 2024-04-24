@@ -27,6 +27,8 @@ from prime.data import PrimeDataset
 
 from prime.profiler import Profile
 
+from pytorch_lightning import Trainer
+
 import torch
 torch.utils.data.PrimeDataset = PrimeDataset
 
@@ -469,7 +471,7 @@ class ExecutionRuntime():
         now = cur
 
         logger.debug(f'{hex(id(out))}={str(out)[0:10]}...')
-        ret = (dill.dumps(out) if isinstance(tag, Tag) and tag.is_safe()
+        ret = (dill.dumps(out) if isinstance(tag, Tag) and tag.is_safe() and not isinstance(out, Trainer)
                else self._add_to_ctx(out, tag, ref))
 
         cur = time.time()

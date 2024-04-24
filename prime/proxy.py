@@ -22,11 +22,11 @@ from prime_pb2 import *
 from prime_pb2_grpc import *
 
 # Run PrimeServer and PrimeClient
-in_vm = bool(os.environ.get('IN_VM', False))
+is_client = bool(os.environ.get('IS_CLIENT', False))
 ipaddr = os.environ.get('PRIMEIPADDR', None)
 port = os.environ.get('PRIMEPORT', None)
 
-if not in_vm:
+if not is_client:
     utils.run_server(port)
 _client = PrimeClient(ipaddr, port) if not utils.IS_SERVER else None
 

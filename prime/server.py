@@ -3,6 +3,7 @@
 #
 
 import os
+import sys
 import grpc
 import click
 from concurrent import futures
@@ -113,8 +114,6 @@ class PrimeServer(PrimeServerServicer):
 @click.option('--cert', default=f'{os.getcwd()}/certs/cert.pem', 
               help='certificate for grpc server')
 def run(port, secure, dn, ll, privkey, cert):
-    print(f'Server start with {dn} (logging: {ll})...')
-
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=2),
                          options=[
                              ('grpc.max_send_message_length', MAX_MESSAGE_LENGTH),
@@ -136,6 +135,8 @@ def run(port, secure, dn, ll, privkey, cert):
         server.add_insecure_port(f'[::]:{port}')
 
     set_log_level(ll)
+
+    print(f'Server start with {dn} (logging: {ll})...', file=sys.stderr)
 
     server.start()
     server.wait_for_termination()

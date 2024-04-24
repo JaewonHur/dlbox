@@ -26,16 +26,18 @@ TrainerWrapper         = None
 if REAL_PACKAGE == PYTORCH_LIGHTNING:
     import pytorch_lightning as pl
 
-    class TrainerWrapper(pl.Trainer):
+    class TrainerWrapper():
         def __init__(self, *args, **kwargs):
-            trainer = pl.Trainer(*args, **kwargs)
+            # trainer = pl.Trainer(*args, **kwargs)
 
-            ref = _client.AllocateObj(trainer)
+            # ref = _client.AllocateObj(trainer)
+
+            ref = _client.InvokeMethod('', 'pytorch_lightning.Trainer',
+                                       args, kwargs)
             if isinstance(ref, Exception):
                 raise ref
             
             self._ref = ref
-            super().__init__(*args, **kwargs)
             
         def fit(self, model: pl.LightningModule, *args, **kwargs):
             model_src = inspect.getsource(sys.modules[model.__class__.__module__])

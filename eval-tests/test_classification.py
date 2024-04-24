@@ -2,6 +2,7 @@
 # Copyright (c) 2022
 #
 
+import os
 import pytest
 import time
 
@@ -34,6 +35,13 @@ def max_epochs(pytestconfig):
 def test_init_server(baseline: bool, dataset: str):
     if baseline:
         kill_server()
+
+    elif 'PRIMEIPADDR' in os.environ and 'PRIMEPORT' in os.environ:
+        kill_server()
+        time.sleep(1)
+        
+        if not _client.check_server():
+            raise Exception('Server not running')
     
     else:
         kill_server()
