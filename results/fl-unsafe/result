@@ -1,0 +1,48 @@
+cifar10 simplefc
+136.94
+136.43
+139.13
+cifar10 simplecnn
+147.72
+149.64
+150.95
+cifar10 resnet
+812.69
+814.36
+816.76
+cifar10 mobilenet
+1053.69
+1053.17
+1052.70
+utkface simplefc
+274.09
+274.59
+273.33
+utkface simplecnn
+333.58
+325.10
+334.39
+utkface resnet
+574.91
+575.21
+575.52
+utkface mobilenet
+679.00
+681.64
+680.01
+chestxray simplefc
+484.66
+486.22
+482.04
+chestxray simplecnn
+707.26
+732.53
+711.71
+chestxray resnet
+839.85
+828.34
+849.55
+chestxray mobilenet
+963.66
+975.08
+956.33
