@@ -10,6 +10,14 @@ profiles = {
     'op'        : 0,
 }
 
+def clear():
+    profiles['count'] = 0
+    profiles['rpc'] = 0
+    profiles['serialize'] = 0
+    profiles['taint'] = 0
+    profiles['op'] = 0
+
+
 class Profile:
     def __init__(self):
         self.serialize = 0

@@ -58,7 +58,7 @@ _trust('pytorch_lightning')
 ################################################################################
 
 def sample_init() -> ('torch.Tensor', 'torch.Tensor'):
-    samples = TRUSTED_PKGS['torch'].Tensor(range(9 * 10)).reshape(10, 3, 3)
+    samples = TRUSTED_PKGS['torch'].randint(0, 100, (10, 16, 16))
     labels = TRUSTED_PKGS['torch'].Tensor([0, 1] * 5)
 
     return (samples, labels)

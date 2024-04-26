@@ -251,10 +251,10 @@ def test_classification(baseline: bool, dataset: str, model: str, max_epochs: st
     end = time.time()
     print(f'[{dataset_name},{model_name}] done, elapsed: {end-start:.2f}')
 
-    if not baseline:
-        test_transforms = test_transforms.obj
+    # if not baseline:
+    #     test_transforms = test_transforms.obj
         
-    eval_model(dataset_name, model, test_transforms)
+    # eval_model(dataset_name, model, test_transforms)
 
 
 ################################################################################
