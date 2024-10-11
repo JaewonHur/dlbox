@@ -50,7 +50,7 @@ def test_init_server(baseline: bool, dataset: str):
 
     else:
         kill_server()
-        run_server(dn=dataset, ll="ERROR")
+        run_server(dn=dataset, ll="DEBUG")
 
         time.sleep(1)
         if not _client.check_server():

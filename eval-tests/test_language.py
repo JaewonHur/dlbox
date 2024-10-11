@@ -57,22 +57,30 @@ def test_init_server(baseline: bool, task: str):
         "language-modeling": "wikipedia",
         "translation": "wmt16",
     }
+    dataset = datasets[task]
+
+    sleep_times = {
+        "emotion": 30,
+        "wikipedia": 180,
+        "wmt16": 30
+    }
+    sleep_time = sleep_times[dataset]
 
     if baseline:
         kill_server()
 
     elif "PRIMEIPADDR" in os.environ and "PRIMEPORT" in os.environ:
         kill_server()
-        time.sleep(1)
+        time.sleep(30)
 
         if not _client.check_server():
             raise Exception("Server not running")
 
     else:
         kill_server()
-        run_server(dn=datasets[task], ll="DEBUG")
+        run_server(dn=dataset, ll="DEBUG")
 
-        time.sleep(10)
+        time.sleep(sleep_time)
         if not _client.check_server():
             raise Exception("Server not running")
 
@@ -105,13 +113,14 @@ def import_libs(baseline: bool):
 
 
 def load_dataset(baseline: bool, task: str) -> "datasets.arrow_dataset.Dataset":
-    from eval_tests.datalib.nlp import load_emotion, load_wikipedia, load_wmt16
+    from eval_tests.datalib.nlp import load_emotion, load_wikipedia, load_wmt16, load_wikipedia
 
     if baseline:
         if task == "sentiment-analysis":
             dataset = load_emotion()
         elif task == "language-modeling":
             dataset = load_wikipedia()
+            # dataset = load_wikipedia()
         elif task == "translation":
             dataset = load_wmt16()
 
@@ -145,7 +154,7 @@ def transform_dataset(
             return tok(texts, max_length=512, padding="max_length")
 
         ds = ds.map(tokenizer_func, batched=True, with_indices=True, 
-                    fn_kwargs={"tok": tokenizer})
+                    fn_kwargs={"tok": tokenizer}, num_proc=16)
         ds = ds.rename_column("label", "labels")
         ds.set_format(
             "torch",
@@ -154,35 +163,84 @@ def transform_dataset(
 
     elif task == "language-modeling":
 
-        @export_def(baseline)
-        def tokenizer_function(examples: Any, tok=None):
-            return tok(examples["text"])
+        # #######################
+        # #### For wikitext  ####
+        # #######################
 
-        ds = ds.map(tokenizer_function, batched=True,
-                    fn_kwargs={"tok": tokenizer},
-                    remove_columns=["text"])
+        # @export_def(baseline)
+        # def tokenizer_function(examples: Any, tok=None):
+        #     return tok(examples["text"])
+
+        # ds = ds.map(tokenizer_function, batched=True,
+        #             fn_kwargs={"tok": tokenizer},
+        #             remove_columns=["text"])
+
+        # @export_def(baseline)
+        # def convert_to_features(examples: Any):
+        #     block_size = 1024
+
+        #     concatenated_examples = {
+        #         k: sum(examples[k], []) for k in examples.keys()
+        #     }
+        #     total_length = len(concatenated_examples[list(examples.keys())[0]])
+
+        #     total_length = (total_length // block_size) * block_size
+        #     result = {
+        #         k: [
+        #             t[i : i + block_size]
+        #             for i in range(0, total_length, block_size)
+        #         ]
+        #         for k, t in concatenated_examples.items()
+        #     }
+        #     result["labels"] = result["input_ids"].copy()
+        #     return result
+        
+        # ds = ds.map(convert_to_features, batched=True)
+        # ds.set_format("torch")
+
+        #######################
+        #### For wikitext  ####
+        #######################
+
+        # These transformations are already done
+        tokenizer.pad_token = tokenizer.eos_token
 
         @export_def(baseline)
-        def convert_to_features(examples: Any):
+        def truncate(examples: Any):
             block_size = 1024
 
             concatenated_examples = {
-                k: sum(examples[k], []) for k in examples.keys()
+                "text": " ".join(examples["text"])
             }
-            total_length = len(concatenated_examples[list(examples.keys())[0]])
-
+            total_length = len(concatenated_examples["text"])
             total_length = (total_length // block_size) * block_size
             result = {
-                k: [
-                    t[i : i + block_size]
+                "text": [
+                    concatenated_examples["text"][i: i + block_size]
                     for i in range(0, total_length, block_size)
                 ]
-                for k, t in concatenated_examples.items()
             }
-            result["labels"] = result["input_ids"].copy()
             return result
 
-        ds = ds.map(convert_to_features, batched=True)
+        ds = ds.map(truncate, batched=True, remove_columns=["id", "url", "title"], 
+                    num_proc=16)
+
+        @export_def(baseline)
+        def tokenize(examples, tok=None):
+            return tok(examples["text"], max_length=1024, padding="max_length",
+                       truncation=True)
+        
+        ds = ds.map(tokenize, batched=True, fn_kwargs={"tok": tokenizer},
+                    num_proc=16)
+        ds = ds.remove_columns(["text"])
+        
+        @export_def(baseline)
+        def copy_column(examples):
+            examples["labels"] = examples["input_ids"]
+            return examples
+
+        ds = ds.map(copy_column, batched=True, num_proc=16)
+
         ds.set_format("torch")
 
     elif task == "translation":
@@ -215,7 +273,8 @@ def transform_dataset(
             model_inputs["labels"] = labels["input_ids"]
             return model_inputs
 
-        ds = ds.map(convert_to_features, batched=True, fn_kwargs={"tok": tokenizer})
+        ds = ds.map(convert_to_features, batched=True, fn_kwargs={"tok": tokenizer},
+                    num_proc=16)
         ds.set_format(
             "torch", columns=["input_ids", "attention_mask", "labels"]
         )
@@ -264,13 +323,13 @@ def test_language(baseline: bool, task: str, model: str, max_epochs: str):
     dataset = transform_dataset(baseline, dataset, task, model)
 
     batch_sizes = {
-        "bert-base-cased": 1,
-        "bert-large-cased": 1,
-        "gpt2": 1,
-        "t5-base": 1,
+        "bert-base-cased": 128,
+        "bert-large-cased": 32,
+        "gpt2": 16,
+        "t5-base": 128,
     }
 
-    dataloader = DataLoader(dataset, batch_size=1)
+    dataloader = DataLoader(dataset, batch_size=batch_sizes[model])
 
     model = build_model(task, model)
 

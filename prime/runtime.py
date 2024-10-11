@@ -182,7 +182,7 @@ class ExecutionRuntime:
             self._add_to_ctx(samples, s_tagsack, "_SAMPLES")
             self._add_to_ctx(labels, l_tagsack, "_LABELS")
 
-        elif self.dn in ("emotion", "wikipedia", "wmt16"):
+        elif self.dn in ("emotion", "wikipedia", "wikitext", "wmt16"):
             global lightning_transformers
             import lightning_transformers
 
@@ -193,11 +193,14 @@ class ExecutionRuntime:
             from eval_tests.datalib.nlp import (
                 load_emotion,
                 load_wikipedia,
+                load_wikitext,
                 load_wmt16,
             )
 
             if self.dn == "emotion":
                 dataset = load_emotion()
+            elif self.dn == "wikitext":
+                dataset = load_wikitext()
             elif self.dn == "wikipedia":
                 dataset = load_wikipedia()
             else:

@@ -11,7 +11,7 @@ from typing import Optional
 IS_SERVER = False
 SERVER_PID = 0
 
-MAX_MESSAGE_LENGTH = 1000 * 1024 * 1024
+MAX_MESSAGE_LENGTH = pow(2, 31) - 1
 
 logger = logging.getLogger()
 logger.setLevel(logging.DEBUG)

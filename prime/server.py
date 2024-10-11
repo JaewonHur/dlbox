@@ -120,6 +120,7 @@ class PrimeServer(PrimeServerServicer):
             "utkface",
             "chestxray",
             "emotion",
+            "wikitext",
             "wikipedia",
             "wmt16",
         ]
