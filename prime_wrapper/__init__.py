@@ -40,11 +40,12 @@ if REAL_PACKAGE == PYTORCH_LIGHTNING:
             self._ref = ref
             
         def fit(self, model: pl.LightningModule, *args, **kwargs):
-            model_src = inspect.getsource(sys.modules[model.__class__.__module__])
-            ref = _client.ExportModel(f'{model.__class__.__module__}.{model.__class__.__name__}', 
-                                      model_src)
-            if isinstance(ref, Exception):
-                raise ref
+            if not model.__class__.__module__.startswith("lightning_transformers"):
+                model_src = inspect.getsource(sys.modules[model.__class__.__module__])
+                ref = _client.ExportModel(f'{model.__class__.__module__}.{model.__class__.__name__}', 
+                                          model_src)
+                if isinstance(ref, Exception):
+                    raise ref
 
             model_ref = _client.AllocateObj(model)
             if isinstance(model_ref, Exception):

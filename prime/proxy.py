@@ -149,7 +149,7 @@ def _prime_op(func):
 
         if res is NotImplemented:
             return res
-        elif type(res) in (Exception, StopIteration, str):
+        elif type(res) in (StopIteration, str) or isinstance(res, Exception):
             return func(self, res, *args, **kwargs)
         else: # bytes
             return res
