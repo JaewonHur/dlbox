@@ -4,13 +4,26 @@
 
 import os
 import pytest
+import inspect
+import textwrap
 import time
 
 from typing import Any, List
+from functools import partial
+from transformers import AutoTokenizer
 
 from prime.proxy import Proxy, _client
 from prime.utils import run_server, kill_server
 
+from lightning_transformers.task.nlp.text_classification import (
+    TextClassificationTransformer,
+)
+from lightning_transformers.task.nlp.language_modeling import (
+    LanguageModelingTransformer,
+)
+from lightning_transformers.task.nlp.translation import (
+    TranslationTransformer,
+)
 
 @pytest.fixture
 def baseline(pytestconfig):
@@ -41,7 +54,7 @@ def test_init_server(baseline: bool, task: str):
 
     datasets = {
         "sentiment-analysis": "emotion",
-        "language-modeling": "wikitext",
+        "language-modeling": "wikipedia",
         "translation": "wmt16",
     }
 
@@ -57,42 +70,63 @@ def test_init_server(baseline: bool, task: str):
 
     else:
         kill_server()
-        run_server(dn=datasets[task], ll="ERROR")
+        run_server(dn=datasets[task], ll="DEBUG")
 
-        time.sleep(1)
+        time.sleep(10)
         if not _client.check_server():
             raise Exception("Server not running")
 
 
 ################################################################################
 
+def export_def(baseline: bool):
+    def decorator(func):
+        if baseline:
+            return func
+
+        src = textwrap.dedent(inspect.getsource(func))
+        src = '\n'.join(src.split('\n')[1:]) # Remove decorator
+
+        ref = _client.ExportDef(f"__main__.{func.__name__}", type(func), src)
+        return Proxy(f"__main__.{ref}")
+
+    return decorator
 
 def import_libs(baseline: bool):
-    pass
+    global DataLoader, Trainer
+    
+    if baseline:
+        from torch.utils.data import DataLoader
+        from pytorch_lightning import Trainer
+
+    else:
+        from prime_torch.utils.data import DataLoader
+        from prime_pytorch_lightning import Trainer
 
 
-def sample_init(baseline: bool, dataset: str) -> tuple:
-    return
+def load_dataset(baseline: bool, task: str) -> "datasets.arrow_dataset.Dataset":
+    from eval_tests.datalib.nlp import load_emotion, load_wikipedia, load_wmt16
 
+    if baseline:
+        if task == "sentiment-analysis":
+            dataset = load_emotion()
+        elif task == "language-modeling":
+            dataset = load_wikipedia()
+        elif task == "translation":
+            dataset = load_wmt16()
 
-def load_dataset(task: str) -> "datasets.arrow_dataset.Dataset":
-    from datasets import load_dataset
+        else:
+            raise RuntimeError(f"Unknown task: {task}")
 
-    dataset_kwargs = {
-        "sentiment-analysis": dict(path="emotion"),
-        "language-modeling": dict(path="wikitext", name="wikitext-2-raw-v1"),
-        "translation": dict(path="wmt16", name="ro-en"),
-    }
+    else:
+        dataset = Proxy("_DATASET")
 
-    dataset = load_dataset(**dataset_kwargs[task])
-    return dataset["train"]
+    return dataset
 
 
 def transform_dataset(
-    ds: "datasets.arrow_dataset.Dataset", task: str, model: str
+    baseline, ds: "datasets.arrow_dataset.Dataset", task: str, model: str
 ) -> "datasets.arrow_dataset.Dataset":
-    from transformers import AutoTokenizer
-
     tokenizer_kwargs = {
         "sentiment-analysis": dict(),
         "language-modeling": dict(),
@@ -105,11 +139,13 @@ def transform_dataset(
 
     if task == "sentiment-analysis":
 
-        def convert_to_features(examples: Any, _):
+        @export_def(baseline)
+        def tokenizer_func(examples: Any, _, tok=None):
             texts = examples["text"]
-            return tokenizer(texts, max_length=512, padding="max_length")
+            return tok(texts, max_length=512, padding="max_length")
 
-        ds = ds.map(convert_to_features, batched=True, with_indices=True)
+        ds = ds.map(tokenizer_func, batched=True, with_indices=True, 
+                    fn_kwargs={"tok": tokenizer})
         ds = ds.rename_column("label", "labels")
         ds.set_format(
             "torch",
@@ -118,11 +154,15 @@ def transform_dataset(
 
     elif task == "language-modeling":
 
-        def tokenizer_function(examples: Any):
-            return tokenizer(examples["text"])
+        @export_def(baseline)
+        def tokenizer_function(examples: Any, tok=None):
+            return tok(examples["text"])
 
-        ds = ds.map(tokenizer_function, batched=True, remove_columns=["text"])
+        ds = ds.map(tokenizer_function, batched=True,
+                    fn_kwargs={"tok": tokenizer},
+                    remove_columns=["text"])
 
+        @export_def(baseline)
         def convert_to_features(examples: Any):
             block_size = 1024
 
@@ -147,7 +187,8 @@ def transform_dataset(
 
     elif task == "translation":
 
-        def convert_to_features(examples: Any):
+        @export_def(baseline)
+        def convert_to_features(examples: Any, tok=None):
             source_language = "en"
             target_language = "ro"
             max_source_length = 128
@@ -156,15 +197,15 @@ def transform_dataset(
 
             inputs = [ex[source_language] for ex in examples["translation"]]
             targets = [ex[target_language] for ex in examples["translation"]]
-            model_inputs = tokenizer(
+            model_inputs = tok(
                 inputs,
-                max_length=max_target_length,
+                max_length=max_source_length,
                 padding=padding,
                 truncation=True,
             )
 
-            with tokenizer.as_target_tokenizer():
-                labels = tokenizer(
+            with tok.as_target_tokenizer():
+                labels = tok(
                     targets,
                     max_length=max_target_length,
                     padding=padding,
@@ -174,7 +215,7 @@ def transform_dataset(
             model_inputs["labels"] = labels["input_ids"]
             return model_inputs
 
-        ds = ds.map(convert_to_features, batched=True)
+        ds = ds.map(convert_to_features, batched=True, fn_kwargs={"tok": tokenizer})
         ds.set_format(
             "torch", columns=["input_ids", "attention_mask", "labels"]
         )
@@ -186,16 +227,6 @@ def transform_dataset(
 
 
 def build_model(task: str, model: str):
-    from lightning_transformers.task.nlp.text_classification import (
-        TextClassificationTransformer,
-    )
-    from lightning_transformers.task.nlp.language_modeling import (
-        LanguageModelingTransformer,
-    )
-    from lightning_transformers.task.nlp.translation import (
-        TranslationTransformer,
-    )
-
     if task == "sentiment-analysis":
         model = TextClassificationTransformer(
             pretrained_model_name_or_path=model, num_labels=6
@@ -224,22 +255,28 @@ def build_model(task: str, model: str):
 
 
 def test_language(baseline: bool, task: str, model: str, max_epochs: str):
-
-    from torch.utils.data import DataLoader
-    from pytorch_lightning import Trainer
-
     assert task in ("sentiment-analysis", "language-modeling", "translation")
     assert model in ("bert-base-cased", "bert-large-cased", "gpt2", "t5-base")
 
-    dataset = load_dataset(task)
+    import_libs(baseline)
 
-    dataset = transform_dataset(dataset, task, model)
+    dataset = load_dataset(baseline, task)
+    dataset = transform_dataset(baseline, dataset, task, model)
+
+    batch_sizes = {
+        "bert-base-cased": 1,
+        "bert-large-cased": 1,
+        "gpt2": 1,
+        "t5-base": 1,
+    }
+
     dataloader = DataLoader(dataset, batch_size=1)
 
     model = build_model(task, model)
 
     trainer = Trainer(accelerator="auto", devices="auto", max_epochs=1)
     trainer.fit(model, train_dataloaders=dataloader)
+
 
 ################################################################################
 # Kill server after all tests are completed                                    #
