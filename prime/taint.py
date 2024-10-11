@@ -8,6 +8,7 @@ from enum import Enum
 from functools import reduce
 
 from torch import Tensor
+from datasets.arrow_dataset import Dataset
 
 from prime.utils import logger
 
@@ -224,9 +225,14 @@ def taint(method: Callable, module: Optional[str],
     if module == 'torch': # All tensor methods belong to this
         _taint = taint_rules['torch']
 
-    elif (hasattr(method, '__name__') and method.__name__  in _emul
-          and isinstance(args[0], Tensor)):
-        _taint = taint_rules['torch']
+    elif module == 'datasets':
+        _taint = taint_rules['datasets']
+
+    elif hasattr(method, '__name__') and method.__name__  in _emul:
+        if isinstance(args[0], Tensor):
+            _taint = taint_rules['torch']
+        elif isinstance(args[0], Dataset):
+            _taint = taint_rules['datasets']
 
     else:
         _taint = taint_rules['default']

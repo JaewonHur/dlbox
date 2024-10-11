@@ -8,6 +8,7 @@ from types import FunctionType
 
 from prime.taint import *
 from prime.rule_torch import taint_torch
+from prime.rule_datasets import taint_datasets
 
 def taint_default(method: Callable,
                   args: List[Any],
@@ -32,4 +33,5 @@ def taint_default(method: Callable,
 taint_rules: Dict[str, FunctionType] = {
     'default': taint_default,
     'torch':   taint_torch,
+    'datasets': taint_datasets,
 }
