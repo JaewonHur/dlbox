@@ -207,7 +207,7 @@ def transform_dataset(
 
         @export_def(baseline)
         def truncate(examples: Any):
-            block_size = 1024
+            block_size = 4096
 
             concatenated_examples = {
                 "text": " ".join(examples["text"])
@@ -314,14 +314,24 @@ def build_model(task: str, model: str):
 
 
 def test_language(baseline: bool, task: str, model: str, max_epochs: str):
+    model_name = model
+
     assert task in ("sentiment-analysis", "language-modeling", "translation")
-    assert model in ("bert-base-cased", "bert-large-cased", "gpt2", "t5-base")
+    assert model_name in ("bert-base-cased", "bert-large-cased", "gpt2", "t5-base")
 
     import_libs(baseline)
 
     dataset = load_dataset(baseline, task)
-    dataset = transform_dataset(baseline, dataset, task, model)
 
+    print(f"\n[{task},{model_name}] start running...")
+    start = time.time()
+
+    print(f"\n[{task},{model_name}] transform data...")
+    augment_start = time.time()
+    dataset = transform_dataset(baseline, dataset, task, model_name)
+    augment_end = time.time()
+
+    update_start = time.time()
     batch_sizes = {
         "bert-base-cased": 128,
         "bert-large-cased": 32,
@@ -329,13 +339,19 @@ def test_language(baseline: bool, task: str, model: str, max_epochs: str):
         "t5-base": 128,
     }
 
-    dataloader = DataLoader(dataset, batch_size=batch_sizes[model])
 
+    dataloader = DataLoader(dataset, batch_size=batch_sizes[model_name])
     model = build_model(task, model)
 
-    trainer = Trainer(accelerator="auto", devices="auto", max_epochs=1)
-    trainer.fit(model, train_dataloaders=dataloader)
+    print(f"\n[{task},{model_name}] fit model...")
 
+    trainer = Trainer(accelerator="auto", devices="auto", max_epochs=1, enable_checkpointing=False)
+    trainer.fit(model, train_dataloaders=dataloader)
+    update_end = time.time()
+    
+    end = time.time()
+
+    print(f"[{task},{model_name}] done, elapsed: {end - start:.2f}")
 
 ################################################################################
 # Kill server after all tests are completed                                    #

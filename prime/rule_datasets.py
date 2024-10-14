@@ -63,7 +63,7 @@ def _call(*a) -> Tag:
 
     # TODO: return SafeTag on safe operations
     if isinstance(self_tag, TagSack):
-        if method in ('rename_column', 'set_format'):
+        if method in ('rename_column', 'set_format', 'remove_columns'):
             return self_tag
 
         elif method in ('map'):
