@@ -11,3 +11,4 @@ pytorch-lightning==1.8.3
 torchvision==0.15.2
 grpcio==1.51.1
 grpcio-tools==1.51.1
+datasets==3.1.0
