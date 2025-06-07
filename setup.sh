@@ -21,8 +21,9 @@ tar xvf mnist.tar -C $PWD/datasets/mnist
 rm mnist.tar
 
 gdown "https://drive.google.com/uc?id=1HLlLZQaJstYwFMyGGjJKYyicoobxj55Q"
-tar xvf cifar-10-python.tar.gz -C $PWD/datasets/cifar10
-rm cifar-10-python.tar.gz
+tar xvf cifar-10-python.tar.gz
+mv cifar-10-batches-py/* $PWD/datasets/cifar10
+rm -rf cifar-10-batches-py cifar-10-python.tar.gz
 
 ln -s ci-tests ci_tests
 ln -s eval-tests eval_tests
