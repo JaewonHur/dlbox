@@ -57,17 +57,17 @@ def read_label_file(path: str) -> torch.Tensor:
     return x.long()
 
 def sample_init() -> (torch.Tensor, torch.Tensor):
-    pwd = dirname(abspath(__file__))
+    base = abspath(f'{__file__}/../../../')
 
-    samples = read_image_file(f'{pwd}/train-images-idx3-ubyte')
-    labels = read_label_file(f'{pwd}/train-labels-idx1-ubyte')
+    samples = read_image_file(f'{base}/datasets/mnist/train-images.idx3-ubyte')
+    labels = read_label_file(f'{base}/datasets/mnist/train-labels.idx1-ubyte')
 
     return (samples, labels)
 
 def test_init() -> (torch.Tensor, torch.Tensor):
-    pwd = dirname(abspath(__file__))
+    base = abspath(f'{__file__}/../../../')
 
-    samples = read_image_file(f'{pwd}/t10k-images-idx3-ubyte')
-    labels = read_label_file(f'{pwd}/t10k-labels-idx1-ubyte')
+    samples = read_image_file(f'{base}/datasets/mnist/t10k-images.idx3-ubyte')
+    labels = read_label_file(f'{base}/datasets/mnist/t10k-labels.idx1-ubyte')
 
     return (samples, labels)

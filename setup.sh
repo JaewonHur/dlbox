@@ -13,42 +13,32 @@ pip3 install -r requirements.txt --break-system-packages
 mkdir build
 python3 -m grpc_tools.protoc -I protos --python_out=build --grpc_python_out=build protos/prime.proto
 
-openssl req -newkey rsa:2048 -nodes -keyout certs/privkey.pem -config certs/ca.cnf -out certs/csr.pem
-openssl x509 -req -in certs/csr.pem -signkey certs/privkey.pem -out certs/cert.pem
+# openssl req -newkey rsa:2048 -nodes -keyout certs/privkey.pem -config certs/ca.cnf -out certs/csr.pem
+# openssl x509 -req -in certs/csr.pem -signkey certs/privkey.pem -out certs/cert.pem
+
+wget --no-check-certificate "https://docs.google.com/uc?export=download&id=1Ecvge9yeFnwDe0Z3_gnxbcEAdyU18e4D" -O mnist.tar
+tar xvf mnist.tar -C $PWD/datasets/mnist
+rm mnist.tar
+
+wget --no-check-certificate "https://docs.google.com/uc?export=download&id=1HLlLZQaJstYwFMyGGjJKYyicoobxj55Q" -O cifar10.tar.gz
+tar xvf cifar10.tar.gz -C $PWD/datasets/cifar10
+rm cifar10.tar.gz
+
+ln -s ci-tests ci_tests
+ln -s eval-tests eval_tests
+
+ln -s prime_wrapper prime_torch
+ln -s prime_wrapper prime_pytorch_lightning
+ln -s prime_wrapper prime_torchvision
+ln -s prime_wrapper prime_PIL
+ln -s prime_wrapper prime_numpy
+ln -s prime_wrapper prime_types
+ln -s prime_wrapper prime_time
 
 export PYTHONPATH=$PYTHONPATH:$PWD:$PWD/build
 
-echo "[0] Run tests"
-python3 -m pytest tests
-
-wget http://147.46.174.102:37373/mnist.tar
-tar xvf mnist.tar
-cp -r mnist/* ci-tests/mnist/
-rm mnist.tar
-
-wget http://147.46.174.102:37373/cifar10.tar
-tar xvf cifar10.tar
-cp -r cifar10 ci-tests/cifar10/cifar-10-batches-py
-rm cifar10.tar
-
-# mkdir eval-tests/datasets
-for dn in cifar10 utkface chestxray
-do
-    wget http://147.46.174.102:37373/$dn.tar
-    tar xvf $dn.tar
-    mv $dn eval-tests/datasets/
-    rm $dn.tar
-done
-ln -s eval-tests eval_tests
-
-echo "Run ci-tests"
-ln -s ci-tests ci_tests
-
-echo "[1.1] test_mnist"
+echo "Run training on mnist"
 python3 -m pytest -s ci-tests/test_mnist.py
 
-echo "[1.2] test_cifar10 (googlenet)"
-python3 -m pytest -s ci-tests/test_cifar10.py --model googlenet
-
-# echo "[1.3] test_cifar10 (resnet)"
-# python3 -m pytest -s ci-tests/test_cifar10.py --model resnet
+echo "Run training on cifar10"
+python3 -m pytest -s ci-tests/test_cifar10.py

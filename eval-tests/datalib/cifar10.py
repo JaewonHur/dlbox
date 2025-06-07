@@ -3,6 +3,7 @@ import torch
 import pickle
 import numpy as np
 from typing import List, Tuple
+from os.path import abspath
 
 from PIL import Image
 from numpy import transpose, reshape
@@ -10,9 +11,9 @@ from torch.utils.data import Dataset
 from torchvision.transforms import ToTensor
 
 def get_dataset(transforms=None):
-    pwd = os.environ['PWD']
+    base = abspath(f'{__file__}/../../../')
 
-    data_path  = f'{pwd}/eval-tests/datasets/cifar10'
+    data_path  = f'{base}/datasets/cifar10'
     dataset = Cifar10Dataset(data_path, transforms)
     return dataset
 
