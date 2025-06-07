@@ -270,10 +270,10 @@ class ExecutionRuntime:
 
         obj_in_ctx = len(fromref) == 1 and self.__ctx[fromref[0]] is obj
 
-        assert (
-            not isinstance(obj, Callable) or isinstance(obj, LightningModule) 
-            or obj_in_ctx
-        ), f"invalid type: {obj}"
+        # assert (
+        #     not isinstance(obj, Callable) or isinstance(obj, LightningModule) 
+        #     or obj_in_ctx
+        # ), f"invalid type: {obj}"
         assert (
             from_trusted(tpe) or self._from_ctx(tpe) or obj_in_ctx
         ), f"type not trusted: {obj}({tpe})"
