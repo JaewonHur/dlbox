@@ -8,7 +8,7 @@ if [ "$(python --version)" != "Python 3.8.4" ]; then
 fi
 
 echo "Install packages"
-pip3 install -r requirements.txt --break-system-packages
+pip3 install -r requirements.txt
 
 mkdir build
 python3 -m grpc_tools.protoc -I protos --python_out=build --grpc_python_out=build protos/prime.proto
@@ -20,9 +20,9 @@ wget --no-check-certificate "https://docs.google.com/uc?export=download&id=1Ecvg
 tar xvf mnist.tar -C $PWD/datasets/mnist
 rm mnist.tar
 
-wget --no-check-certificate "https://docs.google.com/uc?export=download&id=1HLlLZQaJstYwFMyGGjJKYyicoobxj55Q" -O cifar10.tar.gz
-tar xvf cifar10.tar.gz -C $PWD/datasets/cifar10
-rm cifar10.tar.gz
+gdown "https://drive.google.com/uc?id=1HLlLZQaJstYwFMyGGjJKYyicoobxj55Q"
+tar xvf cifar-10-python.tar.gz -C $PWD/datasets/cifar10
+rm cifar-10-python.tar.gz
 
 ln -s ci-tests ci_tests
 ln -s eval-tests eval_tests
@@ -42,3 +42,5 @@ python3 -m pytest -s ci-tests/test_mnist.py
 
 echo "Run training on cifar10"
 python3 -m pytest -s ci-tests/test_cifar10.py
+
+https://drive.google.com/file/d/1HLlLZQaJstYwFMyGGjJKYyicoobxj55Q/view?usp=sharing
