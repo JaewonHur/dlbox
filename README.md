@@ -13,5 +13,6 @@ DLBox is published at NDSS 2025 [[paper](https://www.ndss-symposium.org/wp-conte
 
 ## Setup
 
-`setup.sh` details the setup procedure, but it may be incomplete.
+Running `setup.sh` bootstraps and runs model training on mnist and cifar10 datasets.
 
+*It does not setup confidential computing environment, but only runs on local environment.
